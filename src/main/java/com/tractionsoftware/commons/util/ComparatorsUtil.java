@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright 1996-2025 Traction Software, Inc.
+ *    Copyright 1996-2026 Traction Software, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,10 +20,12 @@
 
 package com.tractionsoftware.commons.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
-import java.util.logging.Level;
 
 /**
  * Helpful methods for handling {@link Comparator}s.
@@ -32,7 +34,10 @@ import java.util.logging.Level;
  */
 public final class ComparatorsUtil {
 
-    private ComparatorsUtil() {}
+    private ComparatorsUtil() {
+    }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ComparatorsUtil.class);
 
     /**
      * A variation of {@link String#CASE_INSENSITIVE_ORDER} which
@@ -98,7 +103,7 @@ public final class ComparatorsUtil {
                 return comparator.compare(t1, t2);
             }
             catch (RuntimeException e) {
-                ObjectsUtil.getLogger().log(Level.WARNING, "SafeComparator caught a RuntimeException", e);
+                LOGGER.warn("SafeComparator caught a RuntimeException", e);
             }
             return 0;
         }

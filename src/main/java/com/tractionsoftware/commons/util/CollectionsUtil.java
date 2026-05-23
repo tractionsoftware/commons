@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright 1996-2025 Traction Software, Inc.
+ *    Copyright 1996-2026 Traction Software, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,18 +20,22 @@
 
 package com.tractionsoftware.commons.util;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.tractionsoftware.commons.lang.ObjectsUtil;
 import com.tractionsoftware.commons.util.function.FunctionsUtil;
 import com.tractionsoftware.commons.util.function.PredicatesUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.logging.Level;
 
 /**
  * Some helpful methods for manipulating Collections and related types.
@@ -46,6 +50,8 @@ import java.util.logging.Level;
  * @author Dave Shepperton
  */
 public final class CollectionsUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CollectionsUtil.class);
 
     /**
      * A simpler variation of the {@link Map} interface that supports get and remove only.
@@ -218,7 +224,7 @@ public final class CollectionsUtil {
         @Override
         public final Integer next() {
             if (hasNext()) {
-                Integer ret = Integer.valueOf(current);
+                Integer ret = current;
                 current++;
                 return ret;
             }
@@ -246,7 +252,7 @@ public final class CollectionsUtil {
 
         @Override
         public final T apply(Integer index) {
-            int idx = index.intValue();
+            int idx = index;
             if (idx < 0 || idx >= list.size()) {
                 return null;
             }
@@ -288,8 +294,9 @@ public final class CollectionsUtil {
                 return map.get(key);
             }
             catch (NullPointerException e) {
-                ObjectsUtil.getLogger()
-                    .log(Level.FINE, "The Map " + map + " (" + map.getClass() + ") may not support null keys.", e);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("The Map " + map + " (" + map.getClass() + ") may not support null keys.", e);
+                }
             }
             return null;
         }
@@ -310,6 +317,172 @@ public final class CollectionsUtil {
         @Override
         public final int hashCode() {
             return ~map.hashCode();
+        }
+
+    }
+
+    private static abstract class AbstractUnmodifiableSequencedSet<T> implements SequencedSet<T> {
+
+        @Override
+        public final boolean add(T t) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public final boolean remove(Object o) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Nonnull
+        @Override
+        public SequencedSet<T> reversed() {
+            return this;
+        }
+
+        @Override
+        public final boolean addAll(@Nonnull Collection<? extends T> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public final boolean removeAll(@Nonnull Collection<?> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public final boolean retainAll(@Nonnull Collection<?> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public final void clear() {
+            throw new UnsupportedOperationException();
+        }
+
+    }
+
+    private static final SequencedSet<Object> EMPTY_SEQUENCED_SET = new AbstractUnmodifiableSequencedSet<>() {
+
+        @Override
+        public final int size() {
+            return 0;
+        }
+
+        @Override
+        public final boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public final boolean contains(Object o) {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public final Iterator<Object> iterator() {
+            return Collections.emptyIterator();
+        }
+
+        @Nonnull
+        @Override
+        public final Object[] toArray() {
+            return ArrayUtils.EMPTY_OBJECT_ARRAY;
+        }
+
+        @Nonnull
+        @Override
+        public <T> T[] toArray(@Nonnull T[] a) {
+            if (a.length > 0) {
+                a[0] = null;
+            }
+            return a;
+        }
+
+        @Override
+        public final boolean containsAll(Collection<?> c) {
+            if (c.isEmpty()) {
+                return true;
+            }
+            return false;
+        }
+
+    };
+
+    private static final class SingletonSequencedSet<T> extends AbstractUnmodifiableSequencedSet<T> {
+
+        private final T element;
+
+        private SingletonSequencedSet(T element) {
+            this.element = element;
+        }
+
+        @Override
+        public final int size() {
+            return 1;
+        }
+
+        @Override
+        public final boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public final boolean contains(Object o) {
+            if (o == null) {
+                return false;
+            }
+            return element.equals(o);
+        }
+
+        @Nonnull
+        @Override
+        public final Iterator<T> iterator() {
+            return Iterators.singletonIterator(element);
+        }
+
+        @Nonnull
+        @Override
+        public final Object[] toArray() {
+            return new Object[] { element };
+        }
+
+        @Nonnull
+        @SuppressWarnings("unchecked")
+        @Override
+        public final <U> U[] toArray(@Nonnull U[] a) {
+
+            U useElement;
+            try {
+                useElement = (U) element;
+            }
+            catch (ClassCastException e) {
+                throw new ArrayStoreException(e.getMessage());
+            }
+
+            if (a.length >= 1) {
+                a[0] = useElement;
+                if (a.length > 1) {
+                    a[1] = null;
+                }
+                return a;
+            }
+
+            return ArrayUtils.toArray(useElement);
+
+        }
+
+        @Override
+        public final boolean containsAll(@Nonnull Collection<?> c) {
+            if (isNullOrEmpty(c)) {
+                return true;
+            }
+            for (Object o : c) {
+                if (!contains(o)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
     }
@@ -352,12 +525,9 @@ public final class CollectionsUtil {
             return coll.contains(element);
         }
         catch (NullPointerException e) {
-            ObjectsUtil.getLogger()
-                .log(
-                    Level.FINE,
-                    "The Collection " + coll + " (" + coll.getClass() + ") may not support null values.",
-                    e
-                );
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("The Collection " + coll + " (" + coll.getClass() + ") may not support null values.", e);
+            }
         }
         return false;
     }
@@ -467,6 +637,12 @@ public final class CollectionsUtil {
         if (coll == null) {
             return defaultValue;
         }
+        if (coll instanceof SequencedCollection<? extends E> seq) {
+            if (seq.isEmpty()) {
+                return null;
+            }
+            return seq.getFirst();
+        }
         return Iterables.getOnlyElement(coll, defaultValue);
     }
 
@@ -487,27 +663,67 @@ public final class CollectionsUtil {
         if (map instanceof HashMap) {
             return (HashMap<K,V>) map;
         }
-        return Maps.newHashMap(map);
+        return new HashMap<>(map);
     }
 
     /**
-     * Returns an ArrayList with the same key-value pairs contained by the given List. If the given Map is an instance
-     * of a ArrayList, it will be returned as-is. Otherwise, a new ArrayList instance will be created containing all the
-     * elements from the given List.
+     * Returns an ArrayList that contains the same elements that the given Collection contains. If the given Collection
+     * is an instance of a ArrayList, it will be returned as-is. Otherwise, a new ArrayList instance will be created
+     * containing all the elements from the given Collection.
      *
-     * @param list
+     * @param coll
      *     the List to be returned or copied to a new ArrayList.
-     * @return the given List if it is an instance of ArrayList; null if the given Map is null; otherwise, a new
-     *     ArrayList containing the same key-value pairs as the given List.
+     * @return the given List if it is an instance of ArrayList; null if the given List is null; otherwise, a new
+     *     ArrayList that contains the same elements that the given Collection contains.
      */
-    public static final <T> ArrayList<T> arrayList(Collection<T> list) {
-        if (list == null) {
+    public static final <T> ArrayList<T> arrayList(Collection<T> coll) {
+        if (coll == null) {
             return null;
         }
-        if (list instanceof ArrayList) {
-            return (ArrayList<T>) list;
+        if (coll instanceof ArrayList) {
+            return (ArrayList<T>) coll;
         }
-        return new ArrayList<>(list);
+        return new ArrayList<>(coll);
+    }
+
+    /**
+     * Returns a HashSet that contains the same elements that the given Collection contains. If the given Collection is
+     * an instance of a HashSet, it will be returned as-is. Otherwise, a new HashSet instance will be created containing
+     * all the elements from the given Collection.
+     *
+     * @param coll
+     *     the List to be returned or copied to a new ArrayList.
+     * @return the given Collection if it is an instance of HashSet; null if the given Collection is null; otherwise, a
+     *     new HashSet that contains the same elements that the given Collection contains.
+     */
+    public static final <T> HashSet<T> hashSet(Collection<T> coll) {
+        if (coll == null) {
+            return null;
+        }
+        if (coll instanceof HashSet) {
+            return (HashSet<T>) coll;
+        }
+        return new HashSet<>(coll);
+    }
+
+    /**
+     * Returns a LinkedHashSet that contains the same elements that the given Collection contains. If the given
+     * Collection is an instance of a LinkedHashSet, it will be returned as-is. Otherwise, a new LinkedHashSet instance
+     * will be created containing all the elements from the given Collection.
+     *
+     * @param coll
+     *     the List to be returned or copied to a new ArrayList.
+     * @return the given Collection if it is an instance of LinkedHashSet; null if the given Collection is null;
+     *     otherwise, a new LinkedHashSet that contains the same elements that the given Collection contains.
+     */
+    public static final <T> LinkedHashSet<T> linkedHashSet(Collection<T> coll) {
+        if (coll == null) {
+            return null;
+        }
+        if (coll instanceof LinkedHashSet) {
+            return (LinkedHashSet<T>) coll;
+        }
+        return new LinkedHashSet<>(coll);
     }
 
     /**
@@ -602,7 +818,7 @@ public final class CollectionsUtil {
      * @return the given Collection if it is not null; an empty List otherwise.
      */
     public static final <T> Collection<T> emptyInsteadOfNull(Collection<T> original) {
-        return ObjectsUtil.defaultIfNull(original, Collections::emptyList);
+        return Objects.requireNonNullElseGet(original, Collections::emptyList);
     }
 
     /**
@@ -613,7 +829,7 @@ public final class CollectionsUtil {
      * @return the given List if it is not null; an empty List otherwise.
      */
     public static final <T> List<T> emptyListInsteadOfNull(List<T> original) {
-        return ObjectsUtil.defaultIfNull(original, Collections::emptyList);
+        return Objects.requireNonNullElseGet(original, Collections::emptyList);
     }
 
     /**
@@ -624,7 +840,18 @@ public final class CollectionsUtil {
      * @return the given Set if it is not null; an empty Set otherwise.
      */
     public static final <T> Set<T> emptySetInsteadOfNull(Set<T> original) {
-        return ObjectsUtil.defaultIfNull(original, Collections::emptySet);
+        return Objects.requireNonNullElseGet(original, Collections::emptySet);
+    }
+
+    /**
+     * Returns either the given Set or an empty Set if the Set is null.
+     *
+     * @param original
+     *     the Set to be examined.
+     * @return the given Set if it is not null; an empty Set otherwise.
+     */
+    public static final <T> SequencedSet<T> emptySequencedSetInsteadOfNull(SequencedSet<T> original) {
+        return Objects.requireNonNullElseGet(original, CollectionsUtil::emptySequencedSet);
     }
 
     /**
@@ -693,6 +920,7 @@ public final class CollectionsUtil {
      *     the {@link Collection} to which the given value should be added, if the value is not null.
      * @return true if the value was successfully added to the given {@link Collection}; false otherwise.
      */
+    @CanIgnoreReturnValue
     public static final <E> boolean addIfNotNull(E value, Collection<? super E> coll) {
         if (value == null || coll == null) {
             return false;
@@ -716,6 +944,7 @@ public final class CollectionsUtil {
      *     the {@link Map} to which the given key-value pair should be added, if the value is not null.
      * @return true if the key-value pair was successfully added to the given {@link Map}; false otherwise.
      */
+    @CanIgnoreReturnValue
     public static final <K, V> boolean putIfNotNull(K key, V value, Map<? super K,? super V> map) {
         if (value == null || map == null) {
             return false;
@@ -725,8 +954,9 @@ public final class CollectionsUtil {
             return true;
         }
         catch (NullPointerException e) {
-            ObjectsUtil.getLogger()
-                .log(Level.FINE, "The Map " + map + " (" + map.getClass() + ") may not support null values.", e);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("The Map " + map + " (" + map.getClass() + ") may not support null values.", e);
+            }
         }
         return false;
     }
@@ -1421,7 +1651,7 @@ public final class CollectionsUtil {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
         for (; ; ) {
-            sb.append(safeToStringOrRecursionReplacement(it.next(), iterable, "Iterable"));
+            sb.append(safeToStringOrRecursionReplacement(it.next(), iterable, selfReferenceSubstitution));
             if (!it.hasNext()) {
                 return sb.append(']').toString();
             }
@@ -1457,7 +1687,7 @@ public final class CollectionsUtil {
         return ObjectsUtil.safeToString(object);
     }
 
-    public static final <K, V> MapIteratorAdapter<K,V> function2mapIteratorAdapater(final Function<K,V> provider) {
+    public static final <K, V> MapIteratorAdapter<K,V> function2mapIteratorAdapter(final Function<K,V> provider) {
 
         Objects.requireNonNull(provider, "provider");
 
@@ -1474,6 +1704,71 @@ public final class CollectionsUtil {
             }
 
         };
+
+    }
+
+    @SuppressWarnings("unchecked")
+    public static final <T> SequencedSet<T> emptySequencedSet() {
+        return (SequencedSet<T>) EMPTY_SEQUENCED_SET;
+    }
+
+    public static final <T> SequencedSet<T> singletonOrEmptySequencedSet(@Nullable T o) {
+        if (o == null) {
+            return emptySequencedSet();
+        }
+        return singletonSequencedSet(o);
+    }
+
+    public static final <T> SequencedSet<T> singletonSequencedSet(@Nullable T o) {
+        Objects.requireNonNull(o, "object");
+        return new SingletonSequencedSet<>(o);
+    }
+
+    public static final <T> SequencedSet<T> firstNonNullElementSingletonOrEmptySequencedSet(Collection<T> coll) {
+        if (isNullOrEmpty(coll)) {
+            return Collections.unmodifiableSequencedSet(Collections.emptySortedSet());
+        }
+        for (T o : coll) {
+            if (o != null) {
+                return new SingletonSequencedSet<>(o);
+            }
+        }
+        return emptySequencedSet();
+    }
+
+    public static final <T> SequencedSet<T> unmodifiableSequencedSet(SequencedSet<T> set) {
+        if (isNullOrEmpty(set)) {
+            return emptySequencedSet();
+        }
+        return Collections.unmodifiableSequencedSet(set);
+    }
+
+    @SafeVarargs
+    public static final <T> SequencedSet<T> unmodifiableSequencedSet(T... objects) {
+        LinkedHashSet<T> set = new LinkedHashSet<>();
+        Collections.addAll(set, objects);
+        return Collections.unmodifiableSequencedSet(set);
+    }
+
+    public static final boolean putMapEntryStrings(Iterable<String> nvPairs, Map<? super String,? super String> map) {
+
+        for (String nv : nvPairs) {
+
+            if (StringUtils.isEmpty(nv)) {
+                continue;
+            }
+
+            int eq = nv.indexOf('=');
+            if (eq != -1) {
+                map.put(nv.substring(0, eq), nv.substring(eq + 1));
+            }
+            else {
+                map.put(nv, "");
+            }
+
+        }
+
+        return true;
 
     }
 
