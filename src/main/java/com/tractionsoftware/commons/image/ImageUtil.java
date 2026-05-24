@@ -325,11 +325,10 @@ public final class ImageUtil {
 
         for (int i = 0; i < len; i++) {
             Node child = children.item(i);
-            if (!(child instanceof IIOMetadataNode) || !"pHYs".equals(child.getNodeName())) {
-                continue;
+            if (child instanceof IIOMetadataNode iioMetadataNode && "pHYs".equals(child.getNodeName())) {
+                handleHiDpiPngDimensions(dimensions, iioMetadataNode);
+                return;
             }
-            handleHiDpiPngDimensions(dimensions, (IIOMetadataNode) child);
-            return;
         }
 
     }
