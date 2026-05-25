@@ -21,7 +21,6 @@
 package com.tractionsoftware.commons.codec;
 
 import com.tractionsoftware.commons.io.IOUtil;
-import com.tractionsoftware.commons.io.SingleThreadPrintWriter;
 import com.tractionsoftware.commons.text.SnippetUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -127,7 +126,7 @@ public final class Base64Util {
         return new String(getDecodedBytes(encodedStr, mime), charset);
     }
 
-    public static void printUtf8DecodedString(String encodedStr, boolean mime, Writer out) {
+    public static void printUtf8DecodedString(String encodedStr, boolean mime, PrintWriter out) {
         printDecodedString(encodedStr, StandardCharsets.UTF_8, mime, out);
     }
 
@@ -240,24 +239,21 @@ public final class Base64Util {
         return getEncodedString(input.getBytes(charset), bytesPerLine);
     }
 
-    public static void printUtf8EncodedString(String str, int bytesPerLine, Writer out) {
+    public static void printUtf8EncodedString(String str, int bytesPerLine, PrintWriter out) {
         printEncodedString(str, StandardCharsets.UTF_8, bytesPerLine, out);
     }
 
-    public static void printEncodedString(String str, Charset charset, int bytesPerLine, Writer out) {
+    public static void printEncodedString(String str, Charset charset, int bytesPerLine, PrintWriter out) {
         if (str != null) {
             printEncodedString(str.getBytes(charset), bytesPerLine, out);
         }
     }
 
-    public static void printEncodedString(byte[] strBytes, int bytesPerLine, Writer out) {
+    public static void printEncodedString(byte[] strBytes, int bytesPerLine, PrintWriter out) {
         if (ArrayUtils.isEmpty(strBytes)) {
             return;
         }
-        try (OutputStream outStream = getEncodingOutputStream(
-            bytesPerLine,
-            SingleThreadPrintWriter.createInstance(out)
-        )) {
+        try (OutputStream outStream = getEncodingOutputStream(bytesPerLine, out)) {
             outStream.write(strBytes);
         }
         catch (IOException e) {

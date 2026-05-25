@@ -23,6 +23,7 @@ package com.tractionsoftware.commons.codec;
 import com.tractionsoftware.commons.io.IOUtil;
 import com.tractionsoftware.commons.io.StringWriteUtil;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -99,52 +100,64 @@ public final class Base64UtilTest {
         return StringWriteUtil.getPrintedString(out -> Base64Util.printUtf8DecodedString(str, true, out));
     }
 
+    @Test
     public void test_getEncodedStringNull() {
         Assertions.assertNull(Base64Util.getUtf8EncodedString(null));
     }
 
+    @Test
     public void test_getEncodedString1() {
         Assertions.assertEquals(MESSAGE_1_ENCODED, Base64Util.getUtf8EncodedString(MESSAGE_1));
     }
 
+    @Test
     public void test_getEncodedString2() {
         Assertions.assertEquals(MESSAGE_2_ENCODED, Base64Util.getUtf8EncodedString(MESSAGE_2));
     }
 
+    @Test
     public void test_getEncodedString3() {
         Assertions.assertEquals(MESSAGE_3_ENCODED, Base64Util.getUtf8EncodedString(MESSAGE_3));
     }
 
+    @Test
     public void test_getMimeEncodedString1() {
         Assertions.assertEquals(
             MESSAGE_1_ENCODED /* same for mime and non-mime versions */, Base64Util.getUtf8EncodedString(MESSAGE_1, 80)
         );
     }
 
+    @Test
     public void test_getMimeEncodedString2() {
         Assertions.assertEquals(MESSAGE_2_ENCODED_MIME, Base64Util.getUtf8EncodedString(MESSAGE_2, 80));
     }
 
+    @Test
     public void test_getMimeEncodedString3() {
         Assertions.assertEquals(MESSAGE_3_ENCODED_MIME, Base64Util.getUtf8EncodedString(MESSAGE_3, 80));
     }
 
+    @Test
     public void test_printEncodedStringNull() {
         Assertions.assertEquals("", getPrintedEncodedString(null));
     }
 
+    @Test
     public void test_printEncodedString1() {
         Assertions.assertEquals(MESSAGE_1_ENCODED, getPrintedEncodedString(MESSAGE_1));
     }
 
+    @Test
     public void test_printEncodedString2() {
         Assertions.assertEquals(MESSAGE_2_ENCODED, getPrintedEncodedString(MESSAGE_2));
     }
 
+    @Test
     public void test_printEncodedString3() {
         Assertions.assertEquals(MESSAGE_3_ENCODED, getPrintedEncodedString(MESSAGE_3));
     }
 
+    @Test
     public void test_printMimeEncodedString1() {
         Assertions.assertEquals(
             MESSAGE_1_ENCODED, // same for mime and non-mime versions
@@ -152,30 +165,37 @@ public final class Base64UtilTest {
         );
     }
 
+    @Test
     public void test_printMimeEncodedString2() {
         Assertions.assertEquals(MESSAGE_2_ENCODED_MIME, getPrintedMimeEncodedString(MESSAGE_2));
     }
 
+    @Test
     public void test_printMimeEncodedString3() {
         Assertions.assertEquals(MESSAGE_3_ENCODED_MIME, getPrintedMimeEncodedString(MESSAGE_3));
     }
 
+    @Test
     public void test_getDecodedStringNull() {
         Assertions.assertNull(Base64Util.getUtf8DecodedString(null));
     }
 
+    @Test
     public void test_getDecodedString1() {
         Assertions.assertEquals(MESSAGE_1, Base64Util.getUtf8DecodedString(MESSAGE_1_ENCODED));
     }
 
+    @Test
     public void test_getDecodedString2() {
         Assertions.assertEquals(MESSAGE_2, Base64Util.getUtf8DecodedString(MESSAGE_2_ENCODED));
     }
 
+    @Test
     public void test_getDecodedString3() {
         Assertions.assertEquals(MESSAGE_3, Base64Util.getUtf8DecodedString(MESSAGE_3_ENCODED));
     }
 
+    @Test
     public void test_getMimeDecodedString1() {
         Assertions.assertEquals(
             MESSAGE_1,
@@ -183,30 +203,37 @@ public final class Base64UtilTest {
         );
     }
 
+    @Test
     public void test_getMimeDecodedString2() {
         Assertions.assertEquals(MESSAGE_2, Base64Util.getUtf8DecodedString(MESSAGE_2_ENCODED_MIME, true));
     }
 
+    @Test
     public void test_getMimeDecodedString3() {
         Assertions.assertEquals(MESSAGE_3, Base64Util.getUtf8DecodedString(MESSAGE_3_ENCODED_MIME, true));
     }
 
+    @Test
     public void test_printDecodedStringNull() {
         Assertions.assertEquals("", getPrintedDecodedString(null));
     }
 
+    @Test
     public void test_printDecodedString1() {
         Assertions.assertEquals(MESSAGE_1, getPrintedDecodedString(MESSAGE_1_ENCODED));
     }
 
+    @Test
     public void test_printDecodedString2() {
         Assertions.assertEquals(MESSAGE_2, getPrintedDecodedString(MESSAGE_2_ENCODED));
     }
 
+    @Test
     public void test_printDecodedString3() {
         Assertions.assertEquals(MESSAGE_3, getPrintedDecodedString(MESSAGE_3_ENCODED));
     }
 
+    @Test
     public void test_printMimeDecodedString1() {
         Assertions.assertEquals(
             MESSAGE_1,
@@ -214,14 +241,17 @@ public final class Base64UtilTest {
         );
     }
 
+    @Test
     public void test_printMimeDecodedString2() {
         Assertions.assertEquals(MESSAGE_2, getPrintedMimeDecodedString(MESSAGE_2_ENCODED_MIME));
     }
 
+    @Test
     public void test_printMimeDecodedString3() {
         Assertions.assertEquals(MESSAGE_3, getPrintedMimeDecodedString(MESSAGE_3_ENCODED_MIME));
     }
 
+    @Test
     public void test_ja_symmetricEncodeDecodeString() {
         String start = japanese_utf8();
         String base64 = Base64Util.getUtf8EncodedString(start);
@@ -229,6 +259,7 @@ public final class Base64UtilTest {
         Assertions.assertEquals(start, end);
     }
 
+    @Test
     public void test_ja_getEncodedString() {
         byte[] asBytes = japanese_bytes();
         String actual = Base64Util.getEncodedString(asBytes, Integer.MAX_VALUE);
@@ -236,6 +267,7 @@ public final class Base64UtilTest {
         Assertions.assertEquals(expected, actual);
     }
 
+    @Test
     public void test_ja_getEncodedBytes() {
         byte[] actual = Base64Util.getDecodedBytes("5LmF5L+d");
         byte[] expected = japanese_bytes();
