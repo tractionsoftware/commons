@@ -21,6 +21,7 @@
 package com.tractionsoftware.commons.io;
 
 import com.google.common.annotations.Beta;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.io.*;
@@ -105,7 +106,7 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     @Override
-    public void write(char[] buf, int off, int len) {
+    public void write(@Nonnull char[] buf, int off, int len) {
         try {
             checkOpenX();
             out.write(buf, off, len);
@@ -119,7 +120,7 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     @Override
-    public void write(String s, int off, int len) {
+    public void write(@Nonnull String s, int off, int len) {
         try {
             checkOpenX();
             out.write(s, off, len);
@@ -177,7 +178,7 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     @Override
-    public void println(char[] x) {
+    public void println(@Nonnull char[] x) {
         print(x);
         println();
     }
@@ -196,17 +197,17 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     @Override
-    public SingleThreadPrintWriter printf(String format, Object... args) {
+    public SingleThreadPrintWriter printf(@Nonnull String format, Object... args) {
         return format(format, args);
     }
 
     @Override
-    public SingleThreadPrintWriter printf(Locale l, String format, Object... args) {
+    public SingleThreadPrintWriter printf(Locale l, @Nonnull String format, Object... args) {
         return format(l, format, args);
     }
 
     @Override
-    public SingleThreadPrintWriter format(String format, Object... args) {
+    public SingleThreadPrintWriter format(@Nonnull String format, Object... args) {
         try {
             checkOpenX();
             getDefaultFormatter().format(Locale.getDefault(), format, args);
@@ -222,7 +223,7 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     @Override
-    public SingleThreadPrintWriter format(Locale l, String format, Object... args) {
+    public SingleThreadPrintWriter format(Locale l, @Nonnull String format, Object... args) {
         try {
             checkOpenX();
             getFormatter(l).format(l, format, args);

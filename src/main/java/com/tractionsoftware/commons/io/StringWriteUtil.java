@@ -273,7 +273,7 @@ public final class StringWriteUtil {
             LOGGER.warn(
                 "Failed to append {} to {}",
                 SnippetUtil.truncatedToString(appendValue),
-                SnippetUtil.truncatedToString(appendTo),
+                ObjectsUtil.safeToStringObject(appendTo),
                 e
             );
         }

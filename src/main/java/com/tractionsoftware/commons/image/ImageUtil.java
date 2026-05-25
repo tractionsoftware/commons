@@ -27,6 +27,7 @@ import com.tractionsoftware.commons.html.HtmlUtil;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.io.FileUtil;
+import com.tractionsoftware.commons.lang.ObjectsUtil;
 import com.tractionsoftware.commons.util.Dimensions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -246,7 +247,7 @@ public final class ImageUtil {
             return false;
         }
         catch (Exception e) {
-            LOGGER.warn("Unable to find a decoder for file extension '" + fileExtension + "'", e);
+            LOGGER.warn("Unable to find a decoder for file extension {}", fileExtension, e);
         }
         return false;
     }
@@ -271,7 +272,7 @@ public final class ImageUtil {
             return false;
         }
         catch (Exception e) {
-            LOGGER.warn("Unable to find a decoder for mime/content type '" + mimeType + "'", e);
+            LOGGER.warn("Unable to find a decoder for mime/content type {}", mimeType, e);
         }
         return false;
     }
@@ -384,7 +385,9 @@ public final class ImageUtil {
             }
         }
         catch (IOException e) {
-            LOGGER.warn("Unexpected failure reading image data from input " + input, e);
+            LOGGER.warn(
+                "Unexpected failure reading image data from input {}", ObjectsUtil.safeToStringObject(input), e
+            );
         }
         return null;
     }
@@ -467,7 +470,7 @@ public final class ImageUtil {
             createdFile = scaledImageFile.createNewFile();
         }
         catch (Exception e) {
-            LOGGER.error("Unable to create the file '" + scaledImageFile, e);
+            LOGGER.error("Unable to create the file {}", scaledImageFile, e);
             return new FailedImageCreationResult(e);
         }
 
@@ -488,7 +491,7 @@ public final class ImageUtil {
             return createScaledPNG(originalImageStream, scaledImageStream, maxDimensions);
         }
         catch (Exception e) {
-            LOGGER.error("Unable to create a scaled PNG from the image file " + originalImageFile + ".", e);
+            LOGGER.error("Unable to create a scaled PNG from the image file {}", originalImageFile, e);
             return new FailedImageCreationResult(e);
         }
 

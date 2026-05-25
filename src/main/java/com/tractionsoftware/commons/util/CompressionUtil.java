@@ -241,7 +241,7 @@ public final class CompressionUtil {
         // make sure it's not already a zip file. if it is, we just return the original
         String ext = FileNameUtil.getExtension(original.getName(), null);
         if ("zip".equalsIgnoreCase(ext)) {
-            LOGGER.warn("The file {} already appears to be a ZIP file.", originalPath);
+            LOGGER.info("The file {} already appears to be a ZIP file.", originalPath);
             return original;
         }
 

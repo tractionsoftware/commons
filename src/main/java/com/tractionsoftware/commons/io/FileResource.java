@@ -263,7 +263,7 @@ public interface FileResource {
      * @see #getPaddedMD5Hash()
      */
     public default DigestInputStream getDigestInputStream() throws IOException {
-        return new DigestInputStream(getInputStream(), MD5Util.getMessageDigest());
+        return MD5Util.createDigestInputStream(this);
     }
 
     /**
@@ -517,7 +517,7 @@ public interface FileResource {
             return URLUtil.getBase64EncodedStringForDataUrl(input);
         }
         catch (Exception e) {
-            LOGGER.warn("Unable to Base64 encode the file " + this, e);
+            LOGGER.warn("Unable to Base64 encode the file {}", this, e);
         }
         return null;
     }

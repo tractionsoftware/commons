@@ -85,7 +85,7 @@ public final class WebPUtil {
         Metadata metadata = format.readMetadata(input, chunkSize);
         Dimensions<Integer> result = metadata.getDimensions();
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Decoded WebP image dimensions (" + metadata.getFormat().getName() + "): " + result);
+            LOGGER.debug("Decoded WebP image dimensions ({}): {}", metadata.getFormat().getName(), result);
         }
         return result;
 

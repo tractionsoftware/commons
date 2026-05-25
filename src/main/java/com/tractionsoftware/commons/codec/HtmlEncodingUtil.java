@@ -25,6 +25,8 @@ import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.TextWrapUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -38,6 +40,8 @@ public final class HtmlEncodingUtil {
      */
     private HtmlEncodingUtil() {
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HtmlEncodingUtil.class);
 
     public enum SimpleHtmlEntity {
 
@@ -293,7 +297,7 @@ public final class HtmlEncodingUtil {
         }
         catch (IOException e) {
             // This is not possible.
-//            Debug.logError(e, "This exception should not happen");
+            LOGGER.error("This exception should not happen", e);
         }
     }
 

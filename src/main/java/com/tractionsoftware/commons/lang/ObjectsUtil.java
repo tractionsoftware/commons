@@ -21,6 +21,8 @@
 package com.tractionsoftware.commons.lang;
 
 import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.function.SuppliersUtil;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +48,26 @@ public final class ObjectsUtil {
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsUtil.class.getName());
+
+    private static final record SafeToStringWrapper(Object object, String defaultValue) {
+
+        @Nonnull
+        @Override
+        public final String toString() {
+            return safeToString(object, defaultValue);
+        }
+
+    }
+
+    private static final record ToStringDynamic(Supplier<String> getString) {
+
+        @Nonnull
+        @Override
+        public final String toString() {
+            return SuppliersUtil.safeGet(getString, "?");
+        }
+
+    }
 
     /**
      * Returns either the given value if it matches the given {@link Predicate}, or a default value produced by the
@@ -143,7 +165,7 @@ public final class ObjectsUtil {
             return Objects.toString(object, defaultValue);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("There was an unexpected error converting an {}", object.getClass().getName(), e);
+            LOGGER.warn("There was an unexpected error converting an {}", safeClassNameToString(object), e);
         }
         return defaultValue;
     }
@@ -195,6 +217,32 @@ public final class ObjectsUtil {
      */
     public static String toStringOrNull(Object value) {
         return Objects.toString(value, null);
+    }
+
+    public static Object safeToStringObject(Object obj) {
+        return safeToStringObject(obj, "?");
+    }
+
+    public static Object safeToStringObject(Object obj, String defaultValue) {
+        return new SafeToStringWrapper(obj, defaultValue);
+    }
+
+    public static final Object safeClassNameToString(Object object) {
+        if (object == null) {
+            return "[null value]";
+        }
+        return new ToStringDynamic(() -> object.getClass().getName());
+    }
+
+    public static final Object safeToStringObject(Supplier<String> toString) {
+        return safeToStringObject(toString, "?");
+    }
+
+    public static final Object safeToStringObject(Supplier<String> toString, String defaultValue) {
+        if (toString == null) {
+            return defaultValue;
+        }
+        return new ToStringDynamic(() -> SuppliersUtil.safeGet(toString, defaultValue));
     }
 
     public static void requireInstanceOf(Object value, Class<?> superType) {

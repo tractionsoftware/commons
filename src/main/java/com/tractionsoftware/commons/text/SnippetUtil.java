@@ -53,6 +53,7 @@ public final class SnippetUtil {
         }
 
     }
+
     /**
      * Computes a simple text snippet from the given HTML, no longer than the requested maximum length.
      *

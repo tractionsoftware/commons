@@ -84,7 +84,7 @@ public abstract class FileIconService {
             icon = getIconImpl(file, maxDimensions);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to retrieve a file icon for " + ObjectsUtil.safeToString(file), e);
+            LOGGER.warn("Failed to retrieve a file icon for {}", ObjectsUtil.safeToString(file), e);
             icon = null;
         }
         return Objects.requireNonNullElse(icon, NO_ICON);
@@ -96,7 +96,7 @@ public abstract class FileIconService {
             return getIconStyleNameImpl(file);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to retrieve a style name for the icon for " + ObjectsUtil.safeToString(file), e);
+            LOGGER.warn("Failed to retrieve a style name for the icon for {}", ObjectsUtil.safeToString(file), e);
             return null;
         }
     }
@@ -113,7 +113,7 @@ public abstract class FileIconService {
             return getURLImpl(icon);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to construct a URL for icon {} ", SnippetUtil.truncatedToString(icon, 100), e);
+            LOGGER.warn("Failed to construct a URL for icon {} ", ObjectsUtil.safeToStringObject(icon), e);
             return null;
         }
     }

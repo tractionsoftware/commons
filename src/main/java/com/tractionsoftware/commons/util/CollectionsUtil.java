@@ -23,6 +23,7 @@ package com.tractionsoftware.commons.util;
 import com.google.common.collect.*;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.function.FunctionsUtil;
 import com.tractionsoftware.commons.util.function.PredicatesUtil;
 import jakarta.annotation.Nonnull;
@@ -294,9 +295,12 @@ public final class CollectionsUtil {
                 return map.get(key);
             }
             catch (NullPointerException e) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("The Map " + map + " (" + map.getClass() + ") may not support null keys.", e);
-                }
+                LOGGER.debug(
+                    "The Map {} ({}) may not support null values.",
+                    SnippetUtil.truncatedToString(map),
+                    ObjectsUtil.safeClassNameToString(map),
+                    e
+                );
             }
             return null;
         }
@@ -525,9 +529,12 @@ public final class CollectionsUtil {
             return coll.contains(element);
         }
         catch (NullPointerException e) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("The Collection " + coll + " (" + coll.getClass() + ") may not support null values.", e);
-            }
+            LOGGER.debug(
+                "The Collection {} ({}) may not support null keys.",
+                SnippetUtil.truncatedToString(coll),
+                ObjectsUtil.safeClassNameToString(coll),
+                e
+            );
         }
         return false;
     }
@@ -954,9 +961,12 @@ public final class CollectionsUtil {
             return true;
         }
         catch (NullPointerException e) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("The Map " + map + " (" + map.getClass() + ") may not support null values.", e);
-            }
+            LOGGER.debug(
+                "The Map {} ({}) may not support null keys.",
+                SnippetUtil.truncatedToString(map),
+                ObjectsUtil.safeClassNameToString(map),
+                e
+            );
         }
         return false;
     }

@@ -77,7 +77,7 @@ public final class SimplestGetPropertyAt<T> implements GetPropertyAt {
             return list.get(i);
         }
         catch (IndexOutOfBoundsException e) {
-            LOGGER.warn("Failed to get property at " + i, e);
+            LOGGER.warn("Failed to get property at {}", i, e);
         }
         return null;
     }

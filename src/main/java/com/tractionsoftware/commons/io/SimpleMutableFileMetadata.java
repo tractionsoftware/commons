@@ -232,19 +232,16 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             return createCopy(fileData);
         }
 
-        SimpleMutableFileMetadata ret =
-            createFromFileNameAndContentType(fileResource.getFilename(), fileResource.getContentType());
+        SimpleMutableFileMetadata ret = createFromFileNameAndContentType(
+            fileResource.getFilename(), fileResource.getContentType()
+        );
         ret.setFileResourcePath(fileResource.getPath());
 
         try {
             ret.setContentId(fileResource.getContentId());
         }
         catch (UnsupportedOperationException e) {
-            // This can happen in rare cases. Since we want to copy the Content-ID when it's present, we have to handle
-            // this UnsupportedOperationException (basically ignoring it and moving on).
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("Content-ID not supported for " + fileResource, e);
-            }
+            LOGGER.info("Content-ID not supported for {}", fileResource, e);
         }
 
         ret.setDescription(fileResource.getDescription());
@@ -645,7 +642,8 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             case SIZE, BYTESIZE, ICON_URL, ICON_WIDTH, ICON_HEIGHT, IMAGE, IMAGE_WIDTH, IMAGE_HEIGHT ->
                 // not supported
                 LOGGER.warn(
-                    "FileData putProperty does not support setting the " + name + " property.",
+                    "SimpleMutableFileMetadata::putProperty does not support setting the {} property.",
+                    name,
                     new UnsupportedOperationException()
                 );
             case null -> {

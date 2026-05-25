@@ -20,12 +20,21 @@
 
 package com.tractionsoftware.commons.util.function;
 
+import com.tractionsoftware.commons.lang.ObjectsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.function.Supplier;
 
 /**
  * @author Dave Shepperton
  */
 public final class SuppliersUtil {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SuppliersUtil.class.getName());
+
+    private SuppliersUtil() {
+    }
 
     /**
      * Returns a {@link Supplier} which always produces the given statically supplied value.
@@ -55,6 +64,20 @@ public final class SuppliersUtil {
 
     public static final <T> CacheSupportingSupplier<T> nullValueSupplier() {
         return forConstantValue(null);
+    }
+
+    public static final <T> T safeGet(Supplier<T> supplier) {
+        return safeGet(supplier, null);
+    }
+
+    public static final <T> T safeGet(Supplier<T> supplier, T defaultValue) {
+        try {
+            return supplier.get();
+        }
+        catch (RuntimeException e) {
+            LOGGER.warn("Supplier {} failed", ObjectsUtil.safeToStringObject(supplier), e);
+        }
+        return defaultValue;
     }
 
 }

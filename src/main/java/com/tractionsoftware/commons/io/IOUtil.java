@@ -883,7 +883,7 @@ public final class IOUtil {
             operation.run();
         }
         catch (IOException e) {
-            LOGGER.warn("{} failed", SnippetUtil.truncatedToString(operation, 50), e);
+            LOGGER.warn("{} failed", ObjectsUtil.safeToStringObject(operation), e);
         }
     }
 
@@ -916,7 +916,7 @@ public final class IOUtil {
             return supplier.get();
         }
         catch (IOException e) {
-            LOGGER.warn("{} failed", SnippetUtil.truncatedToString(supplier, 50), e);
+            LOGGER.warn("{} failed", ObjectsUtil.safeToStringObject(supplier), e);
         }
         return defaultValue.get();
     }
@@ -1010,14 +1010,19 @@ public final class IOUtil {
         return new BufferedReader(reader);
     }
 
-    public static InputStream getStringAsUtf8InputStream(String str) throws IOException {
+    public static InputStream getStringAsUtf8InputStream(String str) {
         return getStringAsInputStream(str, StandardCharsets.UTF_8);
     }
 
-    public static InputStream getStringAsInputStream(String str, Charset charset) throws IOException {
+    public static InputStream getStringAsInputStream(String str, Charset charset) {
         Objects.requireNonNull(str, "string");
         Objects.requireNonNull(charset, "charset");
-        return ReaderInputStream.builder().setReader(new StringReader(str)).setCharset(charset).get();
+        try {
+            return ReaderInputStream.builder().setReader(new StringReader(str)).setCharset(charset).get();
+        }
+        catch (IOException e) {
+            throw new IllegalStateException("This IOException should not be able to happen.", e);
+        }
     }
 
     public static OutputStream getBufferedOutputStream(OutputStream output) {

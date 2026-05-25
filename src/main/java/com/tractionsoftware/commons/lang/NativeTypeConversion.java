@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.lang;
 
 import com.google.common.base.Joiner;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
@@ -162,9 +163,7 @@ public final class NativeTypeConversion {
             return Byte.parseByte(value);
         }
         catch (NumberFormatException e) {
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("Failed to parse " + value + " as byte", e);
-            }
+            logNumberFormatException(value, "byte", e);
         }
         return fallback;
     }
@@ -181,7 +180,7 @@ public final class NativeTypeConversion {
             return Short.parseShort(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as short", value, e);
+            logNumberFormatException(value, "short", e);
         }
         return fallback;
     }
@@ -207,7 +206,7 @@ public final class NativeTypeConversion {
             return Integer.parseInt(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as int", value, e);
+            logNumberFormatException(value, "int", e);
         }
         return defaultValue;
     }
@@ -224,7 +223,7 @@ public final class NativeTypeConversion {
             return Long.parseLong(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as long", value, e);
+            logNumberFormatException(value, "long", e);
         }
         return defaultValue;
     }
@@ -241,7 +240,7 @@ public final class NativeTypeConversion {
             return Float.parseFloat(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as float", value, e);
+            logNumberFormatException(value, "float", e);
         }
         return fallback;
     }
@@ -258,7 +257,7 @@ public final class NativeTypeConversion {
             return Double.parseDouble(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as double", value, e);
+            logNumberFormatException(value, "double", e);
         }
         return defaultValue;
     }
@@ -271,7 +270,7 @@ public final class NativeTypeConversion {
             return new BigDecimal(value);
         }
         catch (NumberFormatException e) {
-            LOGGER.info("Failed to parse {} as BigDecimal", value, e);
+            logNumberFormatException(value, "BigDecimal", e);
         }
         return defaultValue;
     }
@@ -567,7 +566,7 @@ public final class NativeTypeConversion {
     }
 
     public static final Class<?> stringToClass(String classSpec, Class<?> defaultClass) {
-        if (classSpec == null) {
+        if (StringUtils.isBlank(classSpec)) {
             return defaultClass;
         }
         try {
@@ -621,6 +620,10 @@ public final class NativeTypeConversion {
 
         };
 
+    }
+
+    private static final void logNumberFormatException(String value, String numberType, NumberFormatException e) {
+        LOGGER.info("Failed to parse {} as {}", SnippetUtil.truncatedToString(value), numberType, e);
     }
 
 }

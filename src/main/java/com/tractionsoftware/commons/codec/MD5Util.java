@@ -23,8 +23,8 @@ package com.tractionsoftware.commons.codec;
 
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.io.IOUtil;
+import com.tractionsoftware.commons.io.JavaFileResource;
 import com.tractionsoftware.commons.lang.ObjectsUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -190,16 +190,31 @@ public final class MD5Util {
         }
     }
 
-    public static DigestResult digest(FileResource file) {
+    public static final DigestInputStream createDigestInputStream(FileResource file) throws IOException {
+        return createDigestInputStream(file.getInputStream());
+    }
+
+    public static final DigestInputStream createDigestInputStream(InputStream input) throws IOException {
+        return new DigestInputStream(input, getMessageDigest());
+    }
+
+    public static final DigestResult digest(FileResource file) {
         if (file.isDirectory()) {
             return DIGEST_RESULT_EMPTY_SUCCESS;
         }
-        return digestNonDirectoryFile(getMessageDigest(), file);
+        return digestNonDirectoryFile(file);
     }
 
-    public static DigestResult digest(byte[] data) {
-        try (ByteArrayInputStream byteInput = new ByteArrayInputStream(data)) {
-            return digest(getMessageDigest(), byteInput);
+    public static final DigestResult digest(File file) {
+        if (file.isDirectory()) {
+            return DIGEST_RESULT_EMPTY_SUCCESS;
+        }
+        return digestNonDirectoryFile(JavaFileResource.createInstance(file));
+    }
+
+    public static final DigestResult digest(byte[] data) {
+        try (DigestInputStream input = createDigestInputStream(new ByteArrayInputStream(data))) {
+            return digestImpl(input);
         }
         catch (IOException e) {
             LOGGER.warn("Unexpected error attempting to compute an MD5 hash for bytes.", e);
@@ -207,77 +222,59 @@ public final class MD5Util {
         }
     }
 
-    public static DigestResult digest(InputStream input) {
+    public static final DigestResult digest(InputStream input) {
         try {
             if (input instanceof DigestInputStream digestStream &&
                 digestStream.getMessageDigest().getAlgorithm().equalsIgnoreCase(ALGORITHM_NAME)) {
                 return digestImpl(digestStream);
             }
-            return digest(getMessageDigest(), input);
+            return digestImpl(createDigestInputStream(input));
         }
         catch (IOException e) {
             LOGGER.warn(
                 "Unexpected error attempting to compute an MD5 hash for stream {}",
-                SnippetUtil.truncatedToString(input),
+                ObjectsUtil.safeToStringObject(input),
                 e
             );
             return DIGEST_RESULT_EMPTY_FAILURE;
         }
     }
 
-    private static DigestResult digest(MessageDigest md5, InputStream input) throws IOException {
-        try (DigestInputStream digestInput = new DigestInputStream(input, md5)) {
-            return digestImpl(digestInput);
-        }
-    }
-
-    public static String getHashString(byte[] digestedBytes) {
+    public static final String getHashString(byte[] digestedBytes) {
         return HexUtil.getEncodedString(digestedBytes);
     }
 
-    public static String getPaddedHashString(byte[] digestedBytes) {
+    public static final String getPaddedHashString(byte[] digestedBytes) {
         if (digestedBytes == null) {
             return null;
         }
         return String.format("%1$032x", new BigInteger(1, digestedBytes));
     }
 
-    private static DigestResult digestNonDirectoryFile(MessageDigest md5, FileResource file, String contentType) {
+    private static final DigestResult digestNonDirectoryFile(FileResource file) {
 
         if (file.isEmpty()) {
             try {
-                return getInstanceForEmptyFile(md5, contentType);
+                return getInstanceForEmptyFile(file.getContentType());
             }
             catch (IOException e) {
-                LOGGER.warn("Failed to determine MD5 for empty file " + ObjectsUtil.safeToString(file, "file"));
+                LOGGER.warn("Failed to determine MD5 for empty file {}", file, e);
                 return DIGEST_RESULT_EMPTY_FAILURE;
             }
         }
 
-        try (InputStream input = file.getInputStream()) {
-            try (DigestInputStream digestInput = new DigestInputStream(input, getMessageDigest())) {
-                return digestImpl(digestInput);
-            }
+        try (DigestInputStream input = file.getDigestInputStream()) {
+            return digestImpl(input);
         }
         catch (IOException e) {
-            LOGGER.warn("Failed to compute MD5 for file " + ObjectsUtil.safeToString(file, "file"), e);
+            LOGGER.warn("Failed to compute MD5 for file {}", file, e);
             return DIGEST_RESULT_EMPTY_FAILURE;
         }
 
     }
 
-    private static DigestResult digestNonDirectoryFile(MessageDigest md5, FileResource file) {
-        try (InputStream input = file.getInputStream()) {
-            return digest(md5, input);
-        }
-        catch (IOException e) {
-            LOGGER.warn("Failed to compute MD5 for " + ObjectsUtil.safeToString(file, "file"), e);
-            return DIGEST_RESULT_EMPTY_FAILURE;
-        }
-    }
-
-    public static DigestResult getInstanceForEmptyFile(MessageDigest md5, String contentType) throws IOException {
-        return digest(md5, IOUtil.getStringAsUtf8InputStream(StringUtils.trimToEmpty(contentType).toLowerCase()));
+    public static final DigestResult getInstanceForEmptyFile(String contentType) throws IOException {
+        return digest(IOUtil.getStringAsUtf8InputStream(StringUtils.trimToEmpty(contentType).toLowerCase()));
     }
 
     private static DigestResult digestImpl(DigestInputStream digestInput) throws IOException {

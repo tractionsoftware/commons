@@ -29,6 +29,7 @@ import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.io.ByteBufferInputStream;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.lang.StringUtil;
+import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.util.AbstractLazyLoadingIterator;
 import com.tractionsoftware.commons.util.CollectionsUtil;
@@ -146,18 +147,20 @@ public final class MailUtil {
                 }
             }
             catch (MessagingException e) {
-                LOGGER.warn("Failed to retrieve mail message headers " + name, e);
+                LOGGER.warn("Failed to retrieve mail message headers {}", name, e);
             }
             return ImmutableList.of();
         }
 
         @Override
-        public final Iterable<String> getRawHeaderLines() {
+        public final List<String> getRawHeaderLines() {
             try {
                 return MailUtil.getRawHeaderLines(message);
             }
             catch (MessagingException e) {
-                LOGGER.warn("Failed to retrieve all raw header lines from " + message, e);
+                LOGGER.warn(
+                    "Failed to retrieve all raw header lines from {}", ObjectsUtil.safeToStringObject(message), e
+                );
             }
             return ImmutableList.of();
         }
@@ -165,13 +168,7 @@ public final class MailUtil {
         @Nonnull
         @Override
         public final Iterator<Header> iterator() {
-            try {
-                return MailUtil.getRawHeaderLines(message).stream().map(MailUtil::encodedHeaderLineToHeader).iterator();
-            }
-            catch (MessagingException e) {
-                LOGGER.warn("Failed to retrieve all raw header lines from " + message, e);
-            }
-            return Collections.emptyIterator();
+            return getRawHeaderLines().stream().map(MailUtil::encodedHeaderLineToHeader).iterator();
         }
 
     }
@@ -557,7 +554,7 @@ public final class MailUtil {
             return MimeUtility.decodeText(text);
         }
         catch (UnsupportedEncodingException e) {
-            LOGGER.error("Failed to MIME-decode text " + text, e);
+            LOGGER.error("Failed to MIME-decode text {}", SnippetUtil.truncatedToString(text), e);
         }
         return text;
     }
@@ -906,7 +903,8 @@ public final class MailUtil {
      * @throws MessagingException
      *     if there is a problem setting the headers.
      */
-    public static final void setHeadersForAutomaticallyGeneratedMessage(Message message, boolean shouldSetNullReturnPath) throws MessagingException {
+    public static final void setHeadersForAutomaticallyGeneratedMessage(Message message, boolean shouldSetNullReturnPath)
+        throws MessagingException {
         if (shouldSetNullReturnPath) {
             setNullReturnPath(message);
         }
@@ -1036,7 +1034,7 @@ public final class MailUtil {
             return Arrays.asList(ret);
         }
         catch (Exception e) {
-            LOGGER.warn("Unable to retrieve recipients of type " + type, e);
+            LOGGER.warn("Unable to retrieve recipients of type {}", type, e);
         }
         return null;
     }
@@ -1081,7 +1079,7 @@ public final class MailUtil {
             return parseAddresses(addressListSpec);
         }
         catch (AddressException e) {
-            LOGGER.warn("Unable to parse email addresses from '" + addressListSpec + "'", e);
+            LOGGER.warn("Unable to parse email addresses from {}", SnippetUtil.truncatedToString(addressListSpec), e);
             return null;
         }
     }
@@ -1170,7 +1168,9 @@ public final class MailUtil {
             return MimeUtility.encodeText(text, charsetName, null);
         }
         catch (UnsupportedEncodingException e) {
-            LOGGER.warn("Failed to safely encode text \"" + text + "\"", e);
+            LOGGER.warn(
+                "Failed to safely encode text {} for charset {}", SnippetUtil.truncatedToString(text), charsetName, e
+            );
         }
         return null;
     }
@@ -1188,22 +1188,19 @@ public final class MailUtil {
             return;
         }
 
-        LOGGER.debug("Closing the folder {}", ObjectsUtil.safeToString(folder));
+        Object debugFolder = ObjectsUtil.safeToStringObject(folder);
+        LOGGER.debug("Closing the folder {}", debugFolder);
         try {
             folder.close(expunge);
             if (expunge) {
-                LOGGER.debug(
-                    "Successfully closed the folder {}, expunging deleted messages.", ObjectsUtil.safeToString(folder)
-                );
+                LOGGER.debug("Successfully closed the folder {}, expunging deleted messages.", debugFolder);
             }
             else {
-                LOGGER.debug(
-                    "Successfully closed the folder {}, leaving deleted messages.", ObjectsUtil.safeToString(folder)
-                );
+                LOGGER.debug("Successfully closed the folder {}, leaving deleted messages.", debugFolder);
             }
         }
         catch (Exception e) {
-            LOGGER.warn("Failed to close the folder " + ObjectsUtil.safeToString(folder), e);
+            LOGGER.warn("Failed to close the folder {}", debugFolder, e);
         }
 
     }
@@ -1214,13 +1211,14 @@ public final class MailUtil {
             return;
         }
 
-        LOGGER.debug("Closing the store {}", ObjectsUtil.safeToString(store));
+        Object debugStore = ObjectsUtil.safeToStringObject(store);
+        LOGGER.debug("Closing the store {}", debugStore);
         try {
             store.close();
-            LOGGER.debug("Successfully closed the store {}", ObjectsUtil.safeToString(store));
+            LOGGER.debug("Successfully closed the store {}", debugStore);
         }
         catch (Exception e) {
-            LOGGER.warn("Failed to close the store " + ObjectsUtil.safeToString(store), e);
+            LOGGER.warn("Failed to close the store {}", debugStore, e);
         }
 
     }
@@ -1231,13 +1229,14 @@ public final class MailUtil {
             return;
         }
 
-        LOGGER.debug("Closing the transport {}", ObjectsUtil.safeToString(transport));
+        Object debugTransport = ObjectsUtil.safeToStringObject(transport);
+        LOGGER.debug("Closing the transport {}", debugTransport);
         try {
             transport.close();
-            LOGGER.debug("Successfully closed the transport {}", ObjectsUtil.safeToString(transport));
+            LOGGER.debug("Successfully closed the transport {}", debugTransport);
         }
         catch (Exception e) {
-            LOGGER.warn("Failed to close the transport " + ObjectsUtil.safeToString(transport), e);
+            LOGGER.warn("Failed to close the transport {}", debugTransport, e);
         }
 
     }
@@ -1299,8 +1298,9 @@ public final class MailUtil {
     }
 
     /**
-     * Creates a DataSource that will use {@link FileResource#getInputStream() the InputStream for the given file resource}.
-     * The {@link InputStream} retrieval is deferred until it is needed.
+     * Creates a DataSource that will use
+     * {@link FileResource#getInputStream() the InputStream for the given file resource}. The {@link InputStream}
+     * retrieval is deferred until it is needed.
      *
      * @param file
      *     representing the file resource to be used.

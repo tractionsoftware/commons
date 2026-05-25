@@ -258,7 +258,7 @@ public final class StringSplitUtil {
 
         }
         catch (Exception e) {
-            LOGGER.error("Unexpected failure in parseList", e);
+            LOGGER.error("Unexpected failure in parseQuotedGroupedList", e);
         }
 
     }

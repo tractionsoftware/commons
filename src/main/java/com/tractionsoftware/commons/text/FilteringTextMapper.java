@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.text;
 
 import com.google.common.annotations.Beta;
 import com.tractionsoftware.commons.io.StringWriteUtil;
+import com.tractionsoftware.commons.lang.ObjectsUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -223,7 +224,7 @@ public abstract class FilteringTextMapper<T, R> {
             }
             catch (IOException e) {
                 // This should not happen.
-                LOGGER.warn("Failed to write to {}", SnippetUtil.truncatedToString(out), e);
+                LOGGER.warn("Failed to write to {}", ObjectsUtil.safeToStringObject(out), e);
             }
         }
 

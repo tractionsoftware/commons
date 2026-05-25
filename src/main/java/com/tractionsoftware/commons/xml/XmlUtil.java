@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.xml;
 
 import com.tractionsoftware.commons.codec.HtmlEncodingUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
+import com.tractionsoftware.commons.lang.ObjectsUtil;
 import com.tractionsoftware.commons.text.CodePointBasedFilteringTextMapper;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.ArrayUtils;
@@ -259,10 +260,9 @@ public final class XmlUtil {
 
             private void onHighSurrogateDuplicate(char c) {
                 LOGGER.warn(
-                    "Expected low surrogate to finish code point for " +
-                    Integer.toHexString(highSurrogate) +
-                    " but encountered another high surrogate character " +
-                    Integer.toHexString(c),
+                    "Expected low surrogate to finish code point for {} but encountered another high surrogate character {}",
+                    ObjectsUtil.safeToStringObject(() -> Integer.toHexString(highSurrogate)),
+                    ObjectsUtil.safeToStringObject(() -> Integer.toHexString(c)),
                     new IllegalStateException()
                 );
                 blockIndex = replacementParams.addReplacement(blockBuffer, blockIndex);
@@ -281,7 +281,8 @@ public final class XmlUtil {
 
             private void onLowSurrogateNoHigh(char c) {
                 LOGGER.warn(
-                    "Unexpected low surrogate character " + Integer.toHexString(c) + " with no high surrogate.",
+                    "Unexpected low surrogate character {} with no high surrogate.",
+                    ObjectsUtil.safeToStringObject(() -> Integer.toHexString(c)),
                     new IllegalStateException()
                 );
             }
@@ -296,10 +297,9 @@ public final class XmlUtil {
 
             private void onBmpAfterHighSurrogate(char c) {
                 LOGGER.warn(
-                    "Expected low surrogate to finish code point for " +
-                    Integer.toHexString(highSurrogate) +
-                    " but encountered normal BMP character " +
-                    Integer.toHexString(c),
+                    "Expected low surrogate to finish code point for {}, but encountered normal BMP character {}",
+                    ObjectsUtil.safeToStringObject(() -> Integer.toHexString(highSurrogate)),
+                    ObjectsUtil.safeToStringObject(() -> Integer.toHexString(c)),
                     new IllegalStateException()
                 );
             }

@@ -113,15 +113,22 @@ public final class Base64Util {
      *     the String containing the base-64 encoded representation of the bytes.
      * @return a String from the UTF-8 encoded bytes represented by the given base-64 encoded String.
      */
-    public static String getDecodedString(String encodedStr) {
-        return getDecodedString(encodedStr, StandardCharsets.UTF_8, false);
+    public static String getUtf8DecodedString(String encodedStr) {
+        return getUtf8DecodedString(encodedStr, false);
     }
 
+    public static String getUtf8DecodedString(String encodedStr, boolean mime) {
+        return getDecodedString(encodedStr, StandardCharsets.UTF_8, mime);
+    }
     public static String getDecodedString(String encodedStr, Charset charset, boolean mime) {
         if (encodedStr == null) {
             return null;
         }
         return new String(getDecodedBytes(encodedStr, mime), charset);
+    }
+
+    public static void printUtf8DecodedString(String encodedStr, boolean mime, Writer out) {
+        printDecodedString(encodedStr, StandardCharsets.UTF_8, mime, out);
     }
 
     /**
@@ -135,15 +142,16 @@ public final class Base64Util {
      *     whether mime decoding should be used.
      * @param out
      *     to which the decoded String should be written.
-     * @throws IOException if there is an error writing to the Writer.
      */
-    public static void printDecodedString(String encodedStr, Charset charset, boolean mime, Writer out)
-        throws IOException {
+    public static void printDecodedString(String encodedStr, Charset charset, boolean mime, Writer out) {
         if (StringUtils.isEmpty(encodedStr)) {
             return;
         }
         try (Reader reader = getDecodingReader(encodedStr, charset, mime)) {
             reader.transferTo(out);
+        }
+        catch (IOException e) {
+            LOGGER.warn("There was a problem attempting to Base64 decode a string ({})", charset, e);
         }
     }
 
@@ -217,15 +225,23 @@ public final class Base64Util {
      * @return a base-64 encoded String representation of the bytes in the given input String as encoded in the UTF-8
      *     character set.
      */
-    public static String getEncodedString(String input) {
-        return getEncodedString(input, -1);
+    public static String getUtf8EncodedString(String input) {
+        return getUtf8EncodedString(input, -1);
     }
 
-    public static String getEncodedString(String input, int bytesPerLine) {
+    public static String getUtf8EncodedString(String input, int bytesPerLine) {
         if (input == null) {
             return null;
         }
-        return getEncodedString(input.getBytes(StandardCharsets.UTF_8), bytesPerLine);
+        return getEncodedString(input, StandardCharsets.UTF_8, bytesPerLine);
+    }
+
+    public static String getEncodedString(String input, Charset charset, int bytesPerLine) {
+        return getEncodedString(input.getBytes(charset), bytesPerLine);
+    }
+
+    public static void printUtf8EncodedString(String str, int bytesPerLine, Writer out) {
+        printEncodedString(str, StandardCharsets.UTF_8, bytesPerLine, out);
     }
 
     public static void printEncodedString(String str, Charset charset, int bytesPerLine, Writer out) {
@@ -238,7 +254,10 @@ public final class Base64Util {
         if (ArrayUtils.isEmpty(strBytes)) {
             return;
         }
-        try (OutputStream outStream = getEncodingOutputStream(bytesPerLine, SingleThreadPrintWriter.createInstance(out))) {
+        try (OutputStream outStream = getEncodingOutputStream(
+            bytesPerLine,
+            SingleThreadPrintWriter.createInstance(out)
+        )) {
             outStream.write(strBytes);
         }
         catch (IOException e) {

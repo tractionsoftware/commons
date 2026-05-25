@@ -369,12 +369,12 @@ public final class SimpleProperties {
         if (value == null) {
             return loadString(props, name, notfound);
         }
-        return Base64Util.getDecodedString(value);
+        return Base64Util.getUtf8DecodedString(value);
     }
 
     public static final void saveBase64Encoded(PutProperty props, String name, String value) {
         if (value != null) {
-            value = Base64Util.getEncodedString(value);
+            value = Base64Util.getUtf8EncodedString(value);
         }
         props.putProperty(base64EncodedName(name), value);
         props.putProperty(name, null); // clear unencoded (convert)

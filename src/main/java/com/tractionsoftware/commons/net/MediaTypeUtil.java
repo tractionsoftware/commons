@@ -23,6 +23,7 @@ package com.tractionsoftware.commons.net;
 import com.google.common.collect.*;
 import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.lang.JavaUtil;
+import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -145,7 +146,7 @@ public final class MediaTypeUtil {
             return MediaType.parse(contentTypeSpec);
         }
         catch (IllegalArgumentException e) {
-            LOGGER.warn("Failed to parse mime/content-type spec '" + contentTypeSpec + "'", e);
+            LOGGER.warn("Failed to parse mime/content-type spec {}", SnippetUtil.truncatedToString(contentTypeSpec), e);
             return defaultType;
         }
     }
@@ -227,7 +228,7 @@ public final class MediaTypeUtil {
             }
         }
         catch (Exception e) {
-            LOGGER.warn("Failed to parse mime type spec \"" + contentTypeSpec + "\"", e);
+            LOGGER.warn("Failed to parse mime type spec {}", SnippetUtil.truncatedToString(contentTypeSpec), e);
         }
         return false;
 
