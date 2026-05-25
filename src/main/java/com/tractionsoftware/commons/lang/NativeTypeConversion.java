@@ -36,9 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
@@ -363,6 +361,7 @@ public final class NativeTypeConversion {
         return StringSplitUtil.splitString(value, list::add, options.getJoinOptions());
     }
 
+    @CanIgnoreReturnValue
     public static final <T> boolean stringToList(String value, Collection<? super T> list, Function<String,? extends T> converter, CollectionToStringOptions options) {
         return StringSplitUtil.splitString(
             value, getConvertingNonNullCollectionAdder(list, converter), options.getJoinOptions()
