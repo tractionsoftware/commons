@@ -43,6 +43,12 @@ import java.util.regex.Pattern;
 @Beta
 public final class StringSplitUtil {
 
+    /**
+     * Not instantiable.
+     */
+    private StringSplitUtil() {
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StringSplitUtil.class);
 
     public static final String DEFAULT_STRING_LIST_SEPARATOR = ",";
@@ -92,12 +98,6 @@ public final class StringSplitUtil {
         }
 
     };
-
-    /**
-     * Not instantiable.
-     */
-    private StringSplitUtil() {
-    }
 
     public static final List<String> parseCommaSpaceSemicolonSeperatedList(String listSpec) {
         if (StringUtils.isEmpty(listSpec)) {

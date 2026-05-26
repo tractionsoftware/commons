@@ -917,7 +917,7 @@ public final class URLUtil {
      */
     public static final String getDataUrl(File file) throws IOException {
         Objects.requireNonNull(file, "File");
-        return getDataUrl(JavaFileResource.createInstance(file));
+        return getDataUrl(LocalFileResource.createInstance(file));
     }
 
     public static final String getDataUrl(FileResource file) throws IOException {
@@ -939,7 +939,7 @@ public final class URLUtil {
      *     InputStream.
      */
     public static final String getBase64EncodedStringForDataUrl(File file) throws IOException {
-        return getBase64EncodedStringForDataUrl(JavaFileResource.createInstance(file));
+        return getBase64EncodedStringForDataUrl(LocalFileResource.createInstance(file));
     }
 
     /**

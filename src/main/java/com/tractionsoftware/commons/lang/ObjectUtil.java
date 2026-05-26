@@ -39,15 +39,15 @@ import java.util.function.Supplier;
  *
  * @author Dave Shepperton
  */
-public final class ObjectsUtil {
+public final class ObjectUtil {
 
     /**
      * Not instantiable.
      */
-    private ObjectsUtil() {
+    private ObjectUtil() {
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsUtil.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(ObjectUtil.class.getName());
 
     private static final record SafeToStringWrapper(Object object, String defaultValue) {
 
@@ -179,7 +179,7 @@ public final class ObjectsUtil {
      * @return a String[] containing all members of the given {@link Collection} converted to {@link String}s.
      */
     public static String[] safeToStringArray(Collection<?> coll) {
-        return toStringArray(coll, ObjectsUtil::safeToString);
+        return toStringArray(coll, ObjectUtil::safeToString);
     }
 
     /**
@@ -190,7 +190,7 @@ public final class ObjectsUtil {
      * @return a String[] containing all members of the given {@link Collection} converted to {@link String}s.
      */
     public static String[] toStringArray(Collection<?> coll) {
-        return toStringArray(coll, ObjectsUtil::toStringOrNull);
+        return toStringArray(coll, ObjectUtil::toStringOrNull);
     }
 
     public static String[] toStringArray(Collection<?> coll, Function<Object,String> converter) {

@@ -20,10 +20,9 @@
 
 package com.tractionsoftware.commons.properties;
 
-import org.jspecify.annotations.NonNull;
+import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
-
 
 /**
  * <pre>
@@ -57,8 +56,9 @@ public final class PropStoreLocator<R> extends AbstractGetPutPropertyLocator<Pro
         super(locals, defaults);
     }
 
+    @Nonnull
     @Override
-    public final @NonNull String toString() {
+    public final String toString() {
         return "PropStore: " + super.toString();
     }
 

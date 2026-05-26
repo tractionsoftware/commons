@@ -32,24 +32,26 @@ import com.tractionsoftware.commons.image.ImageUtil;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.net.MediaTypeUtil;
-import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.properties.*;
 import com.tractionsoftware.commons.text.NumberFormats;
 import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * A generic and mutable implementation of {@link FileMetadata}.
+ * A generic and mutable implementation of {@link FileMetadata}. Because it is a {@link ComplexProperty}, it is a
+ * convenient class to use when serialization and deserialization is needed.
  *
  * @author Andy Keller, Dave Shepperton
  */
@@ -61,25 +63,25 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
      * Used as the name of a property for the file name, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String FNAME = "fname";
+    public static final String PROP_NAME_FILE_NAME = "fname";
 
     /**
      * Used as the name of a property for the file name extension, in the context of the {@link GetPutProperty} returned
      * by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String FEXTENSION = "fextension";
+    public static final String PROP_NAME_EXTENSION = "fextension";
 
     /**
      * Used as the name of a property for the description, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String DESC = "desc";
+    public static final String PROP_NAME_DESCRIPTION = "desc";
 
     /**
      * Used as the name of a property for the content type, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String MIMETYPE = "mimetype";
+    public static final String PROP_NAME_MIMETYPE = "mimetype";
 
     /**
      * Used as the name of a property for the file resource path, in the context of
@@ -88,74 +90,68 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
      *
      * <p>
      * Notice that this property does not necessarily represent a real local path in the host file system. See
-     * {@link #getFileResourcePath()} and {@link #setFileResourcePath(String)}.
+     * {@link #getURI()} and {@link #setURI(URI)}.
      */
-    public static final String LOCALFNAME = "localfname";
+    public static final String PROP_NAME_URI = "localfname";
 
     /**
      * Used as the name of a property for the file's serial number, in the context of
      * {@link #saveInstance(GetPutProperty)}, {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by
      * {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String NUMBER = "number";
+    public static final String PROP_NAME_NUMBER = "number";
 
     /**
-     * Used as the name of a property to indicate whether the FileData is a reference to a persisted file, in the
+     * Used as the name of a property to indicate whether a FileMetadata is a reference to a persisted file, in the
      * context of {@link #saveInstance(GetPutProperty)}, {@link #LOADER the Loader}, and the {@link GetPutProperty}
      * returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String ISREF = "isref";
+    public static final String PROP_NAME_REFERENCE_TO_PERSISTED_FILE = "isref";
 
     /**
      * Used as the name of a property for the Content-ID, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String CID = "cid";
+    public static final String PROP_NAME_CID = "cid";
 
     /**
      * Used as the name of a property for the Content-Location, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String CLOC = "cloc";
+    public static final String PROP_NAME_CONTENT_LOCATION = "cloc";
 
     /**
      * Used as the name of a property for the Content-Base, in the context of {@link #saveInstance(GetPutProperty)},
      * {@link #LOADER the Loader}, and the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String CBASE = "cbase";
-
-    /**
-     * Used as the name of a read-only property referring to a relative URL that can be used to refer to the file, in
-     * the context of the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
-     */
-    public static final String URL = "url";
+    public static final String PROP_NAME_CONTENT_BASE = "cbase";
 
     /**
      * Used as the name a read-only property referring to a formatted representation of the file's size, in the context
      * of the {@link GetPutProperty} returned by {@link #asGetPutProperty(FileResource)}.
      */
-    public static final String SIZE = "size";
+    public static final String PROP_NAME_FORMATTED_SIZE = "size";
 
-    public static final String BYTESIZE = "bytesize";
+    public static final String PROP_NAME_BYTESIZE = "bytesize";
 
-    public static final String ERROR = "error";
+    public static final String PROP_NAME_ERROR = "error";
 
-    public static final String IMAGE = "image";
+    public static final String PROP_NAME_IMAGE = "image";
 
-    public static final String IMAGE_WIDTH = "imagewidth";
+    public static final String PROP_NAME_IMAGE_WIDTH = "imagewidth";
 
-    public static final String IMAGE_HEIGHT = "imageheight";
+    public static final String PROP_NAME_IMAGE_HEIGHT = "imageheight";
 
-    public static final String ICON_URL = "iconurl";
+    public static final String PROP_NAME_ICON_URL = "iconurl";
 
-    public static final String ICON_WIDTH = "iconwidth";
+    public static final String PROP_NAME_ICON_WIDTH = "iconwidth";
 
-    public static final String ICON_HEIGHT = "iconheight";
+    public static final String PROP_NAME_ICON_HEIGHT = "iconheight";
 
-    public static final String DISPLAYNAME = "displayname";
+    public static final String PROP_NAME_DISPLAY_NAME = "displayname";
 
     public static final ComplexProperty.Loader<SimpleMutableFileMetadata> LOADER = (GetProperty namespace) -> {
-        if (!namespace.hasProperty(FNAME)) {
+        if (!namespace.hasProperty(PROP_NAME_FILE_NAME)) {
             // The file name is the only required property.
             return null;
         }
@@ -165,107 +161,41 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     };
 
     private static final Set<String> LOAD_SAVE_BASE_PROPERTY_NAMES = ImmutableSet.of(
-        FNAME, DESC, MIMETYPE, LOCALFNAME, ISREF, NUMBER, ERROR, DISPLAYNAME, CLOC
+        PROP_NAME_FILE_NAME,
+        PROP_NAME_DESCRIPTION, PROP_NAME_MIMETYPE, PROP_NAME_URI,
+        PROP_NAME_REFERENCE_TO_PERSISTED_FILE, PROP_NAME_NUMBER,
+        PROP_NAME_ERROR, PROP_NAME_DISPLAY_NAME, PROP_NAME_CONTENT_LOCATION
     );
 
     /**
-     * Copies the source {@link FileMetadata} to another {@link MutableFileMetadata}.
-     */
-    public static void copy(FileMetadata source, MutableFileMetadata destination) {
-
-        if (source == null || destination == null) {
-            return;
-        }
-
-        destination.setFilename(source.getFilename());
-        destination.setDescription(source.getDescription());
-        destination.setContentType(source.getContentType());
-        destination.setFileResourcePath(source.getFileResourcePath());
-        destination.setReferenceToPersistedFile(source.isReferenceToPersistedFile());
-        destination.setNumber(source.getNumber());
-        destination.setContentId(source.getContentId());
-        destination.setContentLocation(source.getContentLocation());
-        destination.setContentBase(source.getContentBase());
-
-    }
-
-    /**
-     * Creates a new FileData populated by copying all properties from the given {@link FileMetadata}.
-     *
-     * @param source
-     *     the {@link FileMetadata} from which all properties should be copied.
-     * @return a new FileData populated by copying all properties from the given {@link FileMetadata}, if a non-null
-     *     instance has been specified, and its {@link FileMetadata#getFilename()} method returns a non-null value; null
-     *     otherwise.
-     */
-    public static final SimpleMutableFileMetadata createCopy(FileMetadata source) {
-
-        if (source == null) {
-            return null;
-        }
-
-        String fname = source.getFilename();
-        if (fname == null) {
-            return null;
-        }
-
-        if (source instanceof SimpleMutableFileMetadata metadata) {
-            return metadata.getCopy();
-        }
-
-        return makeCopy(source);
-
-    }
-
-    /**
      * Creates a new FileData by copying properties of the given {@link FileResource}. If it is a {@link FileMetadata},
-     * this method defers to {@link #createCopy(FileMetadata)}. Otherwise, it copies properties in a straightforward
+     * this method defers to {@link FileMetadata#mutableCopy()}. Otherwise, it copies properties in a straightforward
      * way.
      *
      * @param fileResource
      *     the {@link FileResource} whose properties should be used to create a {@link SimpleMutableFileMetadata}.
      * @return a new FileData representing the properties of the given {@link FileResource}.
      */
-    public static final SimpleMutableFileMetadata createFromFileInfo(FileResource fileResource) {
-
-        if (fileResource instanceof FileMetadata fileData) {
-            return createCopy(fileData);
-        }
-
-        SimpleMutableFileMetadata ret = createFromFileNameAndContentType(
-            fileResource.getFilename(), fileResource.getContentType()
-        );
-        ret.setFileResourcePath(fileResource.getPath());
-
-        try {
-            ret.setContentId(fileResource.getContentId());
-        }
-        catch (UnsupportedOperationException e) {
-            LOGGER.info("Content-ID not supported for {}", fileResource, e);
-        }
-
-        ret.setDescription(fileResource.getDescription());
-
-        ret.setReferenceToPersistedFile(fileResource.isPersistent());
-
-        return ret;
-
+    public static final SimpleMutableFileMetadata createCopyFromFileInfo(FileResource fileResource) {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        fileResource.getMetadata().copyTo(metadata);
+        return metadata;
     }
 
     public static final SimpleMutableFileMetadata createForIconFileInfo(IconFileResource iconFile) {
-        SimpleMutableFileMetadata ret = createFromFileInfo(iconFile);
+        SimpleMutableFileMetadata ret = createCopyFromFileInfo(iconFile);
         ret.setDisplayName(iconFile.getDisplayName());
         GetPutProperty props = ret.asGetPutProperty(iconFile);
-        props.getProperty(SIZE);
-        props.getProperty(BYTESIZE);
-        props.getProperty(IMAGE_WIDTH);
-        props.getProperty(IMAGE_HEIGHT);
+        props.getProperty(PROP_NAME_FORMATTED_SIZE);
+        props.getProperty(PROP_NAME_BYTESIZE);
+        props.getProperty(PROP_NAME_IMAGE_WIDTH);
+        props.getProperty(PROP_NAME_IMAGE_HEIGHT);
         return ret;
     }
 
-    private static final SimpleMutableFileMetadata makeCopy(FileMetadata source) {
+    public static final SimpleMutableFileMetadata createCopy(FileMetadata source) {
         SimpleMutableFileMetadata copy = new SimpleMutableFileMetadata();
-        SimpleMutableFileMetadata.copy(source, copy);
+        source.copyTo(copy);
         return copy;
     }
 
@@ -371,8 +301,8 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         }
 
         @Override
-        public String getFileResourcePath() {
-            return SimpleMutableFileMetadata.this.getFileResourcePath();
+        public URI getURI() {
+            return SimpleMutableFileMetadata.this.getURI();
         }
 
         @Override
@@ -411,6 +341,12 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         }
 
         @Override
+        public final FileResourceType getResourceType() {
+            return SimpleMutableFileMetadata.this.getResourceType();
+        }
+
+        @Nonnull
+        @Override
         public final FileMetadata toReadOnly() {
             return this;
         }
@@ -429,19 +365,19 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         public final String getProperty(String name) {
 
             return switch (name) {
-                case FNAME -> SimpleMutableFileMetadata.this.fileName;
-                case DESC -> SimpleMutableFileMetadata.this.description;
-                case MIMETYPE -> SimpleMutableFileMetadata.this.contentType;
-                case LOCALFNAME -> SimpleMutableFileMetadata.this.fileResourcePath;
-                case ISREF -> NativeTypeConversion.booleanToString(
+                case PROP_NAME_FILE_NAME -> SimpleMutableFileMetadata.this.fileName;
+                case PROP_NAME_DESCRIPTION -> SimpleMutableFileMetadata.this.description;
+                case PROP_NAME_MIMETYPE -> SimpleMutableFileMetadata.this.contentType;
+                case PROP_NAME_URI -> Objects.toString(SimpleMutableFileMetadata.this.uri, null);
+                case PROP_NAME_REFERENCE_TO_PERSISTED_FILE -> NativeTypeConversion.booleanToString(
                     SimpleMutableFileMetadata.this.isReferenceToPersistedFile
                 );
-                case NUMBER -> Integer.toString(SimpleMutableFileMetadata.this.number);
-                case CID -> SimpleMutableFileMetadata.this.contentId;
-                case CLOC -> SimpleMutableFileMetadata.this.contentLocation;
-                case CBASE -> SimpleMutableFileMetadata.this.contentBase;
-                case ERROR -> SimpleMutableFileMetadata.this.errorMessage;
-                case DISPLAYNAME -> SimpleMutableFileMetadata.this.displayName;
+                case PROP_NAME_NUMBER -> Integer.toString(SimpleMutableFileMetadata.this.number);
+                case PROP_NAME_CID -> SimpleMutableFileMetadata.this.contentId;
+                case PROP_NAME_CONTENT_LOCATION -> SimpleMutableFileMetadata.this.contentLocation;
+                case PROP_NAME_CONTENT_BASE -> SimpleMutableFileMetadata.this.contentBase;
+                case PROP_NAME_ERROR -> SimpleMutableFileMetadata.this.errorMessage;
+                case PROP_NAME_DISPLAY_NAME -> SimpleMutableFileMetadata.this.displayName;
                 case null -> null;
                 default -> (SimpleMutableFileMetadata.this.extendedProperties == null) ?
                     null : SimpleMutableFileMetadata.this.extendedProperties.get(name);
@@ -466,53 +402,52 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
             switch (name) {
 
-            case FNAME:
+            case PROP_NAME_FILE_NAME:
                 SimpleMutableFileMetadata.this.fileName = value;
                 break;
 
-            case DESC:
+            case PROP_NAME_DESCRIPTION:
                 SimpleMutableFileMetadata.this.description = value;
                 break;
 
-            case MIMETYPE:
+            case PROP_NAME_MIMETYPE:
                 SimpleMutableFileMetadata.this.contentType = value;
                 break;
 
-            case LOCALFNAME:
-                SimpleMutableFileMetadata.this.fileResourcePath = value;
+            case PROP_NAME_URI:
+                SimpleMutableFileMetadata.this.setURISpec(value);
                 break;
 
-            case ISREF:
+            case PROP_NAME_REFERENCE_TO_PERSISTED_FILE:
                 SimpleMutableFileMetadata.this.isReferenceToPersistedFile =
                     NativeTypeConversion.stringToBoolean(value, false);
                 break;
 
-            case NUMBER:
+            case PROP_NAME_NUMBER:
                 SimpleMutableFileMetadata.this.number = NativeTypeConversion.stringToInt(value, -1);
                 break;
 
-            case CID:
+            case PROP_NAME_CID:
                 SimpleMutableFileMetadata.this.contentId = value;
                 break;
 
-            case CLOC:
+            case PROP_NAME_CONTENT_LOCATION:
                 SimpleMutableFileMetadata.this.contentLocation = value;
                 break;
 
-            case CBASE:
+            case PROP_NAME_CONTENT_BASE:
                 SimpleMutableFileMetadata.this.contentBase = value;
                 break;
 
-            case ERROR:
+            case PROP_NAME_ERROR:
                 SimpleMutableFileMetadata.this.errorMessage = value;
                 break;
 
-            case DISPLAYNAME:
+            case PROP_NAME_DISPLAY_NAME:
                 SimpleMutableFileMetadata.this.displayName = value;
                 break;
 
-            case URL:
-            case FEXTENSION:
+            case PROP_NAME_EXTENSION:
             case null:
                 // ignore
                 break;
@@ -541,20 +476,19 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final String getProperty(String name) {
             return switch (name) {
-                case DISPLAYNAME -> SimpleMutableFileMetadata.this.getDisplayName();
-                case FNAME -> SimpleMutableFileMetadata.this.getFilename();
-                case DESC -> SimpleMutableFileMetadata.this.getDescription();
-                case MIMETYPE -> SimpleMutableFileMetadata.this.getContentType();
-                case LOCALFNAME -> SimpleMutableFileMetadata.this.getFileResourcePath();
-                case NUMBER -> Integer.toString(SimpleMutableFileMetadata.this.getNumber());
-                case ISREF ->
+                case PROP_NAME_DISPLAY_NAME -> SimpleMutableFileMetadata.this.getDisplayName();
+                case PROP_NAME_FILE_NAME -> SimpleMutableFileMetadata.this.getFilename();
+                case PROP_NAME_DESCRIPTION -> SimpleMutableFileMetadata.this.getDescription();
+                case PROP_NAME_MIMETYPE -> SimpleMutableFileMetadata.this.getContentType();
+                case PROP_NAME_URI -> SimpleMutableFileMetadata.this.getURISpec();
+                case PROP_NAME_NUMBER -> Integer.toString(SimpleMutableFileMetadata.this.getNumber());
+                case PROP_NAME_REFERENCE_TO_PERSISTED_FILE ->
                     NativeTypeConversion.booleanToString(SimpleMutableFileMetadata.this.isReferenceToPersistedFile());
-                case CID -> SimpleMutableFileMetadata.this.getContentId();
-                case CLOC -> SimpleMutableFileMetadata.this.getContentLocation();
-                case CBASE -> SimpleMutableFileMetadata.this.getContentBase();
-                case ERROR -> SimpleMutableFileMetadata.this.getErrorMessage();
-                case FEXTENSION -> SimpleMutableFileMetadata.this.getExtension();
-                case URL -> SimpleMutableFileMetadata.this.getUrl();
+                case PROP_NAME_CID -> SimpleMutableFileMetadata.this.getContentId();
+                case PROP_NAME_CONTENT_LOCATION -> SimpleMutableFileMetadata.this.getContentLocation();
+                case PROP_NAME_CONTENT_BASE -> SimpleMutableFileMetadata.this.getContentBase();
+                case PROP_NAME_ERROR -> SimpleMutableFileMetadata.this.getErrorMessage();
+                case PROP_NAME_EXTENSION -> SimpleMutableFileMetadata.this.getExtension();
                 case null, default -> null;
             };
         }
@@ -562,33 +496,35 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final Set<String> getPropertyNames() {
             return ImmutableSet.of(
-                FNAME, DESC, MIMETYPE, LOCALFNAME, ISREF, NUMBER, ERROR, DISPLAYNAME, FEXTENSION, URL
+                PROP_NAME_FILE_NAME, PROP_NAME_DESCRIPTION,
+                PROP_NAME_MIMETYPE, PROP_NAME_URI,
+                PROP_NAME_REFERENCE_TO_PERSISTED_FILE, PROP_NAME_NUMBER,
+                PROP_NAME_ERROR, PROP_NAME_DISPLAY_NAME, PROP_NAME_EXTENSION
             );
         }
 
         @Override
         public final void putProperty(String name, String value) {
             switch (name) {
-            case DISPLAYNAME -> SimpleMutableFileMetadata.this.setDisplayName(value);
-            case FNAME -> SimpleMutableFileMetadata.this.setFilename(value);
-            case DESC -> SimpleMutableFileMetadata.this.setDescription(value);
-            case MIMETYPE -> SimpleMutableFileMetadata.this.setContentType(value);
-            case LOCALFNAME -> SimpleMutableFileMetadata.this.setFileResourcePath(value);
-            case NUMBER -> SimpleMutableFileMetadata.this.setNumber(NativeTypeConversion.stringToInt(
+            case PROP_NAME_DISPLAY_NAME -> SimpleMutableFileMetadata.this.setDisplayName(value);
+            case PROP_NAME_FILE_NAME -> SimpleMutableFileMetadata.this.setFilename(value);
+            case PROP_NAME_DESCRIPTION -> SimpleMutableFileMetadata.this.setDescription(value);
+            case PROP_NAME_MIMETYPE -> SimpleMutableFileMetadata.this.setContentType(value);
+            case PROP_NAME_URI -> SimpleMutableFileMetadata.this.setURISpec(value);
+            case PROP_NAME_NUMBER -> SimpleMutableFileMetadata.this.setNumber(NativeTypeConversion.stringToInt(
                 value,
                 SimpleMutableFileMetadata.this.number
             ));
-            case ISREF ->
+            case PROP_NAME_REFERENCE_TO_PERSISTED_FILE ->
                 SimpleMutableFileMetadata.this.setReferenceToPersistedFile(NativeTypeConversion.stringToBoolean(
                     value,
                     SimpleMutableFileMetadata.this.isReferenceToPersistedFile
                 ));
-            case CID -> SimpleMutableFileMetadata.this.setContentId(value);
-            case CLOC -> SimpleMutableFileMetadata.this.setContentLocation(value);
-            case CBASE -> SimpleMutableFileMetadata.this.setContentBase(value);
-            case ERROR -> SimpleMutableFileMetadata.this.errorMessage = value;
-            case FEXTENSION -> SimpleMutableFileMetadata.this.setExtension(value);
-            case URL -> SimpleMutableFileMetadata.this.setUrl(value);
+            case PROP_NAME_CID -> SimpleMutableFileMetadata.this.setContentId(value);
+            case PROP_NAME_CONTENT_LOCATION -> SimpleMutableFileMetadata.this.setContentLocation(value);
+            case PROP_NAME_CONTENT_BASE -> SimpleMutableFileMetadata.this.setContentBase(value);
+            case PROP_NAME_ERROR -> SimpleMutableFileMetadata.this.errorMessage = value;
+            case PROP_NAME_EXTENSION -> SimpleMutableFileMetadata.this.setExtension(value);
             case null, default -> {
             }
             }
@@ -627,10 +563,13 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final String getProperty(String name) {
             return switch (name) {
-                case IMAGE -> NativeTypeConversion.booleanToString(SimpleMutableFileMetadata.this.appearsToBeImage());
-                case SIZE, BYTESIZE, ICON_URL, ICON_WIDTH, ICON_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT ->
-                    SimpleMutableFileMetadata.this.getExtendedProperties()
-                        .computeIfAbsent(name, this::computeExtendedProperty);
+                case PROP_NAME_IMAGE ->
+                    NativeTypeConversion.booleanToString(SimpleMutableFileMetadata.this.appearsToBeImage());
+                case PROP_NAME_FORMATTED_SIZE, PROP_NAME_BYTESIZE, PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
+                     PROP_NAME_ICON_HEIGHT,
+                     PROP_NAME_IMAGE_WIDTH,
+                     PROP_NAME_IMAGE_HEIGHT -> SimpleMutableFileMetadata.this.getExtendedProperties()
+                    .computeIfAbsent(name, this::computeExtendedProperty);
                 case null -> null;
                 default -> getOtherExtendedProperty(name);
             };
@@ -639,7 +578,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final void putProperty(String name, String value) {
             switch (name) {
-            case SIZE, BYTESIZE, ICON_URL, ICON_WIDTH, ICON_HEIGHT, IMAGE, IMAGE_WIDTH, IMAGE_HEIGHT ->
+            case PROP_NAME_FORMATTED_SIZE, PROP_NAME_BYTESIZE, PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
+                 PROP_NAME_ICON_HEIGHT, PROP_NAME_IMAGE,
+                 PROP_NAME_IMAGE_WIDTH, PROP_NAME_IMAGE_HEIGHT ->
                 // not supported
                 LOGGER.warn(
                     "SimpleMutableFileMetadata::putProperty does not support setting the {} property.",
@@ -655,7 +596,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final Set<String> getPropertyNames() {
             Set<String> base = ImmutableSet.of(
-                SIZE, IMAGE, IMAGE_WIDTH, IMAGE_HEIGHT, ICON_URL, ICON_WIDTH, ICON_HEIGHT
+                PROP_NAME_FORMATTED_SIZE, PROP_NAME_IMAGE, PROP_NAME_IMAGE_WIDTH, PROP_NAME_IMAGE_HEIGHT,
+                PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
+                PROP_NAME_ICON_HEIGHT
             );
             if (SimpleMutableFileMetadata.this.extendedProperties == null) {
                 return base;
@@ -675,13 +618,13 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
         private final String computeExtendedProperty(String name) {
             return switch (name) {
-                case SIZE -> NumberFormats.getFormattedByteSize(byteSize());
-                case BYTESIZE -> Long.toString(byteSize());
-                case ICON_URL -> iconUrl.get();
-                case ICON_WIDTH -> Integer.toString(icon.get().getWidth());
-                case ICON_HEIGHT -> Integer.toString(icon.get().getHeight());
-                case IMAGE_WIDTH -> imageDimensions().getWidth().toString();
-                case IMAGE_HEIGHT -> imageDimensions().getHeight().toString();
+                case PROP_NAME_FORMATTED_SIZE -> NumberFormats.getFormattedByteSize(byteSize());
+                case PROP_NAME_BYTESIZE -> Long.toString(byteSize());
+                case PROP_NAME_ICON_URL -> iconUrl.get();
+                case PROP_NAME_ICON_WIDTH -> Integer.toString(icon.get().getWidth());
+                case PROP_NAME_ICON_HEIGHT -> Integer.toString(icon.get().getHeight());
+                case PROP_NAME_IMAGE_WIDTH -> imageDimensions().getWidth().toString();
+                case PROP_NAME_IMAGE_HEIGHT -> imageDimensions().getHeight().toString();
                 default -> "";
             };
         }
@@ -762,9 +705,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     private String fileName = null;
 
     /**
-     * See {@link #getFileResourcePath()} and {@link #setFileResourcePath(String)}.
+     * See {@link #getURI()} and {@link #setURI(URI)}.
      */
-    private String fileResourcePath = null;
+    private URI uri = null;
 
     /**
      * See {@link #getDescription()} and {@link #setDescription(String)}.
@@ -800,6 +743,8 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
      * See {@link #getContentBase()} and {@link #setContentBase(String)}.
      */
     private String contentBase = null;
+
+    private FileResourceType resourceType = null;
 
     /**
      * Tracks any error message associated with an attempt to find and reserve a temporary location for the file when it
@@ -838,7 +783,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     private final List<String> getToStringPropertyNames() {
         return ImmutableList.of(
-            FNAME, MIMETYPE, LOCALFNAME, NUMBER, ISREF, ERROR, CID, CLOC, CBASE
+            PROP_NAME_FILE_NAME, PROP_NAME_MIMETYPE, PROP_NAME_URI, PROP_NAME_NUMBER,
+            PROP_NAME_REFERENCE_TO_PERSISTED_FILE, PROP_NAME_ERROR, PROP_NAME_CID, PROP_NAME_CONTENT_LOCATION,
+            PROP_NAME_CONTENT_BASE
         );
     }
 
@@ -847,7 +794,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         if (!(other instanceof SimpleMutableFileMetadata)) {
             return false;
         }
-        if (Objects.equals(getFileResourcePath(), ((SimpleMutableFileMetadata) other).getFileResourcePath())) {
+        if (Objects.equals(getURI(), ((SimpleMutableFileMetadata) other).getURI())) {
             return true;
         }
         return false;
@@ -855,7 +802,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     @Override
     public final int hashCode() {
-        return Objects.hash(getFileResourcePath());
+        return Objects.hash(getURI());
     }
 
     public final boolean isSameFileData(SimpleMutableFileMetadata metadata) {
@@ -863,7 +810,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             return false;
         }
         if (Objects.equals(fileName, metadata.fileName) &&
-            Objects.equals(fileResourcePath, metadata.fileResourcePath) &&
+            Objects.equals(uri, metadata.uri) &&
             Objects.equals(description, metadata.description) &&
             Objects.equals(this.contentType, metadata.contentType) &&
             (number == metadata.number) &&
@@ -896,14 +843,15 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         this.fileName = fileName;
     }
 
+    @Nonnull
     @Override
-    public final String getFileResourcePath() {
-        return fileResourcePath;
+    public final URI getURI() {
+        return uri;
     }
 
     @Override
-    public final void setFileResourcePath(String fileResourcePath) {
-        this.fileResourcePath = FileNameUtil.platformIndependentPath(fileResourcePath);
+    public final void setURI(@Nullable URI uri) {
+        this.uri = uri;
     }
 
     @Override
@@ -979,18 +927,29 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     @Override
+    public final void setContentBase(String contentBase) {
+        this.contentBase = contentBase;
+    }
+
+    @Override
+    public final void setResourceType(FileResourceType resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    @Override
     public final String getContentBase() {
         return contentBase;
     }
 
     @Override
-    public FileMetadata toReadOnly() {
-        return new ReadOnlyView();
+    public FileResourceType getResourceType() {
+        return resourceType;
     }
 
+    @Nonnull
     @Override
-    public final void setContentBase(String contentBase) {
-        this.contentBase = contentBase;
+    public FileMetadata toReadOnly() {
+        return new ReadOnlyView();
     }
 
     @Override
@@ -1002,12 +961,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         return new LoadSaveProperties();
     }
 
-    public final void copyTo(MutableFileMetadata copy) {
-        copy(this, copy);
-    }
-
-    public final SimpleMutableFileMetadata getCopy() {
-        SimpleMutableFileMetadata copy = makeCopy(this);
+    @Override
+    public final SimpleMutableFileMetadata mutableCopy() {
+        SimpleMutableFileMetadata copy = createCopy(this);
         if (extendedProperties != null) {
             copy.extendedProperties = new HashMap<>(extendedProperties);
         }
@@ -1025,7 +981,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     /**
      * Returns true if this FileData represents a place-holder for a file that could not be received or stored (e.g.,
      * when a temporary file would have been created for an upload, but the upload failed). This should generally
-     * correspond to {@link TempFile#hadError()}.
+     * correspond to {@link TempFileResource#hadError()}.
      *
      * @return true if this FileData represents a place-holder for a file that could not be received; false otherwise.
      */
@@ -1039,7 +995,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     /**
      * Returns an error message if this FileData represents a place-holder for a file that could not be received (e.g.,
      * when a temporary file would have been created for an upload, but the upload failed). This should generally
-     * correspond to {@link TempFile#getErrorMessage()}.
+     * correspond to {@link TempFileResource#getErrorMessage()}.
      *
      * @return an error message if this FileData represents a place-holder for a file that could not be received (e.g.,
      *     could not be stored as a temporary file).
@@ -1057,30 +1013,6 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             extendedProperties = new HashMap<>();
         }
         return extendedProperties;
-    }
-
-    /**
-     * Returns the URL for the file, which will be the same as the {@link #getFileResourcePath() file resource path}.
-     *
-     * @return the URL for the file, which will be the same as the {@link #getFileResourcePath() file resource path}.
-     */
-    public final String getUrl() {
-        return URLUtil.getUrlEncoding(fileResourcePath);
-    }
-
-    /**
-     * Sets the URL for this FileData. Only the path component of the URL will be used, and it will be URL decoded.
-     *
-     * @param url
-     *     the new URL to be applied.
-     */
-    public final void setUrl(String url) {
-        if (url == null) {
-            setFileResourcePath(null);
-        }
-        else {
-            setFileResourcePath(URLUtil.getUrlDecoded(URLUtil.getPath(url)));
-        }
     }
 
     @Override

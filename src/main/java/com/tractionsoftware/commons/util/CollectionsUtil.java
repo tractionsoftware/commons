@@ -22,7 +22,7 @@ package com.tractionsoftware.commons.util;
 
 import com.google.common.collect.*;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.function.FunctionsUtil;
 import com.tractionsoftware.commons.util.function.PredicatesUtil;
@@ -298,7 +298,7 @@ public final class CollectionsUtil {
                 LOGGER.debug(
                     "The Map {} ({}) may not support null values.",
                     SnippetUtil.truncatedToString(map),
-                    ObjectsUtil.safeClassNameToString(map),
+                    ObjectUtil.safeClassNameToString(map),
                     e
                 );
             }
@@ -532,7 +532,7 @@ public final class CollectionsUtil {
             LOGGER.debug(
                 "The Collection {} ({}) may not support null keys.",
                 SnippetUtil.truncatedToString(coll),
-                ObjectsUtil.safeClassNameToString(coll),
+                ObjectUtil.safeClassNameToString(coll),
                 e
             );
         }
@@ -964,7 +964,7 @@ public final class CollectionsUtil {
             LOGGER.debug(
                 "The Map {} ({}) may not support null keys.",
                 SnippetUtil.truncatedToString(map),
-                ObjectsUtil.safeClassNameToString(map),
+                ObjectUtil.safeClassNameToString(map),
                 e
             );
         }
@@ -1580,7 +1580,7 @@ public final class CollectionsUtil {
      *
      * <p>
      * This method is precisely identical to the implementation of {@link AbstractMap#toString()}, but uses
-     * {@link ObjectsUtil#safeToString(Object)} to produce String representations of the Map's keys and values.
+     * {@link ObjectUtil#safeToString(Object)} to produce String representations of the Map's keys and values.
      *
      * <p>
      * This may be useful, e.g., to produce diagnostic information related to some key-value pairs while ensuring that
@@ -1620,7 +1620,7 @@ public final class CollectionsUtil {
      *
      * <p>
      * This method is nearly precisely identical to the implementation of {@link AbstractCollection#toString()}, but
-     * uses {@link ObjectsUtil#safeToString(Object)} to produce String representations of the elements produced by an
+     * uses {@link ObjectUtil#safeToString(Object)} to produce String representations of the elements produced by an
      * {@link Iterator} from the given Iterable.
      *
      * <p>
@@ -1694,7 +1694,7 @@ public final class CollectionsUtil {
         if (object == parent) {
             return "this " + parentReference;
         }
-        return ObjectsUtil.safeToString(object);
+        return ObjectUtil.safeToString(object);
     }
 
     public static final <K, V> MapIteratorAdapter<K,V> function2mapIteratorAdapter(final Function<K,V> provider) {

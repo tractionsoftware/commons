@@ -20,79 +20,14 @@
 
 package com.tractionsoftware.commons.image;
 
+import com.tractionsoftware.commons.io.CommonFileResourceType;
+import com.tractionsoftware.commons.io.FileResourceType;
 import com.tractionsoftware.commons.util.Dimensions;
 
 /**
  * An Icon represents an image with particular display properties.
  */
 public interface Icon {
-
-    public static interface ImageResourceType {
-
-        public boolean supportsContentId();
-
-    }
-
-    public static enum CommonImageResourceType implements ImageResourceType {
-
-        /**
-         * Content, such as an image embedded in a document.
-         */
-        CONTENT(true),
-
-        /**
-         * An icon for a type of file.
-         */
-        ICON_FILE_TYPE(true),
-
-        ICON_OTHER(true),
-
-        /**
-         * A logo or other banner image.
-         */
-        LOGO(true),
-
-        /**
-         * A user profile picture image.
-         */
-        PROFILE_PICTURE(true),
-
-        /**
-         * Inline data, usually from a data: URI.
-         */
-        DATA(false),
-
-        /**
-         * Referencing an external source, but which has been retrieved and persisted locally.
-         */
-        EXTERNAL_RETRIEVED(true),
-
-        /**
-         * Referencing an external source.
-         */
-        EXTERNAL(false),
-
-        /**
-         * A thumbnail of a content image.
-         */
-        CONTENT_THUMBNAIL(false),
-
-        /**
-         * Something else.
-         */
-        OTHER(false);
-
-        private final boolean supportsContentId;
-
-        private CommonImageResourceType(boolean supportsContentId) {
-            this.supportsContentId = supportsContentId;
-        }
-
-        public final boolean supportsContentId() {
-            return supportsContentId;
-        }
-
-    }
 
     /**
      * Returns true if this Icon is "valid." The definition of validity as it applies here requires the icon image
@@ -228,7 +163,7 @@ public interface Icon {
      * used on an Icon whose the underlying image's dimensions are not known. Such an Icon instance
      * {@link #isValid() will report that it is valid}, but its getDimensions() method will return null. This is most
      * likely to happen in the case of an Icon created from an
-     * {@link CommonImageResourceType#EXTERNAL external resource}.
+     * {@link CommonFileResourceType#EXTERNAL external resource}.
      *
      * <p>
      * Another case in which it might possibly be appropriate to use this method would be for some sort of place-holder
@@ -260,22 +195,28 @@ public interface Icon {
     public Icon withDimensions(Dimensions<Integer> newDimensions);
 
     /**
-     * Returns a {@link IconFileResource} that can be used to provide direct access to this Icon image data, if possible. This
-     * can be useful if the image has to be attached to an email message, or in certain other cases.
+     * Returns a {@link IconFileResource} that can be used to provide direct access to this Icon image data, if
+     * possible. This can be useful if the image has to be attached to an email message, or in certain other cases.
      *
-     * @return a {@link IconFileResource} that can be used to provide direct access to this Icon image data, if possible; null
-     *     otherwise.
+     * @return a {@link IconFileResource} that can be used to provide direct access to this Icon image data, if
+     *     possible; null otherwise.
      */
-    public IconFileResource getImageFileInfo();
+    public IconFileResource getImageFileResource();
 
     /**
-     * Returns the {@link ImageResourceType} indicating the type of image resource that this Icon instance represents.
-     * This method should never return null. For miscellaneous images, or anything otherwise uncategorized,
-     * {@link CommonImageResourceType#OTHER} should be returned.
+     * Returns the {@link FileResourceType} indicating the type of resource that this Icon instance represents. This
+     * method should never return null. For miscellaneous images, or anything otherwise uncategorized,
+     * {@link CommonFileResourceType#OTHER} should be returned.
      *
-     * @return the {@link ImageResourceType} indicating the type of image resource that this Icon instance represents.
+     * <p>
+     * This implementation delegates to {@code getImageFileResource().getType()}. Subclasses should override it as
+     * necessary.
+     *
+     * @return the {@link FileResourceType} indicating the type of image resource that this Icon instance represents.
      */
-    public ImageResourceType getImageResourceType();
+    public default FileResourceType getImageResourceType() {
+        return getImageFileResource().getType();
+    }
 
     public default String getTitle() {
         return null;

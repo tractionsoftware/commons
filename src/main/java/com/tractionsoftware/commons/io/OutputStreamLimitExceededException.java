@@ -21,8 +21,12 @@
 package com.tractionsoftware.commons.io;
 
 import java.io.IOException;
+import java.io.Serial;
 
 public final class OutputStreamLimitExceededException extends IOException {
+
+    @Serial
+    private static final long serialVersionUID = -2929362180320846748L;
 
     public OutputStreamLimitExceededException(long maximumBytes, long bytesAttempted) {
         super("Attempted to write " + bytesAttempted + "B > " + maximumBytes + "B.");

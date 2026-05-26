@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.io.StringWriteUtil;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.TextWrapUtil;
@@ -530,7 +530,7 @@ public final class HtmlUtil {
             }
         }
         catch (IOException e) {
-            LOGGER.error("Failed to write to {}", ObjectsUtil.safeToStringObject(out), e);
+            LOGGER.error("Failed to write to {}", ObjectUtil.safeToStringObject(out), e);
         }
     }
 

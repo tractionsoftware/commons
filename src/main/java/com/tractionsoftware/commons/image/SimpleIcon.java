@@ -89,7 +89,7 @@ public final class SimpleIcon implements Icon {
     }
 
     @Override
-    public final IconFileResource getImageFileInfo() {
+    public final IconFileResource getImageFileResource() {
         return iconFile;
     }
 
@@ -116,7 +116,6 @@ public final class SimpleIcon implements Icon {
      * {@link ForwardingIcon#wrapWithForcedDimensions(Icon, Dimensions)}.
      */
     public final Icon withDimensions(Dimensions<Integer> newDimensions) {
-
         if (Objects.equals(getDimensions(), newDimensions)) {
             return this;
         }
@@ -124,14 +123,7 @@ public final class SimpleIcon implements Icon {
             newDimensions.equals(iconFile.getOriginalDimensions())) {
             return iconFile.getImage();
         }
-
         return ForwardingIcon.wrapWithForcedDimensions(iconFile.getImage(newDimensions), newDimensions);
-
-    }
-
-    @Override
-    public final ImageResourceType getImageResourceType() {
-        return iconFile.getImageResourceType();
     }
 
 }

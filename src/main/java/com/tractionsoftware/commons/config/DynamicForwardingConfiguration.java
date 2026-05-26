@@ -18,7 +18,6 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-
 package com.tractionsoftware.commons.config;
 
 import jakarta.annotation.Nonnull;

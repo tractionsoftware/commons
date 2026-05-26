@@ -20,12 +20,12 @@
 
 package com.tractionsoftware.commons.properties;
 
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 
 /**
  * A skeleton {@link PropertyLoader} that provides a simple
  * implementation of {@link #cast(Object)} using
- * {@link ObjectsUtil#castIfAssignmentCompatible(Object, Class)},
+ * {@link ObjectUtil#castIfAssignmentCompatible(Object, Class)},
  * passing the supplied Object and a Class literal for the target
  * type. Most PropertyLoader implementations should extend this class.
  *
@@ -41,7 +41,7 @@ public abstract class AbstractPropertyLoader<T> implements PropertyLoader<T> {
 
     @Override
     public final T cast(Object value) {
-        return ObjectsUtil.castIfAssignmentCompatible(value, type);
+        return ObjectUtil.castIfAssignmentCompatible(value, type);
     }
 
 }

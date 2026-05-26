@@ -20,12 +20,17 @@
 
 package com.tractionsoftware.commons.image;
 
+import com.tractionsoftware.commons.io.CommonFileResourceType;
 import com.tractionsoftware.commons.io.FileResource;
+import com.tractionsoftware.commons.io.FileResourceType;
 import com.tractionsoftware.commons.io.SizedInputStream;
 import com.tractionsoftware.commons.util.Dimensions;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Date;
 
 /**
@@ -42,11 +47,11 @@ public interface IconFileResource extends FileResource {
      */
     public static final class InvalidIconFile extends AbstractIconFile {
 
-        private final Icon.ImageResourceType imageResourceType;
+        private final FileResourceType resourceType;
 
-        public InvalidIconFile(Icon.ImageResourceType imageResourceType) {
+        public InvalidIconFile(FileResourceType resourceType) {
             super();
-            this.imageResourceType = imageResourceType;
+            this.resourceType = resourceType;
         }
 
         @Override
@@ -54,26 +59,43 @@ public interface IconFileResource extends FileResource {
             return false;
         }
 
+        @Nonnull
         @Override
         public final SizedInputStream getInputStream() throws IOException {
             throw new FileNotFoundException();
         }
 
+        @Nonnull
+        @Override
+        public final FileResourceType getType() {
+            return resourceType;
+        }
+
+        @Nonnull
+        @Override
+        public final URI getURI() {
+            return URI.create("icon:invalid");
+        }
+
+        @Nonnull
         @Override
         public final String getPath() {
             return "";
         }
 
+        @Nonnull
         @Override
         public final String getFilename() {
             return "";
         }
 
+        @Nullable
         @Override
         public final String getContentType() {
             return null;
         }
 
+        @Nullable
         @Override
         public final String getContentId() {
             return null;
@@ -84,42 +106,54 @@ public interface IconFileResource extends FileResource {
             return 0;
         }
 
+        @Nonnull
         @Override
         public final Date getLastModified() {
             return new Date(0);
         }
 
+        @Nullable
         @Override
         public final String getDisplayName() {
             return null;
         }
 
+        @Nullable
         @Override
         public final String getDescription() {
             return null;
         }
 
+        @Nonnull
         @Override
         public final String toDebugString() {
             return "NONE";
         }
 
         @Override
-        public final Icon.ImageResourceType getImageResourceType() {
-            return imageResourceType;
+        public final FileResourceType getImageResourceType() {
+            return resourceType;
         }
 
     }
 
     /**
-     * Returns true if this IconFile is valid. Validity for IconFiles generally requires that the basic
+     * Returns true if this icon file is valid. Validity for IconFiles generally requires that the basic
      * {@link FileResource} validity check be fulfilled, and also that the underlying resource is a valid and supported
      * type of image.
      *
-     * @return true if this FileInfo instance is considered valid; false otherwise.
+     * @return true if this icon file instance is considered valid; false otherwise.
      */
     @Override
     public boolean isValid();
+
+    /**
+     * Returns false because all IconFileResource instances must represent files, not directories.
+     */
+    @Override
+    public default boolean isDirectory() {
+        return false;
+    }
 
     @Override
     public default Icon getImage(Dimensions<Integer> maxDimensions) {
@@ -141,8 +175,8 @@ public interface IconFileResource extends FileResource {
      * <p>
      * If this instance is not {@link #isValid()}, this method will definitely return null, but can return null in
      * certain other cases. This is most likely to happen in the case of an
-     * {@link Icon.CommonImageResourceType#EXTERNAL external resource} that cannot be retrieved by TeamPage in order to
-     * have its dimensions inspected. In that case, the Icon instance
+     * {@link CommonFileResourceType#EXTERNAL external resource} that cannot be retrieved by TeamPage in order to have
+     * its dimensions inspected. In that case, the Icon instance
      * {@link Icon#isValid() will reflect that the resource should still be assumed to be valid}, and the missing
      * {@link Icon#getDimensions() Dimensions}, in which case it would be appropriate for clients to use
      * {@link Icon#withDimensions(Dimensions)} if appropriate display dimensions are known (e.g., from an SDL html.image
@@ -177,18 +211,19 @@ public interface IconFileResource extends FileResource {
     }
 
     /**
-     * Returns the {@link Icon.ImageResourceType} indicating the type of image resource this represents. This is
-     * required for some {@link Icon} implementations.
+     * Returns the {@link FileResourceType} indicating the type of image resource this represents. This is required for
+     * some {@link Icon} implementations.
      *
-     * @return the {@link Icon.ImageResourceType} indicating the type of image resource this represents.
+     * @return the {@link FileResourceType} indicating the type of image resource this represents.
      */
-    public Icon.ImageResourceType getImageResourceType();
+    public FileResourceType getImageResourceType();
 
     /**
      * Returns a more detailed descriptive String than {@code toString()}, suitable for debugging purposes.
      *
      * @return a more detailed descriptive String than {@code toString()}, suitable for debugging purposes.
      */
+    @Nonnull
     public String toDebugString();
 
     /**

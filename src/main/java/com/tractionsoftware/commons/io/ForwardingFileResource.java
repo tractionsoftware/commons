@@ -45,11 +45,13 @@ public abstract class ForwardingFileResource extends ForwardingObject implements
         return delegate().isValid();
     }
 
+    @Nonnull
     @Override
     public SizedInputStream getInputStream() throws IOException, IllegalStateException {
         return delegate().getInputStream();
     }
 
+    @Nonnull
     @Override
     public String getFilename() {
         return delegate().getFilename();
@@ -75,16 +77,19 @@ public abstract class ForwardingFileResource extends ForwardingObject implements
         return delegate().getByteSize();
     }
 
+    @Nonnull
     @Override
     public String getFormattedSize() {
         return delegate().getFormattedSize();
     }
 
+    @Nonnull
     @Override
     public Date getLastModified() {
         return delegate().getLastModified();
     }
 
+    @Nonnull
     @Override
     public FileMetadata getMetadata() {
         return delegate().getMetadata();
@@ -98,6 +103,12 @@ public abstract class ForwardingFileResource extends ForwardingObject implements
     @Override
     public Icon getImage(Dimensions<Integer> maxDimensions) {
         return delegate().getImage(maxDimensions);
+    }
+
+    @Nonnull
+    @Override
+    public FileResourceType getType() {
+        return delegate().getType();
     }
 
 }

@@ -24,7 +24,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import org.apache.commons.io.output.TeeWriter;
 import org.apache.commons.lang3.StringUtils;
@@ -165,7 +165,7 @@ public final class StringWriteUtil {
             return getPrintedString(callback);
         }
         catch (RuntimeException e) {
-            X eligible = ObjectsUtil.castIfAssignmentCompatible(e.getCause(), exceptionType);
+            X eligible = ObjectUtil.castIfAssignmentCompatible(e.getCause(), exceptionType);
             if (eligible != null) {
                 throw eligible;
             }
@@ -273,7 +273,7 @@ public final class StringWriteUtil {
             LOGGER.warn(
                 "Failed to append {} to {}",
                 SnippetUtil.truncatedToString(appendValue),
-                ObjectsUtil.safeToStringObject(appendTo),
+                ObjectUtil.safeToStringObject(appendTo),
                 e
             );
         }

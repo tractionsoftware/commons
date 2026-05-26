@@ -38,7 +38,7 @@ public interface Resource extends AutoCloseable {
      * @see LoadAttemptResult#getErrorType()
      */
     @Beta
-    enum LoadErrorType {
+    public static enum LoadErrorType {
 
         /**
          * The attempt to set up the resource failed. This can mean that the resource couldn't be identified, or
@@ -80,7 +80,7 @@ public interface Resource extends AutoCloseable {
      *
      * @author Dave Shepperton
      */
-    interface LoadAttemptResult {
+    public static interface LoadAttemptResult {
 
         /**
          * Returns true if the {@link Resource} was loaded successfully and is ready for use.
@@ -127,7 +127,7 @@ public interface Resource extends AutoCloseable {
      * tags. Implementations must be idempotent, and must not throw any Exceptions.
      */
     @Override
-    void close();
+    public void close();
 
     /**
      * Returns true if this Resource is still considered to be open. This method should return true until the
@@ -135,6 +135,10 @@ public interface Resource extends AutoCloseable {
      *
      * @return true if this Resource is still considered open.
      */
-    boolean isOpen();
+    public boolean isOpen();
+
+    public default boolean isClosed() {
+        return !isOpen();
+    }
 
 }

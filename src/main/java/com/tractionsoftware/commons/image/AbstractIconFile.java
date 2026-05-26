@@ -24,6 +24,7 @@ import com.tractionsoftware.commons.io.FileMetadata;
 import com.tractionsoftware.commons.io.SimpleMutableFileMetadata;
 import com.tractionsoftware.commons.text.NumberFormats;
 import com.tractionsoftware.commons.util.Dimensions;
+import jakarta.annotation.Nonnull;
 
 import java.io.BufferedReader;
 import java.nio.charset.Charset;
@@ -151,11 +152,13 @@ public abstract class AbstractIconFile implements IconFileResource {
      * which was specifically designed to provide a convenient implementation for this method. It should be suitable for
      * all implementations unless the {@link FileMetadata} needs to carry special non-standard properties.
      */
+    @Nonnull
     @Override
     public FileMetadata getMetadata() {
         return SimpleMutableFileMetadata.createForIconFileInfo(this);
     }
 
+    @Nonnull
     @Override
     public final String getFormattedSize() {
         long byteSize = getByteSize();

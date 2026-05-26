@@ -20,12 +20,15 @@
 
 package com.tractionsoftware.commons.io;
 
+import com.tractionsoftware.commons.net.URLUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.io.function.IOSupplier;
 import org.slf4j.Logger;
 
 import java.io.*;
+import java.net.URI;
+import java.util.Objects;
 
 /**
  * A simple interface representing a temporary file, with support for reading, writing, moving, deleting, etc.
@@ -39,22 +42,118 @@ import java.io.*;
  * TempFiles, like other {@link FileResource}s, should be assumed to created only on demand contingent upon various
  * factors, and should never be shared across threads.
  */
-public interface TempFile extends FileResource, Flushable, Closeable {
+public interface TempFileResource extends FileResource, Flushable, Closeable {
+
+    public static final String URI_SCHEME_NAME = "temp";
+
+    public static final String URI_SCHEME_PREFIX = URI_SCHEME_NAME + URLUtil.SCHEME_QUALIFIER_CHAR;
+
+    public static final String URI_ID_ERROR = "error";
+
+    public static final URI URI_ERROR = URI.create(URI_SCHEME_PREFIX + URI_ID_ERROR);
 
     public static interface Factory {
 
+        /**
+         * Returns a {@link TempFileResource} for a newly created temporary file resource. Its metadata will be based on
+         * the given metadata, and its contents will be populated with the given {@link InputStream} supplier, if one is
+         * provided. Clients should use {@link TempFileResource#hadError()} to see whether the temporary file resource
+         * was successfully created.
+         *
+         * @param metadata
+         *     the base metadata for the temp file. A modified version of the metadata may be
+         *     {@link TempFileResource#getMetadata() carried by the returned TempFileResource}.
+         * @param content
+         *     an optional supplier for the content of the temporary file.
+         * @param logger
+         *     an optional {@link Logger} to use for logging.
+         * @return a {@link TempFileResource} for a newly created temporary file resource.
+         * @throws NullPointerException
+         *     if the {@link FileMetadata} or {@link FileMetadata#getFilename() its file name} is null.
+         */
         @Nonnull
-        public TempFile create(@Nonnull FileMetadata metadata, @Nullable Logger logger) throws IOException;
+        public TempFileResource create(@Nonnull FileMetadata metadata, @Nullable IOSupplier<? extends InputStream> content, @Nullable Logger logger);
+
+        /**
+         * Returns a {@link TempFileResource} for an existing temporary file resource identified by
+         * {@link FileMetadata#getURI() the given metadata's file resource path}.
+         *
+         * @param metadata
+         *     the base metadata for the temp file whose {@link FileMetadata#getURI() file resource path}
+         *     refers to the requested file. A modified version of the metadata may be
+         *     {@link TempFileResource#getMetadata() carried by the returned TempFileResource}.
+         * @param logger
+         *     an optional {@link Logger} to use for logging.
+         * @return a {@link TempFileResource} for an existing temporary file resource identified by
+         *     {@link FileMetadata#getURI() the given metadata's file resource path}.
+         * @throws NullPointerException
+         *     if the {@link FileMetadata} or {@link FileMetadata#getURI() its file resource path} is
+         *     null.
+         */
+        @Nonnull
+        public TempFileResource loadExisting(@Nonnull FileMetadata metadata, @Nullable Logger logger);
+
+    }
+
+    public static abstract class AbstractFactory implements Factory {
 
         @Nonnull
-        public TempFile createWithContent(@Nonnull IOSupplier<? extends InputStream> getContent, @Nonnull FileMetadata metadata, @Nullable Logger logger)
+        @Override
+        public final TempFileResource create(@Nonnull FileMetadata metadata, @Nullable IOSupplier<? extends InputStream> content, @Nullable Logger logger) {
+
+            Objects.requireNonNull(metadata, "metadata");
+            Objects.requireNonNull(metadata.getFilename(), "file name from metadata");
+
+            SimpleMutableFileMetadata updatedMetadata = SimpleMutableFileMetadata.createCopy(metadata);
+
+            updatedMetadata.setReferenceToPersistedFile(false);
+
+            Logger useLogger = Objects.requireNonNullElse(logger, LOGGER);
+
+            try {
+                return createImpl(updatedMetadata, content, useLogger);
+            }
+            catch (IOException | RuntimeException e) {
+                useLogger.error("Failed to create temp file for {}", metadata.getFilename(), e);
+                return ErrorTempFileResource.createInstance(updatedMetadata, e);
+            }
+
+        }
+
+        @Nonnull
+        public final TempFileResource loadExisting(@Nonnull FileMetadata metadata, @Nullable Logger logger) {
+
+            Objects.requireNonNull(metadata, "metadata");
+            Objects.requireNonNull(metadata.getURI(), "file path from metadata");
+
+            SimpleMutableFileMetadata updatedMetadata = SimpleMutableFileMetadata.createCopy(metadata);
+            updatedMetadata.setReferenceToPersistedFile(false);
+
+            Logger useLogger = Objects.requireNonNullElse(logger, LOGGER);
+
+            try {
+                return loadExistingImpl(updatedMetadata, useLogger);
+            }
+            catch (IOException | RuntimeException e) {
+                useLogger.error("Failed to load existing temp file for {}", metadata.getFilename(), e);
+                return ErrorTempFileResource.createInstance(updatedMetadata, e);
+            }
+
+        }
+
+        @Nonnull
+        protected abstract TempFileResource createImpl(@Nonnull MutableFileMetadata metadata, @Nullable IOSupplier<? extends InputStream> content, @Nonnull Logger logger)
+            throws IOException;
+
+        @Nonnull
+        protected abstract TempFileResource loadExistingImpl(@Nonnull MutableFileMetadata metadata, @Nonnull Logger logger)
             throws IOException;
 
     }
 
     /**
-     * {@link TempFile}s are the canonical example of a non-persistent file resource, so this implementation returns
-     * false.
+     * {@link TempFileResource}s are the canonical example of a non-persistent file resource, so this implementation
+     * returns false.
      */
     @Override
     public default boolean isPersistent() {
@@ -75,20 +174,6 @@ public interface TempFile extends FileResource, Flushable, Closeable {
      *     if the deletion was a no-op because the underlying resource has already been deleted.
      */
     public boolean delete();
-
-    /**
-     * Moves the contents of this temporary file to the destination represented by the given {@link File}, which may
-     * represent either the exact file or a directory to which the file should be added.
-     *
-     * @param destination
-     *     the destination. If this file exists and is a directory, the temporary file will be placed inside the
-     *     directory, with the same name it currently has. Otherwise, the temporary file will be placed in the exact
-     *     given file location (including if the target File exists but is not a directory).
-     * @throws IOException
-     *     if one is raised while attempting to move the temporary file into the given location.
-     * @see FileUtil#getMoveDestination(File, String)
-     */
-    public abstract void move(File destination) throws IOException;
 
     /**
      * Saves any changes that have been made to this temporary file's properties using the set* methods, or writing to
@@ -166,16 +251,6 @@ public interface TempFile extends FileResource, Flushable, Closeable {
     public abstract PrintWriter getUtf8PrintWriter() throws IOException;
 
     /**
-     * Returns a path that can be used to refer to this temp file, likely not containing
-     * {@link #getFilename() its logical file name}. It should not reflect details of the exact underlying storage
-     * location, such as a real path to a file.
-     *
-     * @return a path that can be used to refer to this temp file, likely not containing
-     *     {@link #getFilename() its logical file name}.
-     */
-    public abstract String getTempFilePath();
-
-    /**
      * This method must flush the {@link OutputStream}s, if any, associated with this TempFile.
      */
     @Override
@@ -189,24 +264,19 @@ public interface TempFile extends FileResource, Flushable, Closeable {
     @Override
     public abstract void close() throws IOException;
 
-    public String getFileResourcePath();
+    public default void setContent(InputStream input) throws IOException {
+        try (OutputStream destination = getOutputStream()) {
+            input.transferTo(destination);
+        }
+        save();
+    }
 
-    public void setFilename(String fileName);
-
-    public int getNumber();
-
-    public void setNumber(int number);
-
-    public void setDescription(String description);
-
-    public void setContentType(String contentType);
-
-    public void setContentLocation(String contentLocation);
-
-    public String getContentLocation();
-
-    public String getContentBase();
-
-    public void setMissingMutableMetadata(FileMetadata metadata);
+    /**
+     * Returns false because all TempFile instances must represent files, not directories.
+     */
+    @Override
+    public default boolean isDirectory() {
+        return false;
+    }
 
 }

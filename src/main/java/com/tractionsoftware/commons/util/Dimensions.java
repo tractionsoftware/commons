@@ -27,7 +27,7 @@ import com.tractionsoftware.commons.image.WebPUtil;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.io.FileNameUtil;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,7 +212,7 @@ public final class Dimensions<N extends Number> {
         catch (IOException e) {
             if (ImageUtil.isImageExtension(ext)) {
                 LOGGER.warn(
-                    "Failed to read dimensions for {} ({})", fileName, ObjectsUtil.safeToStringObject(input), e
+                    "Failed to read dimensions for {} ({})", fileName, ObjectUtil.safeToStringObject(input), e
                 );
             }
             return getInvalidInstanceInPixels();

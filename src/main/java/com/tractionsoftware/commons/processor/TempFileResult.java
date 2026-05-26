@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * A simple Result implementation backed by a {@link TempFile}. Instances of this class may be created via its static
+ * A simple Result implementation backed by a {@link TempFileResource}. Instances of this class may be created via its static
  * factory methods, but in general those methods are invoked indirectly via a suitable {@link TempFileResultProvider}
  * instance.
  *
@@ -48,12 +48,12 @@ public final class TempFileResult extends Result {
     public static interface Helper {
 
         /**
-         * The {@link TempFile.Factory factory} required to create {@link TempFile}s.
+         * The {@link TempFileResource.Factory factory} required to create {@link TempFileResource}s.
          *
-         * @return {@link TempFile.Factory factory} required to create {@link TempFile}s.
+         * @return {@link TempFileResource.Factory factory} required to create {@link TempFileResource}s.
          */
         @Nonnull
-        public TempFile.Factory tempFiles();
+        public TempFileResource.Factory tempFiles();
 
         /**
          * A name associated with the purpose of the code that produced using this Helper. This is used as part of the
@@ -94,10 +94,10 @@ public final class TempFileResult extends Result {
      *
      * @param helper
      *     the Helper object that provides important objects and values used to create the TempFileResult, including
-     *     creating the underlying {@link TempFile}.
+     *     creating the underlying {@link TempFileResource}.
      * @return a new empty TempFileResult instance ready to be populated and later consumed.
      * @throws IOException
-     *     if there is a problem instantiating the {@link TempFile} underlying the TempFileResult instance being
+     *     if there is a problem instantiating the {@link TempFileResource} underlying the TempFileResult instance being
      *     created.
      */
     public static final TempFileResult getInstance(Helper helper) throws IOException {
@@ -106,8 +106,8 @@ public final class TempFileResult extends Result {
         String fileName = FileNameUtil.getValidNormalizedFileName(
             helper.getName() + FileNameUtil.EXTENSION_SEPARATOR_CHAR + ext, null, null, false
         );
-        TempFile tempFile = helper.tempFiles().create(
-            SimpleMutableFileMetadata.createFromFileName(fileName), helper.getLogger()
+        TempFileResource tempFile = helper.tempFiles().create(
+            SimpleMutableFileMetadata.createFromFileName(fileName), null, helper.getLogger()
         );
 
         if (tempFile.hadError()) {
@@ -122,14 +122,14 @@ public final class TempFileResult extends Result {
      * Creates and returns a new TempFileResult instance wrapping an existing TempFile.
      *
      * @param tempFile
-     *     the {@link TempFile} instance to be wrapped.
+     *     the {@link TempFileResource} instance to be wrapped.
      * @param logger
      *     the {@link Logger} to be used for the new TempFileResult instance.
-     * @return a new TempFileResult instance wrapping an existing {@link TempFile}.
+     * @return a new TempFileResult instance wrapping an existing {@link TempFileResource}.
      * @throws RuntimeException
-     *     if the given {@link TempFile} instance is not valid.
+     *     if the given {@link TempFileResource} instance is not valid.
      */
-    public static final TempFileResult getInstanceForExistingTempFile(TempFile tempFile, Logger logger)
+    public static final TempFileResult getInstanceForExistingTempFile(TempFileResource tempFile, Logger logger)
         throws RuntimeException {
         if (tempFile == null || tempFile.hadError()) {
             throw new RuntimeException("Invalid temp file: " + tempFile);
@@ -138,7 +138,7 @@ public final class TempFileResult extends Result {
     }
 
     /**
-     * A helper method to determine the final file extension to be used for a new {@link TempFile}.
+     * A helper method to determine the final file extension to be used for a new {@link TempFileResource}.
      *
      * @param suggestedExtension
      *     the suggested file extension, or null if no file extension has been suggested.
@@ -153,9 +153,9 @@ public final class TempFileResult extends Result {
     }
 
     /**
-     * The underlying {@link TempFile} for this instance.
+     * The underlying {@link TempFileResource} for this instance.
      */
-    private final TempFile tempFile;
+    private final TempFileResource tempFile;
 
     /**
      * A logger for information about this instance. This main purpose of this logger is so that when cleaning up after
@@ -169,22 +169,22 @@ public final class TempFileResult extends Result {
     private volatile boolean released;
 
     /**
-     * Constructs a TempFileResult using the given {@link TempFile} as the underlying data store or source, and the
+     * Constructs a TempFileResult using the given {@link TempFileResource} as the underlying data store or source, and the
      * given NamedLogWriter as a logger for information about this instance.
      *
      * @param tempFile
-     *     the {@link TempFile} to use as the underlying data store or source.
+     *     the {@link TempFileResource} to use as the underlying data store or source.
      * @param logger
      *     the logger for information about this instance.
      */
-    private TempFileResult(TempFile tempFile, Logger logger) {
+    private TempFileResult(TempFileResource tempFile, Logger logger) {
         this.tempFile = tempFile;
         this.logger = logger;
         this.released = false;
     }
 
     /**
-     * This implementation closes and deletes the {@link TempFile} if necessary.
+     * This implementation closes and deletes the {@link TempFileResource} if necessary.
      */
     @Override
     public synchronized final void release() {
@@ -206,7 +206,7 @@ public final class TempFileResult extends Result {
     }
 
     /**
-     * Returns a TractionOutputStream for the underlying temporary file, which is managed by the {@link TempFile}.
+     * Returns a TractionOutputStream for the underlying temporary file, which is managed by the {@link TempFileResource}.
      */
     @Override
     protected final OutputStream getOutputStream() throws IOException {

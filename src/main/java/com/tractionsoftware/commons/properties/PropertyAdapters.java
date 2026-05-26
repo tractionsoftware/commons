@@ -23,8 +23,8 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.config.Configuration;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 
 import java.util.*;
 import java.util.function.Function;
@@ -56,7 +56,7 @@ public final class PropertyAdapters {
 
     };
 
-    private static final UnaryOperator<String> EMPTY_INSTEAD_OF_NULL = new UnaryOperator<String>() {
+    private static final UnaryOperator<String> EMPTY_INSTEAD_OF_NULL = new UnaryOperator<>() {
 
         @Override
         public final String toString() {
@@ -80,11 +80,9 @@ public final class PropertyAdapters {
     /**
      * Note that this maps null values to the empty string on read and write.
      */
-    public static final PropStore wrapEmptyStringIsNull(PropStore props) {
+    public static final <R> PropStore<R> wrapEmptyStringIsNull(PropStore<R> props) {
         return PropertyValueMappingPropStore.applyPropertyValueTransformers(
-            props,
-            NULL_INSTEAD_OF_EMPTY,
-            NULL_INSTEAD_OF_EMPTY
+            props, NULL_INSTEAD_OF_EMPTY, NULL_INSTEAD_OF_EMPTY
         );
     }
 
@@ -120,8 +118,9 @@ public final class PropertyAdapters {
 
         return new GetProperty() {
 
+            @Nonnull
             @Override
-            public final @NonNull String toString() {
+            public final String toString() {
                 return "GetProperty: from GetPropertyAt {" + props + "}";
             }
 
@@ -155,8 +154,9 @@ public final class PropertyAdapters {
 
         return new Configuration() {
 
+            @Nonnull
             @Override
-            public final @NonNull String toString() {
+            public final String toString() {
                 return Objects.toString(props.getName(), "[no name]");
             }
 

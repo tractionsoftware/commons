@@ -25,14 +25,14 @@ import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.codec.Base64Util;
 import com.tractionsoftware.commons.config.Configuration;
 import com.tractionsoftware.commons.io.FileNameUtil;
-import com.tractionsoftware.commons.lang.EnumsUtil;
+import com.tractionsoftware.commons.lang.EnumUtil;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.DateFormats;
 import com.tractionsoftware.commons.util.SimpleDurationUnit;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +82,9 @@ public final class SimpleProperties {
             this.name = name;
         }
 
+        @Nonnull
         @Override
-        public @NonNull String toString() {
+        public final String toString() {
             return "GetProperty: stat map '" +
                    Objects.toString(name, "map") +
                    "' {" +
@@ -114,12 +115,10 @@ public final class SimpleProperties {
             this.name = name;
         }
 
+        @Nonnull
         @Override
-        public final @NonNull String toString() {
-            return
-                "EmptyConfiguration: [" +
-                Objects.toString(getName(), "?") +
-                "]";
+        public final String toString() {
+            return "EmptyConfiguration: [" + Objects.toString(getName(), "?") + "]";
         }
 
         @Override
@@ -1130,7 +1129,7 @@ public final class SimpleProperties {
     }
 
     public static final <E extends Enum<E>> E loadEnum(Configuration config, String name, Class<E> type, E defaultValue) {
-        return EnumsUtil.enumFromString(type, loadString(config, name), defaultValue);
+        return EnumUtil.enumFromString(type, loadString(config, name), defaultValue);
     }
 
 }

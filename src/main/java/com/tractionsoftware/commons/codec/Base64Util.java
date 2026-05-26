@@ -267,8 +267,7 @@ public final class Base64Util {
         );
     }
 
-    private static InputStream getDecodingInputStream(String encodedStr, Charset charset, boolean mime)
-        throws IOException {
+    private static InputStream getDecodingInputStream(String encodedStr, Charset charset, boolean mime) {
         return getDecoder(mime).wrap(IOUtil.getStringAsInputStream(encodedStr, charset));
     }
 

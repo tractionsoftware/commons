@@ -25,10 +25,13 @@ import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.codec.MD5Util;
 import com.tractionsoftware.commons.image.Icon;
 import com.tractionsoftware.commons.image.ImageUtil;
+import com.tractionsoftware.commons.image.SimpleFileResourceIconFileAdapter;
 import com.tractionsoftware.commons.net.MediaTypeUtil;
 import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.text.NumberFormats;
 import com.tractionsoftware.commons.util.Dimensions;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.io.LineIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.DigestInputStream;
@@ -64,6 +68,16 @@ public interface FileResource {
     static final Logger LOGGER = LoggerFactory.getLogger(FileResource.class);
 
     /**
+     * Returns the {@link FileResourceType} indicating the type of resource that this instance represents. This method
+     * should never return null. For miscellaneous files, or anything otherwise uncategorized,
+     * {@link CommonFileResourceType#OTHER} should be returned.
+     *
+     * @return the {@link FileResourceType} indicating the type of image resource that this Icon instance represents.
+     */
+    @Nonnull
+    public FileResourceType getType();
+
+    /**
      * Returns true if this FileInfo is "valid." If a FileInfo instance is not valid, any method whose implementation
      * requires read or write access to the file's data or metadata, such as {@link #getInputStream()} or
      * {@link #getByteSize()}, may throw an Exception, or may return an value that would otherwise be invalid.
@@ -78,19 +92,40 @@ public interface FileResource {
      */
     public boolean isValid();
 
-    public String getPath();
+    /**
+     * Returns the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     * something else.
+     *
+     * @return the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     *     something else.
+     */
+    @Nonnull
+    public URI getURI();
 
     /**
-     * Returns the name of the file.
+     * Returns a path that can be used to uniquely refer to this file resource. It may or may not reflect the details of
+     * the underlying storage location, such as a path to an actual file.
+     *
+     * @return a path that can be used to uniquely refer to this file resource.
      */
+    @Nonnull
+    public default String getPath() {
+        return getURI().getPath();
+    }
+
+    /**
+     * Returns the published name of the file. This is not necessarily the same as the final path component that appears
+     * in {@link #getPath()} or {@link #getURI()}.
+     *
+     * @return the published name of the file.
+     */
+    @Nonnull
     public String getFilename();
 
     /**
      * Returns true if this file is a directory.
      */
-    public default boolean isDirectory() {
-        return false;
-    }
+    public boolean isDirectory();
 
     /**
      * Returns an {@link InputStream} that can be used to access the contents of the underlying file.
@@ -122,6 +157,7 @@ public interface FileResource {
      *     in some rare cases, if the resource may be {@link #isValid() valid}, but the implementation does not support
      *     directly reading the underlying data, possibly because it was never intended that should be required.
      */
+    @Nonnull
     public SizedInputStream getInputStream() throws IOException;
 
     /**
@@ -299,6 +335,7 @@ public interface FileResource {
      * @see #getMD5()
      * @see #getPaddedMD5Hash()
      */
+    @Nullable
     public default String getMD5Hash() {
         return MD5Util.digest(this).hashString();
     }
@@ -312,10 +349,11 @@ public interface FileResource {
      * {@link MD5Util.DigestResult#paddedHashString()} on the result. Subclasses that can provide a more efficient
      * implementation should override it.
      *
-     * @return the padded MD5 hash, similar to {@link #getMD5Hash()}.
+     * @return the padded MD5 hash, similar to {@link #getMD5Hash()}, if available; null otherwise.
      * @see #getMD5()
      * @see #getMD5Hash()
      */
+    @Nullable
     public default String getPaddedMD5Hash() {
         return MD5Util.digest(this).paddedHashString();
     }
@@ -346,30 +384,21 @@ public interface FileResource {
     }
 
     /**
-     * Returns a published name for this file.
+     * Returns the extension from this file's file name (not including the dot).
      *
-     * <p>
-     * This may be different from the logical file name from {@link #getFilename()}, but this default implementation
-     * simply defers to that method. Subclasses that require a different value should override it.
-     *
-     * @return a published name for this file.
+     * @return the extension from this file's file name (not including the dot); null otherwise.
      */
-    public default String getPublishedFilename() {
-        return getFilename();
-    }
-
-    /**
-     * Returns the extension from this File's file name (not including the dot).
-     *
-     * @return the extension from this File's file name.
-     */
+    @Nullable
     public default String getExtension() {
         return FileNameUtil.getExtension(getFilename(), null);
     }
 
     /**
      * Returns a description of the file.
+     *
+     * @return a description of the file resource, if one is present; null otherwise.
      */
+    @Nullable
     public String getDescription();
 
     /**
@@ -377,6 +406,7 @@ public interface FileResource {
      *
      * @return the content-type of the file, if available; null otherwise.
      */
+    @Nullable
     public String getContentType();
 
     /**
@@ -387,6 +417,7 @@ public interface FileResource {
      * @throws UnsupportedOperationException
      *     in some rare cases, if the resource is {@link #isValid() valid}, but should not be included by CID.
      */
+    @Nullable
     public String getContentId();
 
     /**
@@ -418,6 +449,7 @@ public interface FileResource {
      * @return an appropriately formatted representation of the size of this file in bytes as returned by
      *     {@link #getByteSize()}.
      */
+    @Nonnull
     public default String getFormattedSize() {
         return NumberFormats.getFormattedByteSize(getByteSize());
     }
@@ -434,6 +466,7 @@ public interface FileResource {
      *     according to the number formatting rules for the current locale.
      * @see NumberFormats#getFormattedWholeNumber(long)
      */
+    @Nonnull
     public default String getFormattedByteSize() {
         return NumberFormats.getFormattedWholeNumber(getByteSize());
     }
@@ -448,8 +481,9 @@ public interface FileResource {
     /**
      * Returns the last modified or creation date of this file, much like {@link java.io.File#lastModified()}.
      *
-     * @return the last modified or creation date of this file, if such a {@link Date} is known; null otherwise.
+     * @return the last modified or creation date of this file
      */
+    @Nonnull
     public Date getLastModified();
 
     /**
@@ -458,6 +492,7 @@ public interface FileResource {
      *
      * @return a {@link SimpleMutableFileMetadata} encapsulating the metadata for the file represented by this FileInfo.
      */
+    @Nonnull
     public FileMetadata getMetadata();
 
     /**
@@ -471,6 +506,7 @@ public interface FileResource {
      *     directly reading the underlying data, possibly because it was never intended that should be required. See
      *     {@link #getInputStream()}.
      */
+    @Nullable
     public default String getDataUrl() {
         try {
             return URLUtil.getDataUrl(this);
@@ -485,9 +521,9 @@ public interface FileResource {
      * actually exists.
      *
      * <p>
-     * The most common example of when this method would return false would be the case of a {@link TempFile}, but there
-     * are other cases, such as the case of an external resource, whether or not TeamPage may have temporarily retrieved
-     * it and cached it in memory.
+     * The most common example of when this method would return false would be the case of a {@link TempFileResource},
+     * but there are other cases, such as the case of an external resource, whether or not TeamPage may have temporarily
+     * retrieved it and cached it in memory.
      *
      * <p>
      * This default implementation returns true. Subclasses should override it if they represent file resources not
@@ -509,6 +545,7 @@ public interface FileResource {
      * @return a String representing the Base64 encoded bytes of this file's content, if this File instance represents a
      *     file and the file's contents can be read successfully; null otherwise.
      */
+    @Nullable
     public default String getBase64() {
         if (isDirectory()) {
             return null;
@@ -573,12 +610,20 @@ public interface FileResource {
      *     {@link Dimensions.Units#PIXELS}-denominated {@link Dimensions}, if any; or null if no Icon can be directly
      *     created based upon this IconFile.
      */
-    public Icon getImage(Dimensions<Integer> maxDimensions);
+    @Nullable
+    public default Icon getImage(Dimensions<Integer> maxDimensions) {
+        if (isImage()) {
+            return SimpleFileResourceIconFileAdapter.createInstance(this, getType()).getImage(maxDimensions);
+        }
+        return null;
+    }
 
+    @Nullable
     public default String getIconStyleName() {
         return FileIconService.get().getIconStyleName(this);
     }
 
+    @Nonnull
     public default Icon getIcon() {
         return getIcon(null);
     }
@@ -595,6 +640,7 @@ public interface FileResource {
      * @return an {@link Icon} for an image representing an icon for this file, if one can be determined; null
      *     otherwise.
      */
+    @Nonnull
     public default Icon getIcon(Dimensions<Integer> maxDimensions) {
         return FileIconService.get().getIcon(this, maxDimensions);
     }

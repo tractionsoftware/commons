@@ -21,12 +21,9 @@
 package com.tractionsoftware.commons.text;
 
 /**
- * Represents the parameters for generating one or more content
- * "snippets".
+ * Represents the parameters for generating one or more content "snippets".
  *
  * @author Andy Keller
- *
- * @see com.tractionsoftware.sdk.UserPreferences#getSnippetSize()
  */
 public interface SnippetSize {
 

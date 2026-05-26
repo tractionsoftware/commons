@@ -24,8 +24,8 @@ import com.google.common.annotations.Beta;
 import com.google.common.collect.Iterators;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.Resource;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.function.IORunnable;
 import org.apache.commons.io.function.IOSupplier;
@@ -80,7 +80,7 @@ public final class IOUtil {
                 closeMe.close();
             }
             catch (Exception e) {
-                LOGGER.warn("Failed to close {} ", ObjectsUtil.safeToString(closeMe, "(AutoCloseable?)"), e);
+                LOGGER.warn("Failed to close {} ", ObjectUtil.safeToString(closeMe, "(AutoCloseable?)"), e);
             }
         }
     }
@@ -98,7 +98,7 @@ public final class IOUtil {
                 flushMe.flush();
             }
             catch (IOException e) {
-                LOGGER.warn("Failed to flush {} ", ObjectsUtil.safeToString(flushMe, "(Flushable?)"), e);
+                LOGGER.warn("Failed to flush {} ", ObjectUtil.safeToString(flushMe, "(Flushable?)"), e);
             }
         }
     }
@@ -256,7 +256,7 @@ public final class IOUtil {
         }
 
         @Override
-        public final void write(byte[] b, int off, int len) throws IOException {
+        public final void write(@Nonnull byte[] b, int off, int len) throws IOException {
 
             if (len == 0) {
                 return;
@@ -715,12 +715,12 @@ public final class IOUtil {
      * @see #getCloseNotifyingInputStream(InputStream, IORunnable, IORunnable)
      */
     public static InputStream getTrackedInputStream(InputStream input, Supplier<? extends Resource> getTracker, String sourceIdentifier) {
-        Resource runningTimer = getTracker.get();
+        Resource tracker = getTracker.get();
         try {
-            return getCloseNotifyingInputStream(input, null, runningTimer::close, sourceIdentifier);
+            return getCloseNotifyingInputStream(input, null, tracker::close, sourceIdentifier);
         }
         catch (RuntimeException | Error e) {
-            runningTimer.close();
+            tracker.close();
             throw e;
         }
     }
@@ -784,12 +784,12 @@ public final class IOUtil {
      * @return a wrapped version of the given {@link OutputStream}.
      */
     public static OutputStream getTrackedOutputStream(OutputStream output, Supplier<? extends Resource> getTracker, String sourceIdentifier) {
-        Resource runningTimer = getTracker.get();
+        Resource tracker = getTracker.get();
         try {
-            return getCloseNotifyingOutputStream(output, null, runningTimer::close, sourceIdentifier);
+            return getCloseNotifyingOutputStream(output, null, tracker::close, sourceIdentifier);
         }
         catch (RuntimeException | Error e) {
-            runningTimer.close();
+            tracker.close();
             throw e;
         }
     }
@@ -883,7 +883,7 @@ public final class IOUtil {
             operation.run();
         }
         catch (IOException e) {
-            LOGGER.warn("{} failed", ObjectsUtil.safeToStringObject(operation), e);
+            LOGGER.warn("{} failed", ObjectUtil.safeToStringObject(operation), e);
         }
     }
 
@@ -916,7 +916,7 @@ public final class IOUtil {
             return supplier.get();
         }
         catch (IOException e) {
-            LOGGER.warn("{} failed", ObjectsUtil.safeToStringObject(supplier), e);
+            LOGGER.warn("{} failed", ObjectUtil.safeToStringObject(supplier), e);
         }
         return defaultValue.get();
     }

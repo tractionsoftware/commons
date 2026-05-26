@@ -100,8 +100,8 @@ public interface Configuration extends GetProperty {
      * methods that should not be accessible to clients that arbitrary clients when a Configuration would do should
      * override it, perhaps using {@link ForwardingConfiguration#wrap(Configuration)}. Likewise, this method may be
      * re-declared in subclasses using a different return type if there is a more specific safe read-only subtype that
-     * could be offered in place of Configuration, as this method itself overrides the declaration from {@link
-     * GetProperty#toReadOnly()}.
+     * could be offered in place of Configuration, as this method itself overrides the declaration from
+     * {@link GetProperty#toReadOnly()}.
      *
      * @return a view of this Configuration that is guaranteed to supply access to the Configuration API methods only,
      *     or at least to methods that are deemed safe for general read-only access.

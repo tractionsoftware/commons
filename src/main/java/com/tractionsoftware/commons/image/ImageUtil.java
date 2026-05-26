@@ -27,7 +27,7 @@ import com.tractionsoftware.commons.html.HtmlUtil;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.io.FileUtil;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.util.Dimensions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -386,7 +386,7 @@ public final class ImageUtil {
         }
         catch (IOException e) {
             LOGGER.warn(
-                "Unexpected failure reading image data from input {}", ObjectsUtil.safeToStringObject(input), e
+                "Unexpected failure reading image data from input {}", ObjectUtil.safeToStringObject(input), e
             );
         }
         return null;

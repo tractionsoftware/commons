@@ -20,6 +20,7 @@
 
 package com.tractionsoftware.commons.image;
 
+import com.tractionsoftware.commons.io.FileResourceType;
 import com.tractionsoftware.commons.io.ForwardingFileResource;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
@@ -41,10 +42,11 @@ public abstract class ForwardingIconFile extends ForwardingFileResource implemen
     }
 
     @Override
-    public Icon.ImageResourceType getImageResourceType() {
+    public FileResourceType getImageResourceType() {
         return delegate().getImageResourceType();
     }
 
+    @Nonnull
     @Override
     public String toDebugString() {
         return delegate().toDebugString();

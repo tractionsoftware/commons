@@ -23,7 +23,6 @@ package com.tractionsoftware.commons.properties;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import com.tractionsoftware.commons.lang.ObjectsUtil;
 import jakarta.annotation.Nonnull;
 
 public class DynamicForwardingGetProperty extends ForwardingGetProperty {

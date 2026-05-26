@@ -18,32 +18,15 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-package com.tractionsoftware.commons.text;
+package com.tractionsoftware.commons.io;
 
-import com.google.common.annotations.Beta;
+/**
+ * Represents a file's resource type.
+ *
+ * @author Dave Shepperton
+ */
+public interface FileResourceType {
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.function.UnaryOperator;
-
-@Beta
-public interface TextTransformer {
-
-    public default String transform(CharSequence text) {
-        StringWriter out = new StringWriter();
-        try {
-            transform(text, out);
-        }
-        catch (IOException impossible) {
-            // Impossible
-        }
-        return out.toString();
-    }
-
-    public void transform(CharSequence text, Appendable out) throws IOException;
-
-    public default UnaryOperator<CharSequence> asUnaryOperator() {
-        return this::transform;
-    }
+    public boolean supportsContentId();
 
 }

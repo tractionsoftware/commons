@@ -33,7 +33,7 @@ import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.util.AbstractLazyLoadingIterator;
 import com.tractionsoftware.commons.util.CollectionsUtil;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
@@ -159,7 +159,7 @@ public final class MailUtil {
             }
             catch (MessagingException e) {
                 LOGGER.warn(
-                    "Failed to retrieve all raw header lines from {}", ObjectsUtil.safeToStringObject(message), e
+                    "Failed to retrieve all raw header lines from {}", ObjectUtil.safeToStringObject(message), e
                 );
             }
             return ImmutableList.of();
@@ -1188,7 +1188,7 @@ public final class MailUtil {
             return;
         }
 
-        Object debugFolder = ObjectsUtil.safeToStringObject(folder);
+        Object debugFolder = ObjectUtil.safeToStringObject(folder);
         LOGGER.debug("Closing the folder {}", debugFolder);
         try {
             folder.close(expunge);
@@ -1211,7 +1211,7 @@ public final class MailUtil {
             return;
         }
 
-        Object debugStore = ObjectsUtil.safeToStringObject(store);
+        Object debugStore = ObjectUtil.safeToStringObject(store);
         LOGGER.debug("Closing the store {}", debugStore);
         try {
             store.close();
@@ -1229,7 +1229,7 @@ public final class MailUtil {
             return;
         }
 
-        Object debugTransport = ObjectsUtil.safeToStringObject(transport);
+        Object debugTransport = ObjectUtil.safeToStringObject(transport);
         LOGGER.debug("Closing the transport {}", debugTransport);
         try {
             transport.close();

@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.net;
 
 import com.google.common.net.InetAddresses;
-import com.tractionsoftware.commons.lang.EnumsUtil;
+import com.tractionsoftware.commons.lang.EnumUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
 import com.tractionsoftware.commons.util.function.PredicatesUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -115,7 +115,7 @@ public final class HostAddressUtil {
 
         public static IPAddressOutgoingRequestFilterMode get(String str, IPAddressOutgoingRequestFilterMode defaultValue) {
 
-            IPAddressOutgoingRequestFilterMode parsed = EnumsUtil.enumFromString(
+            IPAddressOutgoingRequestFilterMode parsed = EnumUtil.enumFromString(
                 IPAddressOutgoingRequestFilterMode.class, str, null
             );
             if (parsed != null) {

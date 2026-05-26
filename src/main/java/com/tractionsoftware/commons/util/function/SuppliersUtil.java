@@ -20,7 +20,7 @@
 
 package com.tractionsoftware.commons.util.function;
 
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +75,7 @@ public final class SuppliersUtil {
             return supplier.get();
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Supplier {} failed", ObjectsUtil.safeToStringObject(supplier), e);
+            LOGGER.warn("Supplier {} failed", ObjectUtil.safeToStringObject(supplier), e);
         }
         return defaultValue;
     }

@@ -314,7 +314,7 @@ public final class NativeTypeConversion {
         }
 
         Joiner joiner = options.getJoinOptions().getJoiner();
-        Stream<String> strings = source.map(ObjectsUtil::safeToString);
+        Stream<String> strings = source.map(ObjectUtil::safeToString);
         if (options.escapeValues()) {
             strings = strings.map(StringEscapeUtil.escaper(options.getJoinOptions().escapeCharacters()));
         }

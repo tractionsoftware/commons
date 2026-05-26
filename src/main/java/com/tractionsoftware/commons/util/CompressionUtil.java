@@ -454,10 +454,6 @@ public final class CompressionUtil {
 
         protected final ZipEntryNameProvider namer;
 
-        private ZipOutputStreamArchive(Z zip) {
-            this(zip, FILE_NAME_ZIP_ENTRY_NAMER);
-        }
-
         private ZipOutputStreamArchive(Z zip, ZipEntryNameProvider namer) {
             this.zip = zip;
             this.namer = namer;
@@ -482,10 +478,6 @@ public final class CompressionUtil {
      */
     private static class ZipArchive extends ZipOutputStreamArchive<ZipOutputStream,ZipEntry> implements Archive {
 
-        private ZipArchive(ZipOutputStream zip) {
-            this(zip, FILE_NAME_ZIP_ENTRY_NAMER);
-        }
-
         private ZipArchive(ZipOutputStream zip, ZipEntryNameProvider namer) {
             super(zip, namer);
         }
@@ -504,10 +496,6 @@ public final class CompressionUtil {
      * @author Dave Shepperton
      */
     private static class JarArchive extends ZipOutputStreamArchive<JarOutputStream,JarEntry> implements Archive {
-
-        private JarArchive(JarOutputStream jar) {
-            this(jar, FILE_NAME_ZIP_ENTRY_NAMER);
-        }
 
         private JarArchive(JarOutputStream jar, ZipEntryNameProvider namer) {
             super(jar, namer);

@@ -1,7 +1,10 @@
 package com.tractionsoftware.commons.io;
 
+import com.tractionsoftware.commons.net.URLUtil;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URI;
 import java.util.function.Supplier;
 
 public interface MutableFileMetadata extends FileMetadata {
@@ -14,33 +17,40 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param fileName
      *     the new logical name of the file.
      * @throws UnsupportedOperationException
-     *     if the file name is considered a read-only property for this IFileData.
-     * @throws NullPointerException
-     *     if the argument for the fileName parameter is null.
-     * @throws IllegalArgumentException
-     *     if the argument for the fileName parameter does not represent a valid logical name for the file, and a
-     *     suitable alternative can't be generated.
+     *     if the file name is considered a read-only property for this FileMetadata.
      */
     public void setFilename(String fileName);
 
     /**
-     * Sets the platform-independent file path that uniquely identifies the file resource on the server.
+     * Sets the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     * something else.
      *
-     * <p>
-     * For some IFileData implementations, this path is a read-only property so far as public SDK clients are concerned,
-     * provided chiefly to support serialization and deserialization of lists of files via {@link SimpleMutableFileMetadata} objects.
-     *
-     * @param fileResourcePath
-     *     a path referring to the location that the server can use to identify the underlying file resource.
+     * @param uri
+     *     a {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     *     something else.
      * @throws UnsupportedOperationException
-     *     if the file resource path is a read-only property for this IFileData.
-     * @throws NullPointerException
-     *     if the argument for the fileResourcePath parameter is null.
-     * @throws IllegalArgumentException
-     *     if the argument for the fileResourcePath parameter does not represent a valid name for the underlying file,
-     *     and the implementation is unable to generate a suitable alternative.
+     *     if the {@link URI} is a read-only property.
      */
-    public void setFileResourcePath(String fileResourcePath);
+    public void setURI(@Nullable URI uri);
+
+    /**
+     * Sets the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     * something else.
+     *
+     * @param uriSpec
+     *     the specification for {@link URI} that defines the location of the file in a store of some sort. This may be
+     *     a file: URI or something else.
+     * @throws UnsupportedOperationException
+     *     if the {@link URI} is a read-only property.
+     */
+    public default void setURISpec(@Nullable String uriSpec) {
+        if (uriSpec == null) {
+            setURI(null);
+        }
+        else {
+            setURI(URLUtil.tryToCreateUri(uriSpec));
+        }
+    }
 
     /**
      * Sets a text description of the file.
@@ -48,7 +58,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param description
      *     the new text description to use for this file.
      * @throws UnsupportedOperationException
-     *     if the description is considered a read-only property for this IFileData.
+     *     if the description is considered a read-only property for this FileMetadata.
      */
     public void setDescription(String description);
 
@@ -64,12 +74,12 @@ public interface MutableFileMetadata extends FileMetadata {
      * </ul>
      *
      * @param contentType
-     *     the "Content-Type" to be used for the file if one is known or can be determined for this IFileData; null
+     *     the "Content-Type" to be used for the file if one is known or can be determined for this FileMetadata; null
      *     otherwise.
      * @throws UnsupportedOperationException
-     *     if the "Content-Type" is considered a read-only property for this IFileData.
+     *     if the "Content-Type" is considered a read-only property for this FileMetadata.
      * @throws IllegalArgumentException
-     *     if the given value is considered an invalid "Content-Type" for this IFileData.
+     *     if the given value is considered an invalid "Content-Type" for this FileMetadata.
      */
     public void setContentType(String contentType);
 
@@ -81,26 +91,26 @@ public interface MutableFileMetadata extends FileMetadata {
      *     the serial number to use for the file in the context of a list of files, or -1 to indicate that it has no
      *     such number.
      * @throws UnsupportedOperationException
-     *     if the file's number is considered a read-only property for this IFileData.
+     *     if the file's number is considered a read-only property for this FileMetadata.
      * @throws IllegalArgumentException
-     *     if the given number is not a valid value for this IFileData.
+     *     if the given number is not a valid value for this FileMetadata.
      */
     public void setNumber(int number);
 
     /**
-     * Sets the property whether this IFileData represents a reference to a "persisted" file, such as an attachment or
-     * shared file that has been stored in the appropriate repository, as opposed to a temporary file.
+     * Sets the property whether this FileMetadata represents a reference to a "persisted" file, such as an attachment
+     * or shared file that has been stored in the appropriate repository, as opposed to a temporary file.
      *
      * <p>
-     * For some IFileData implementations, this is a read-only property so far as public SDK clients are concerned,
+     * For some FileMetadata implementations, this is a read-only property so far as public SDK clients are concerned,
      * provided chiefly to support serialization and deserialization of lists of files via
      * {@link SimpleMutableFileMetadata} objects.
      *
      * @param isReference
-     *     indicating whether this IFileData represents a reference to a "persisted" file, such as an attachment or
+     *     indicating whether this FileMetadata represents a reference to a "persisted" file, such as an attachment or
      *     shared file that has been stored in the appropriate repository, as opposed to a temporary file.
      * @throws UnsupportedOperationException
-     *     if this is a read-only property for this IFileData.
+     *     if this is a read-only property for this FileMetadata.
      */
     public void setReferenceToPersistedFile(boolean isReference);
 
@@ -111,7 +121,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param contentId
      *     the value of the "Content-ID" header that should be associated with this file.
      * @throws UnsupportedOperationException
-     *     if the "Content-ID" is considered a read-only property for this IFileData.
+     *     if the "Content-ID" is considered a read-only property for this FileMetadata.
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-ID" MIME header.
      */
@@ -124,7 +134,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param contentLocation
      *     the value of the "Content-Location" header that should be associated with this file.
      * @throws UnsupportedOperationException
-     *     if the "Content-Location" is considered a read-only property for this IFileData.
+     *     if the "Content-Location" is considered a read-only property for this FileMetadata.
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-Location" MIME header.
      */
@@ -139,22 +149,28 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param contentBase
      *     the value of the "Content-Base" header that should be associated with this file.
      * @throws UnsupportedOperationException
-     *     if the "Content-Base" is considered a read-only property for this IFileData.
+     *     if the "Content-Base" is considered a read-only property for this FileMetadata.
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-Base" MIME header.
      */
     public void setContentBase(String contentBase);
 
+    public default void ensureValidFilename() {
+        ensureValidFilename(null);
+    }
+
+    public void setResourceType(FileResourceType resourceType);
+
     /**
-     * Modifies this IFileData's file name as necessary to make it "valid" and minimally normalized. This default
-     * implementation delegates to
-     * {@link FileNameUtil#getMinimallyValidFileName(String, com.google.common.base.Supplier, String)} to transform the
-     * {@link #getFilename() current file name}, passing the {@link #getContentType() currently set Content-Type} and
-     * not requesting that a file extension be added to an otherwise valid file name, and using
-     * {@link #setFilename(String)} to apply the result. It should be adequate for all implementations.
+     * Modifies the file name as necessary to make it "valid" and minimally normalized. This default implementation
+     * delegates to {@link FileNameUtil#getMinimallyValidFileName(String, java.util.function.Supplier, String)} to
+     * transform the {@link #getFilename() current file name}, passing the
+     * {@link #getContentType() currently set Content-Type} and not requesting that a file extension be added to an
+     * otherwise valid file name, and using {@link #setFilename(String)} to apply the result. It should be adequate for
+     * all implementations.
      */
     public default void ensureValidFilename(Supplier<String> getDefaultBaseName) {
-        setFilename(FileNameUtil.getMinimallyValidFileName(getFilename(), null, getContentType()));
+        setFilename(FileNameUtil.getMinimallyValidFileName(getFilename(), getDefaultBaseName, getContentType()));
     }
 
     /**
@@ -179,15 +195,12 @@ public interface MutableFileMetadata extends FileMetadata {
             // Ensure the file name is "minimally valid" even with the given extension.
             setFilename(
                 FileNameUtil.getMinimallyValidFileName(
-                    namePart + FileNameUtil.EXTENSION_SEPARATOR_CHAR + ext,
-                    null,
-                    getContentType()
+                    namePart + FileNameUtil.EXTENSION_SEPARATOR_CHAR + ext, null, getContentType()
                 )
             );
         }
     }
 
     public void setMissingMutableMetadata(FileMetadata metadata);
-
 
 }

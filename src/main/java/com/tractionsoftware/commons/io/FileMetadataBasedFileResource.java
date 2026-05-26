@@ -20,41 +20,61 @@
 
 package com.tractionsoftware.commons.io;
 
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+
+import java.net.URI;
 import java.util.Objects;
 
-public abstract class FileMetadataBasedFileResource implements FileResource {
+public abstract class FileMetadataBasedFileResource<F extends FileMetadata> implements FileResource {
 
-    protected final SimpleMutableFileMetadata metadata;
+    protected final F metadata;
 
-    public FileMetadataBasedFileResource(FileMetadata metadata) {
+    public FileMetadataBasedFileResource(F metadata) {
         Objects.requireNonNull(metadata, "metadata");
-        this.metadata = SimpleMutableFileMetadata.createCopy(metadata);
+        this.metadata = metadata;
     }
 
+    @Nonnull
     @Override
-    public String getPublishedFilename() {
-        return metadata.getFilename();
+    public URI getURI() {
+        return metadata.getURI();
     }
 
+    @Nonnull
     @Override
     public String getFilename() {
-        // ?
         return metadata.getFilename();
     }
 
+    @Nullable
     @Override
     public String getDescription() {
         return metadata.getDescription();
     }
 
+    @Nullable
     @Override
     public String getContentType() {
         return metadata.getContentType();
     }
 
+    @Nullable
     @Override
     public String getContentId() {
         return metadata.getContentId();
+    }
+
+    @Nonnull
+    @Override
+    public FileMetadata getMetadata() {
+        return metadata.toReadOnly();
+    }
+
+    @Nonnull
+    @Override
+    public FileResourceType getType() {
+        return metadata.getResourceType();
     }
 
 }

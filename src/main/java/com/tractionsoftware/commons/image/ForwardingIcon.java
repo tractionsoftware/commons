@@ -51,44 +51,30 @@ public abstract class ForwardingIcon implements Icon {
     }
 
     public static final Icon wrap(Icon icon) {
-
         return new ForwardingIcon() {
-
             @Override
             protected final Icon delegate() {
                 return icon;
             }
-
         };
-
     }
 
     public static final Icon wrap(Supplier<? extends Icon> iconSupplier) {
-
         return new ForwardingIcon() {
-
             @Override
             protected final Icon delegate() {
                 return iconSupplier.get();
             }
-
         };
-
     }
 
     public static final Icon wrapWithForcedDimensions(Icon icon, Dimensions<Integer> forcedDimensions) {
-
-        //Debug.file.println("Creating version of ", icon, " with forced dimensions ", forcedDimensions);
-
         return new ForcedDimensionsIcon(forcedDimensions) {
-
             @Override
             protected final Icon delegate() {
                 return icon;
             }
-
         };
-
     }
 
     protected abstract Icon delegate();
@@ -149,13 +135,8 @@ public abstract class ForwardingIcon implements Icon {
     }
 
     @Override
-    public IconFileResource getImageFileInfo() {
-        return delegate().getImageFileInfo();
-    }
-
-    @Override
-    public ImageResourceType getImageResourceType() {
-        return delegate().getImageResourceType();
+    public IconFileResource getImageFileResource() {
+        return delegate().getImageFileResource();
     }
 
 }

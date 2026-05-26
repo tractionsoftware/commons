@@ -27,7 +27,6 @@ import java.util.function.Supplier;
 import com.tractionsoftware.commons.properties.ForwardingGetProperty;
 import com.tractionsoftware.commons.properties.GetProperty;
 import jakarta.annotation.Nonnull;
-import org.jspecify.annotations.NonNull;
 
 /**
  * A base {@link Configuration} implementation for implementing the decorator pattern. The {@link #delegate()} method

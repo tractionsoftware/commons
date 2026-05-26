@@ -23,8 +23,10 @@ package com.tractionsoftware.commons.codec;
 
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.io.IOUtil;
-import com.tractionsoftware.commons.io.JavaFileResource;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.io.LocalFileResource;
+import com.tractionsoftware.commons.lang.ObjectUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -50,15 +52,18 @@ public final class MD5Util {
 
     public interface DigestResult {
 
-        boolean wasSuccessful();
+        public boolean wasSuccessful();
 
-        boolean isEmpty();
+        public boolean isEmpty();
 
-        byte[] hashBytes();
+        @Nullable
+        public byte[] hashBytes();
 
-        String hashString();
+        @Nullable
+        public String hashString();
 
-        String paddedHashString();
+        @Nullable
+        public String paddedHashString();
 
     }
 
@@ -74,16 +79,19 @@ public final class MD5Util {
             return true;
         }
 
+        @Nonnull
         @Override
         public byte[] hashBytes() {
             return ArrayUtils.EMPTY_BYTE_ARRAY;
         }
 
+        @Nonnull
         @Override
         public String hashString() {
             return "";
         }
 
+        @Nonnull
         @Override
         public String paddedHashString() {
             return "";
@@ -209,7 +217,7 @@ public final class MD5Util {
         if (file.isDirectory()) {
             return DIGEST_RESULT_EMPTY_SUCCESS;
         }
-        return digestNonDirectoryFile(JavaFileResource.createInstance(file));
+        return digestNonDirectoryFile(LocalFileResource.createInstance(file));
     }
 
     public static final DigestResult digest(byte[] data) {
@@ -233,7 +241,7 @@ public final class MD5Util {
         catch (IOException e) {
             LOGGER.warn(
                 "Unexpected error attempting to compute an MD5 hash for stream {}",
-                ObjectsUtil.safeToStringObject(input),
+                ObjectUtil.safeToStringObject(input),
                 e
             );
             return DIGEST_RESULT_EMPTY_FAILURE;

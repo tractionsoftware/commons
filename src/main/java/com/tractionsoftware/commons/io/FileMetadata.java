@@ -21,6 +21,10 @@
 package com.tractionsoftware.commons.io;
 
 import com.tractionsoftware.commons.image.ImageUtil;
+import jakarta.annotation.Nonnull;
+
+import java.net.URI;
+import java.util.Objects;
 
 /**
  * Represents a collection of logical metadata for a file resource. This includes properties such as the file's publicly
@@ -33,31 +37,39 @@ import com.tractionsoftware.commons.image.ImageUtil;
  * Contrast with {@link FileResource} which provides access to the actual file (i.e., the file's actual data, wherever
  * that may be stored).
  *
- * <p>
- * The {@link SimpleMutableFileMetadata} class provides a generic IFileData implementation, intended for serialization
- * and deserialization of lists of files and their metadata in various contexts.
- *
  * @author Andy Keller, Dave Shepperton
+ * @see MutableFileMetadata
+ * @see SimpleMutableFileMetadata
  */
 public interface FileMetadata {
 
     /**
-     * Returns the logical public name of the file. This represents the name of the file so far as a user is concerned.
-     * It is almost certain to differ from the URL, URI, file path, or other identifier that represents the underlying
-     * resource.
+     * Returns the public name for the file resource. It must be a valid cross-platform file name, even if it does not
+     * correspond to the name of a real file on disk.
      *
-     * @return the logical public name of the file.
+     * @return the public name for the file resource.
      */
     public String getFilename();
 
     /**
-     * Returns a path, like a file path or URI path, that uniquely identifies the file resource on the server. This path
-     * will generally be server-relative, and not URL encoded.
+     * Returns the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     * something else.
      *
-     * @return a path, like a file path or URI path, that uniquely identifies the file resource on the server, if one is
-     *     available; null otherwise.
+     * @return the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
+     *     something else.
      */
-    public String getFileResourcePath();
+    public URI getURI();
+
+    /**
+     * Returns the specification for the {@link URI} that defines the location of the file in a store of some sort. This
+     * may be a file: URI or something else.
+     *
+     * @return the specification {@link URI} that defines the location of the file in a store of some sort. This may be
+     *     a file: URI or something else.
+     */
+    public default String getURISpec() {
+        return Objects.toString(getURI(), null);
+    }
 
     /**
      * Returns a text description of the file.
@@ -79,7 +91,8 @@ public interface FileMetadata {
      * <li><a href="https://www.iana.org/assignments/media-types/media-types.xhtml">IANA Media Types</a>
      * </ul>
      *
-     * @return the "Content-Type" for the file if one is known or can be determined for this IFileData; null otherwise.
+     * @return the "Content-Type" for the file if one is known or can be determined for this FileMetadata; null
+     *     otherwise.
      */
     public String getContentType();
 
@@ -92,22 +105,22 @@ public interface FileMetadata {
     public int getNumber();
 
     /**
-     * Returns true if this IFileData represents a reference to a "persisted" file, such as an attachment or shared file
+     * Returns true if this FileMetadata represents a reference to a "persisted" file, such as an attachment or shared file
      * that has been stored in the appropriate repository, as opposed to a temporary file.
      *
-     * @return true if this IFileData represents a reference to a "persisted" file; false otherwise.
+     * @return true if this FileMetadata represents a reference to a "persisted" file; false otherwise.
      */
     public boolean isReferenceToPersistedFile();
 
     /**
-     * Returns true if this IFileData represents a reference to a temp file. This is as opposed to a "persisted" file,
+     * Returns true if this FileMetadata represents a reference to a temp file. This is as opposed to a "persisted" file,
      * such as an attachment or shared file that has been stored in the appropriate repository.
      *
      * <p>
      * This default implementation returns {@code !isReferenceToPersistedFile()}, which must always be true by
      * definition. Subclasses should not generally override it.
      *
-     * @return true if this IFileData represents a reference to a temp file; false otherwise.
+     * @return true if this FileMetadata represents a reference to a temp file; false otherwise.
      */
     public default boolean isReferenceToTempFile() {
         return !isReferenceToPersistedFile();
@@ -167,22 +180,53 @@ public interface FileMetadata {
     }
 
     public default boolean appearsToBeImage() {
-        String ext = getExtension();
-        String contentType = getContentType();
-        if (ImageUtil.isImage(ext, contentType) ||
-            ImageUtil.isImageMimeType(contentType)) {
+        if (ImageUtil.isImage(getExtension(), getContentType())) {
             return true;
         }
         return false;
     }
+
+    public FileResourceType getResourceType();
 
     /**
      * Returns a view of this FileMetadata that offers read-only access to properties.
      *
      * @return a FileMetadata that provides a view of this FileMetadata that offers read-only access to properties.
      */
-    public default FileMetadata toReadOnly() {
-        return this;
+    @Nonnull
+    public FileMetadata toReadOnly();
+
+    /**
+     * Creates a new {@link MutableFileMetadata} populated by copying all properties from this FileMetadata.
+     *
+     * @return a new {@link MutableFileMetadata} populated by copying all properties from this FileMetadata.
+     */
+    public default MutableFileMetadata mutableCopy() {
+        return SimpleMutableFileMetadata.createCopy(this);
+    }
+
+    /**
+     * Copies the source {@link FileMetadata} to an {@link MutableFileMetadata}.
+     *
+     * @param destination
+     *     a {@link MutableFileMetadata} to which the metadata from this FileMetadata will be copied.
+     */
+    public default void copyTo(MutableFileMetadata destination) {
+
+        if (destination == null) {
+            return;
+        }
+
+        destination.setFilename(getFilename());
+        destination.setDescription(getDescription());
+        destination.setContentType(getContentType());
+        destination.setURI(getURI());
+        destination.setReferenceToPersistedFile(isReferenceToPersistedFile());
+        destination.setNumber(getNumber());
+        destination.setContentId(getContentId());
+        destination.setContentLocation(getContentLocation());
+        destination.setContentBase(getContentBase());
+
     }
 
 }

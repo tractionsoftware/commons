@@ -24,8 +24,7 @@ import com.tractionsoftware.commons.image.Icon;
 import com.tractionsoftware.commons.image.IconFileResource;
 import com.tractionsoftware.commons.image.SimpleIcon;
 import com.tractionsoftware.commons.lang.JavaUtil;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -41,7 +40,7 @@ public abstract class FileIconService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileIconService.class);
 
     public static final Icon NO_ICON = new SimpleIcon(
-        new IconFileResource.InvalidIconFile(Icon.CommonImageResourceType.ICON_FILE_TYPE)
+        new IconFileResource.InvalidIconFile(CommonFileResourceType.ICON_FILE_TYPE)
     );
 
     public static final FileIconService NONE = new FileIconService() {
@@ -84,7 +83,7 @@ public abstract class FileIconService {
             icon = getIconImpl(file, maxDimensions);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to retrieve a file icon for {}", ObjectsUtil.safeToString(file), e);
+            LOGGER.warn("Failed to retrieve a file icon for {}", ObjectUtil.safeToString(file), e);
             icon = null;
         }
         return Objects.requireNonNullElse(icon, NO_ICON);
@@ -96,24 +95,24 @@ public abstract class FileIconService {
             return getIconStyleNameImpl(file);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to retrieve a style name for the icon for {}", ObjectsUtil.safeToString(file), e);
+            LOGGER.warn("Failed to retrieve a style name for the icon for {}", ObjectUtil.safeToString(file), e);
             return null;
         }
     }
 
     @Nullable
     public URL getURL(@Nonnull Icon icon) {
-        Icon.ImageResourceType type = icon.getImageResourceType();
-        if (type != Icon.CommonImageResourceType.ICON_FILE_TYPE) {
+        FileResourceType type = icon.getImageResourceType();
+        if (type != CommonFileResourceType.ICON_FILE_TYPE) {
             throw new IllegalArgumentException(
-                "Expected type " + Icon.CommonImageResourceType.ICON_FILE_TYPE + ", got " + type + "."
+                "Expected type " + CommonFileResourceType.ICON_FILE_TYPE + ", got " + type + "."
             );
         }
         try {
             return getURLImpl(icon);
         }
         catch (RuntimeException e) {
-            LOGGER.warn("Failed to construct a URL for icon {} ", ObjectsUtil.safeToStringObject(icon), e);
+            LOGGER.warn("Failed to construct a URL for icon {} ", ObjectUtil.safeToStringObject(icon), e);
             return null;
         }
     }

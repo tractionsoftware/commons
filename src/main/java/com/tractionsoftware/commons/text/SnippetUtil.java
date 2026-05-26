@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.text;
 
 import com.google.common.base.Suppliers;
-import com.tractionsoftware.commons.lang.ObjectsUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
@@ -49,7 +49,7 @@ public final class SnippetUtil {
         @Nonnull
         @Override
         public final String toString() {
-            return truncate(ObjectsUtil.safeToString(object, "?"), maxLength, ellipses);
+            return truncate(ObjectUtil.safeToString(object, "?"), maxLength, ellipses);
         }
 
     }

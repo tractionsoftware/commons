@@ -20,7 +20,10 @@
 
 package com.tractionsoftware.commons.lang;
 
-public final class EnumsUtil {
+public final class EnumUtil {
+
+    private EnumUtil() {
+    }
 
     /**
      * This method is similar to {@link Enum#valueOf(Class, String)}, but performs case-insensitive comparison on the
@@ -50,6 +53,5 @@ public final class EnumsUtil {
         return defaultValue;
 
     }
-
 
 }
