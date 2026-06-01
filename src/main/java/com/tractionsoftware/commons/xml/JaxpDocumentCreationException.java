@@ -35,7 +35,7 @@ import java.io.Serial;
 public final class JaxpDocumentCreationException extends JaxpException {
 
     @Serial
-    private static final long serialVersionUID = 273378500492022714L;
+    private static final long serialVersionUID = 782543170433386069L;
 
     private static final Handler<JaxpDocumentCreationException> HANDLER = new Handler<>() {
         @Override

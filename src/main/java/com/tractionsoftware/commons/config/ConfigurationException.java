@@ -18,39 +18,44 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-package com.tractionsoftware.commons.text;
+package com.tractionsoftware.commons.config;
 
 import java.io.Serial;
 
-/**
- * Represents the failure to apply a {@link TextTransformer} to some input text, other than an I/O error.
- *
- * @author Dave Shepperton
- */
-public class TextTransformationException extends Exception {
+public class ConfigurationException extends RuntimeException {
 
     @Serial
-    private static final long serialVersionUID = -24296224975861902L;
+    private static final long serialVersionUID = 3006693526768433933L;
+
+    public static final ConfigurationException forInvalidPropertyValue(String name, String value) {
+        throw new ConfigurationException(
+            "The " +
+            name +
+            " property value (\"" +
+            value +
+            "\") does not appear to be a valid content-type specification."
+        );
+    }
 
     /**
-     * Constructs a new TextTransformationException with no detail message.
+     * Constructs a new ConfigurationException with no detail message.
      */
-    public TextTransformationException() {
+    public ConfigurationException() {
         super();
     }
 
     /**
-     * Constructs a new TextTransformationException with the specified detail message.
+     * Constructs a new ConfigurationException with the specified detail message.
      *
      * @param message
      *     the detail message. The detail message is saved for later retrieval by the {@link #getMessage()} method.
      */
-    public TextTransformationException(String message) {
+    public ConfigurationException(String message) {
         super(message);
     }
 
     /**
-     * Constructs a new TextTransformationException with the specified cause and a detail message of
+     * Constructs a new ConfigurationException with the specified cause and a detail message of
      * <tt>(cause==null ? null : cause.toString())</tt> (which
      * typically contains the class and detail message of
      * <tt>cause</tt>). This constructor is useful for exceptions that
@@ -59,19 +64,19 @@ public class TextTransformationException extends Exception {
      * @param cause
      *     the underlying cause.
      */
-    public TextTransformationException(Throwable cause) {
+    public ConfigurationException(Throwable cause) {
         super(cause);
     }
 
     /**
-     * Constructs a new TextTransformationException with the specified detail message and cause.
+     * Constructs a new ConfigurationException with the specified detail message and cause.
      *
      * @param message
      *     the detail message.
      * @param cause
      *     the underlying cause.
      */
-    public TextTransformationException(String message, Throwable cause) {
+    public ConfigurationException(String message, Throwable cause) {
         super(message, cause);
     }
 

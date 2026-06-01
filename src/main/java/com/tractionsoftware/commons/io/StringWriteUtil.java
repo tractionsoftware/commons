@@ -22,7 +22,6 @@ package com.tractionsoftware.commons.io;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
@@ -272,7 +271,7 @@ public final class StringWriteUtil {
         catch (IOException | RuntimeException e) {
             LOGGER.warn(
                 "Failed to append {} to {}",
-                SnippetUtil.truncatedToString(appendValue),
+                StringUtil.truncatedToStringForLog(appendValue),
                 ObjectUtil.safeToStringObject(appendTo),
                 e
             );

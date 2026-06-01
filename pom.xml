@@ -117,6 +117,15 @@
             <systemPath>${project.basedir}/lib/tractionsoftware-httpclient-wrappers-apache-hc-1.0.1.jar</systemPath>
         </dependency>
 
+        <!-- for com.tractionsoftware.commons.html -->
+        <!-- Source: https://mvnrepository.com/artifact/net.sourceforge.htmlcleaner/htmlcleaner -->
+        <dependency>
+            <groupId>net.sourceforge.htmlcleaner</groupId>
+            <artifactId>htmlcleaner</artifactId>
+            <version>2.29</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- temporary direct dependency; this will be a transitive dependency of heif-reader -->
         <dependency>
             <groupId>org.mp4parser</groupId>
@@ -136,7 +145,6 @@
             <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -149,6 +157,16 @@
                     <archive>
                         <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.6</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <org.slf4j.simpleLogger.defaultLogLevel>warn</org.slf4j.simpleLogger.defaultLogLevel>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

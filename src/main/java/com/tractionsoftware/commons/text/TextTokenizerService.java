@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.text;
 
 import com.tractionsoftware.commons.lang.JavaUtil;
 import com.tractionsoftware.commons.util.LocaleUtil;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +93,7 @@ public abstract class TextTokenizerService {
 
     }
 
+    @Nonnull
     public static final TextTokenizerService get() {
         return instance.get();
     }

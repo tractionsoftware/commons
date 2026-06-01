@@ -32,10 +32,10 @@ import java.io.Serial;
  *
  * @author Dave Shepperton
  */
-public abstract class JaxpException extends IOException {
+public abstract class JaxpException extends Exception {
 
     @Serial
-    private static final long serialVersionUID = -7116580420882806736L;
+    private static final long serialVersionUID = 206264751349671854L;
 
     /**
      * An abstraction for an object which either re-throws or wraps Throwables raised during an attempt to perform a

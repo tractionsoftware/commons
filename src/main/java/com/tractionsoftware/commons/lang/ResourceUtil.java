@@ -61,8 +61,8 @@ public final class ResourceUtil {
         }
 
         /**
-         * This implementation closes the {@link AutoCloseable} instance provided at construction via {@link
-         * IOUtil#close(AutoCloseable)}.
+         * This implementation closes the {@link AutoCloseable} instance provided at construction via
+         * {@link IOUtil#close(AutoCloseable)}.
          */
         @Override
         public synchronized void close() {
@@ -125,7 +125,7 @@ public final class ResourceUtil {
 
         public FailedLoadAttempt(Resource.LoadErrorType errorType, RuntimeException fatal) {
             Objects.requireNonNull(errorType, "LoadErrorType");
-            Objects.requireNonNull(fatal, "fatal TractionRuntimeException");
+            Objects.requireNonNull(fatal, "fatal RuntimeException");
             this.errorType = errorType;
             this.fatal = fatal;
         }

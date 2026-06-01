@@ -24,15 +24,32 @@ import com.google.common.annotations.Beta;
 import com.tractionsoftware.commons.io.StringWriteUtil;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
+/**
+ * A model for a way to conservatively produce a transformed version of some text input that incorporates a pluggable
+ * way to produce the result. The main idea is to support not performing additional work or object allocation until it
+ * is sure that some modification is required to apply the mapping to the input.
+ *
+ * @param <T>
+ *     the type of object used to write or contain the result -- e.g., a {@link PrintWriter}, a {@link StringBuilder},
+ *     etc.
+ * @param <R>
+ *     the type of the final result -- e.g., a {@link String}, or nothing ({@link Void}, if the result is written to
+ *     some other object), etc.
+ */
 @Beta
 public abstract class FilteringTextMapper<T, R> {
 
@@ -40,22 +57,28 @@ public abstract class FilteringTextMapper<T, R> {
 
     public interface ResultWriter<T, R> {
 
-        void write(T out, char c);
+        void write(@Nonnull T out, char c);
 
-        void write(T out, CharSequence str);
+        void write(@Nonnull T out, @Nonnull CharSequence str);
 
-        void write(T out, CharSequence str, StringUtil.AnalyzableIndexRange keep);
+        void write(@Nonnull T out, @Nonnull CharSequence str, @Nonnull StringUtil.AnalyzableIndexRange keep);
 
-        void writeCodePoint(T out, int codePoint);
+        void writeCodePoint(@Nonnull T out, int codePoint);
 
-        void writeCodePoints(T out, int[] codePoints, StringUtil.IndexRange keep);
+        void writeCodePoints(@Nonnull T out, @Nonnull int[] codePoints, @Nonnull StringUtil.IndexRange keep);
 
-        void write(T out, CharSequence... str);
+        void write(@Nonnull T out, @Nonnull CharSequence... str);
 
-        R finish(CharSequence original, T out, StringUtil.IndexRange keep);
+        R finish(@Nonnull CharSequence original, T out, @Nullable StringUtil.IndexRange keep);
 
     }
 
+    /**
+     * A super-class that adapts a {@link FilteringTextMapper} to implement a {@link TextTransformer}.
+     *
+     * @param <C>
+     *     the type of the operator used by the {@link FilteringTextMapper} implementation.
+     */
     protected static abstract class TextTransformerAdapter<C> implements TextTransformer {
 
         protected final C operator;
@@ -70,47 +93,57 @@ public abstract class FilteringTextMapper<T, R> {
         }
 
         @Override
-        public final void transform(CharSequence text, Appendable out) {
-            if (text != null) {
+        public final void transform(@Nullable CharSequence text, @Nonnull Appendable out)
+            throws IOException, TextTransformationException {
+            if (StringUtils.isNotEmpty(text)) {
                 transformImpl(text, out);
             }
         }
 
-        protected abstract CharSequence transformImpl(CharSequence text);
+        @Override
+        public final void transform(@Nonnull Reader in, @Nonnull Writer out)
+            throws IOException, TextTransformationException {
+            transformImpl(in, out);
+        }
 
-        protected abstract void transformImpl(CharSequence text, Appendable out);
+        @Nonnull
+        protected abstract CharSequence transformImpl(@Nonnull CharSequence text);
+
+        protected abstract void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out);
+
+        protected abstract void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException;
 
     }
 
     static abstract class StringResultWriter<R> implements ResultWriter<StringBuilder,R> {
 
         @Override
-        public final void write(StringBuilder buff, char c) {
+        public final void write(@Nonnull StringBuilder buff, char c) {
             buff.append(c);
         }
 
         @Override
-        public final void writeCodePoint(StringBuilder buff, int codePoint) {
+        public final void writeCodePoint(@Nonnull StringBuilder buff, int codePoint) {
             buff.appendCodePoint(codePoint);
         }
 
         @Override
-        public final void write(StringBuilder buff, CharSequence str, StringUtil.AnalyzableIndexRange keep) {
+        public final void write(@Nonnull StringBuilder buff, @Nonnull CharSequence str, @Nonnull StringUtil.AnalyzableIndexRange keep) {
             buff.append(str, keep.start(), keep.end());
         }
 
         @Override
-        public final void writeCodePoints(StringBuilder buff, int[] codePoints, StringUtil.IndexRange keep) {
+        public final void writeCodePoints(@Nonnull StringBuilder buff, @Nonnull int[] codePoints, @Nonnull StringUtil.IndexRange keep) {
             StringWriteUtil.appendCodePoints(buff, codePoints, keep.start(), keep.end());
         }
 
         @Override
-        public final void write(StringBuilder buff, CharSequence str) {
+        public final void write(@Nonnull StringBuilder buff, @Nonnull CharSequence str) {
             buff.append(str);
         }
 
         @Override
-        public final void write(StringBuilder buff, CharSequence... str) {
+        public final void write(@Nonnull StringBuilder buff, @Nonnull CharSequence... str) {
             for (CharSequence s : str) {
                 buff.append(s);
             }
@@ -121,9 +154,9 @@ public abstract class FilteringTextMapper<T, R> {
     static final StringResultWriter<String> ON_DEMAND_STRING_BUILDER_WRITER = new StringResultWriter<>() {
 
         @Override
-        public String finish(CharSequence original, StringBuilder buff, StringUtil.IndexRange keep) {
+        public final String finish(@Nonnull CharSequence original, @Nullable StringBuilder buff, @Nullable StringUtil.IndexRange keep) {
             if (buff == null) {
-                return Objects.toString(original, null);
+                return original.toString();
             }
             if (keep != null) {
                 buff.append(original, keep.start(), keep.end());
@@ -136,9 +169,9 @@ public abstract class FilteringTextMapper<T, R> {
     static final StringResultWriter<Void> EXISTING_STRING_BUILDER_WRITER = new StringResultWriter<>() {
 
         @Override
-        public Void finish(CharSequence original, StringBuilder buff, StringUtil.IndexRange keep) {
+        public final Void finish(@Nonnull CharSequence original, @Nonnull StringBuilder out, @Nullable StringUtil.IndexRange keep) {
             if (keep != null) {
-                buff.append(original, keep.start(), keep.end());
+                out.append(original, keep.start(), keep.end());
             }
             return null;
         }
@@ -148,51 +181,49 @@ public abstract class FilteringTextMapper<T, R> {
     static final ResultWriter<PrintWriter,Void> PRINT_WRITER_RESULT_WRITER = new ResultWriter<>() {
 
         @Override
-        public void write(PrintWriter out, char c) {
+        public final void write(@Nonnull PrintWriter out, char c) {
             out.write(c);
         }
 
         @Override
-        public void write(PrintWriter out, CharSequence str, StringUtil.AnalyzableIndexRange keep) {
-            if (keep != null) {
-                if (str instanceof String s) {
-                    out.write(s, keep.start(), keep.length());
-                }
-                else {
-                    out.append(str, keep.start(), keep.end());
-                }
+        public final void write(@Nonnull PrintWriter out, @Nonnull CharSequence str, @Nonnull StringUtil.AnalyzableIndexRange keep) {
+            if (str instanceof String s) {
+                out.write(s, keep.start(), keep.length());
+            }
+            else {
+                out.append(str, keep.start(), keep.end());
             }
         }
 
         @Override
-        public void writeCodePoint(PrintWriter out, int codePoint) {
+        public final void writeCodePoint(@Nonnull PrintWriter out, int codePoint) {
             out.write(Character.toChars(codePoint));
         }
 
         @Override
-        public void writeCodePoints(PrintWriter out, int[] codePoints, StringUtil.IndexRange keep) {
+        public final void writeCodePoints(@Nonnull PrintWriter out, @Nonnull int[] codePoints, @Nonnull StringUtil.IndexRange keep) {
             int start = keep.start();
             int end = keep.end();
-            for (int i = start; i < end; i ++) {
+            for (int i = start; i < end; i++) {
                 out.write(Character.toChars(codePoints[i]));
             }
         }
 
         @Override
-        public void write(PrintWriter out, CharSequence str) {
+        public final void write(@Nonnull PrintWriter out, @Nonnull CharSequence str) {
             out.print(str);
         }
 
         @Override
-        public void write(PrintWriter out, CharSequence... str) {
+        public final void write(@Nonnull PrintWriter out, @Nonnull CharSequence... str) {
             for (CharSequence s : str) {
                 out.print(s);
             }
         }
 
         @Override
-        public Void finish(CharSequence original, PrintWriter out, StringUtil.IndexRange keep) {
-            if (keep != null) {
+        public Void finish(@Nonnull CharSequence original, @Nullable PrintWriter out, @Nullable StringUtil.IndexRange keep) {
+            if (out != null && keep != null) {
                 out.append(original, keep.start(), keep.end());
             }
             return null;
@@ -203,22 +234,22 @@ public abstract class FilteringTextMapper<T, R> {
     static final ResultWriter<Appendable,Void> GENERIC_APPENDABLE_RESULT_WRITER = new ResultWriter<>() {
 
         @Override
-        public void write(Appendable out, char c) {
+        public final void write(@Nonnull Appendable out, char c) {
             StringWriteUtil.safeAppend(out, c);
         }
 
         @Override
-        public void write(Appendable out, CharSequence str, StringUtil.AnalyzableIndexRange keep) {
-
+        public final void write(@Nonnull Appendable out, @Nonnull CharSequence str, @Nonnull StringUtil.AnalyzableIndexRange keep) {
+            StringWriteUtil.safeAppend(out, str, keep.start(), keep.end());
         }
 
         @Override
-        public void writeCodePoint(Appendable out, int codePoint) {
+        public final void writeCodePoint(@Nonnull Appendable out, int codePoint) {
             StringWriteUtil.safeAppend(out, Character.toString(codePoint));
         }
 
         @Override
-        public void writeCodePoints(Appendable out, int[] codePoints, StringUtil.IndexRange keep) {
+        public final void writeCodePoints(@Nonnull Appendable out, @Nonnull int[] codePoints, @Nonnull StringUtil.IndexRange keep) {
             try {
                 StringWriteUtil.appendCodePoints(out, codePoints, keep.start(), keep.end());
             }
@@ -229,20 +260,22 @@ public abstract class FilteringTextMapper<T, R> {
         }
 
         @Override
-        public void write(Appendable out, CharSequence str) {
+        public final void write(@Nonnull Appendable out, @Nonnull CharSequence str) {
             StringWriteUtil.safeAppend(out, str);
         }
 
         @Override
-        public void write(Appendable out, CharSequence... str) {
+        public final void write(@Nonnull Appendable out, @Nonnull CharSequence... str) {
             for (CharSequence s : str) {
                 StringWriteUtil.safeAppend(out, s);
             }
         }
 
         @Override
-        public Void finish(CharSequence original, Appendable out, StringUtil.IndexRange keep) {
-            StringWriteUtil.safeAppend(out, original, keep.start(), keep.end());
+        public final Void finish(@Nonnull CharSequence original, @Nullable Appendable out, @Nullable StringUtil.IndexRange keep) {
+            if (out != null && keep != null) {
+                StringWriteUtil.safeAppend(out, original, keep.start(), keep.end());
+            }
             return null;
         }
 

@@ -223,7 +223,7 @@ public final class HtmlEncodingUtil {
 
         private void appendLiteralText(CharSequence text) {
             if (StringUtils.isNotEmpty(text)) {
-                CharBasedFilteringTextMapper.replace(out, text, this::encodeForLiteral);
+                CharBasedFilteringTextMapper.replace(text, out, this::encodeForLiteral);
             }
         }
 

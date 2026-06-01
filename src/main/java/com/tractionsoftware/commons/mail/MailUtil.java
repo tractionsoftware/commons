@@ -29,7 +29,6 @@ import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.io.ByteBufferInputStream;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.lang.StringUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.util.AbstractLazyLoadingIterator;
 import com.tractionsoftware.commons.util.CollectionsUtil;
@@ -554,7 +553,7 @@ public final class MailUtil {
             return MimeUtility.decodeText(text);
         }
         catch (UnsupportedEncodingException e) {
-            LOGGER.error("Failed to MIME-decode text {}", SnippetUtil.truncatedToString(text), e);
+            LOGGER.error("Failed to MIME-decode text {}", StringUtil.truncatedToStringForLog(text), e);
         }
         return text;
     }
@@ -1079,7 +1078,9 @@ public final class MailUtil {
             return parseAddresses(addressListSpec);
         }
         catch (AddressException e) {
-            LOGGER.warn("Unable to parse email addresses from {}", SnippetUtil.truncatedToString(addressListSpec), e);
+            LOGGER.warn(
+                "Unable to parse email addresses from {}", StringUtil.truncatedToStringForLog(addressListSpec), e
+            );
             return null;
         }
     }
@@ -1169,7 +1170,10 @@ public final class MailUtil {
         }
         catch (UnsupportedEncodingException e) {
             LOGGER.warn(
-                "Failed to safely encode text {} for charset {}", SnippetUtil.truncatedToString(text), charsetName, e
+                "Failed to safely encode text {} for charset {}",
+                StringUtil.truncatedToStringForLog(text),
+                charsetName,
+                e
             );
         }
         return null;

@@ -251,8 +251,7 @@ public final class StringEscapeUtil {
     public static final void escapeMultipleCharacters(Appendable out, CharSequence str, CharSequence escape) {
         Objects.requireNonNull(escape, "escape");
         CharBasedFilteringTextMapper.replace(
-            out,
-            str,
+            str, out,
             new MultiCharEscapingStringMapper(CharMatcher.anyOf(escape))
         );
     }

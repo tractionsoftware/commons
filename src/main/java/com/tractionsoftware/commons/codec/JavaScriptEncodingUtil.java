@@ -227,10 +227,10 @@ public final class JavaScriptEncodingUtil {
     public static void printJavascriptLiteral(Appendable out, CharSequence text, boolean htmlCompatible) {
         if (StringUtils.isNotEmpty(text)) {
             if (htmlCompatible) {
-                CharBasedFilteringTextMapper.replace(out, text, JavaScriptEncodingUtil::getHtmlCompatibleLiteralReplacement);
+                CharBasedFilteringTextMapper.replace(text, out, JavaScriptEncodingUtil::getHtmlCompatibleLiteralReplacement);
             }
             else {
-                CharBasedFilteringTextMapper.replace(out, text, CharacterRequiringEscaping::getRequiredEscapeSequence);
+                CharBasedFilteringTextMapper.replace(text, out, CharacterRequiringEscaping::getRequiredEscapeSequence);
             }
         }
     }

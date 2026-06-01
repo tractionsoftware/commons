@@ -33,7 +33,6 @@ import com.tractionsoftware.commons.io.*;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -741,7 +740,7 @@ public final class URLUtil {
             url = uri.toURL();
         }
         catch (MalformedURLException | IllegalArgumentException e) {
-            LOGGER.warn("Can't transform URI to URL: {}", SnippetUtil.truncatedToString(uri, 100), e);
+            LOGGER.warn("Can't transform URI to URL: {}", StringUtil.truncatedToStringForLog(uri, 100), e);
             return 0;
         }
         return getEffectivePort(url);
@@ -1001,7 +1000,7 @@ public final class URLUtil {
             return URI.create(urlSpec).toURL();
         }
         catch (RuntimeException | MalformedURLException e) {
-            LOGGER.error("Failed to parse URL spec {}", SnippetUtil.truncatedToString(urlSpec, 100), e);
+            LOGGER.error("Failed to parse URL spec {}", StringUtil.truncatedToStringForLog(urlSpec, 100), e);
             return null;
         }
     }
@@ -1011,7 +1010,7 @@ public final class URLUtil {
             return URI.create(uriSpec);
         }
         catch (RuntimeException e) {
-            LOGGER.error("Failed to parse URI spec {}", SnippetUtil.truncatedToString(uriSpec, 100), e);
+            LOGGER.error("Failed to parse URI spec {}", StringUtil.truncatedToStringForLog(uriSpec, 100), e);
             return null;
         }
     }
@@ -1033,8 +1032,8 @@ public final class URLUtil {
             catch (URISyntaxException e) {
                 LOGGER.warn(
                     "Failed to produce an absolute URI/URL for {} plus {}",
-                    SnippetUtil.truncatedToString(baseURL, 100),
-                    SnippetUtil.truncatedToString(urlSpec, 100),
+                    StringUtil.truncatedToStringForLog(baseURL, 100),
+                    StringUtil.truncatedToStringForLog(urlSpec, 100),
                     e
                 );
             }
@@ -1053,7 +1052,7 @@ public final class URLUtil {
                 return URI.create(uriSpec);
             }
             catch (RuntimeException e) {
-                LOGGER.warn("Failed to parse URI spec {}", SnippetUtil.truncatedToString(uriSpec), e);
+                LOGGER.warn("Failed to parse URI spec {}", StringUtil.truncatedToStringForLog(uriSpec), e);
                 return null;
             }
         }
@@ -1063,8 +1062,8 @@ public final class URLUtil {
         catch (RuntimeException e) {
             LOGGER.warn(
                 "Failed to resolve URI spec {} against base URI {}",
-                SnippetUtil.truncatedToString(uriSpec, 100),
-                SnippetUtil.truncatedToString(baseURI, 100),
+                StringUtil.truncatedToStringForLog(uriSpec, 100),
+                StringUtil.truncatedToStringForLog(baseURI, 100),
                 e
             );
             return null;
@@ -1448,7 +1447,7 @@ public final class URLUtil {
             return new URI(url).getHost();
         }
         catch (URISyntaxException e) {
-            LOGGER.warn("Failed to parse URL {}", SnippetUtil.truncatedToString(url, 100), e);
+            LOGGER.warn("Failed to parse URL {}", StringUtil.truncatedToStringForLog(url, 100), e);
         }
         return null;
     }

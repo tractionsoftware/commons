@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.codec;
 
 import com.tractionsoftware.commons.io.IOUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
+import com.tractionsoftware.commons.lang.StringUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -70,7 +70,7 @@ public final class Base64Util {
         }
         catch (RuntimeException e) {
             LOGGER.warn(
-                "Failed to decode base 64 string value {}", SnippetUtil.truncatedToString(encodedStr, 100), e
+                "Failed to decode base 64 string value {}", StringUtil.truncatedToStringForLog(encodedStr, 100), e
             );
             return ArrayUtils.EMPTY_BYTE_ARRAY;
         }

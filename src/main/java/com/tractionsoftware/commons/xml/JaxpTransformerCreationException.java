@@ -38,23 +38,22 @@ import java.io.Serial;
 public final class JaxpTransformerCreationException extends JaxpException {
 
     @Serial
-    private static final long serialVersionUID = 942519506435859852L;
+    private static final long serialVersionUID = -6074935193188874539L;
 
-    private static final Handler<JaxpTransformerCreationException> HANDLER =
-        new Handler<>() {
-            @Override
-            protected final void handleCustom(Throwable cause) throws JaxpTransformerCreationException {
-                if (cause instanceof TransformerConfigurationException) {
-                    throw new JaxpTransformerCreationException((TransformerConfigurationException) cause);
-                }
-                if (cause instanceof SAXException) {
-                    throw new JaxpTransformerCreationException((SAXException) cause);
-                }
-                if (cause instanceof ParserConfigurationException) {
-                    throw new JaxpTransformerCreationException((ParserConfigurationException) cause);
-                }
+    private static final Handler<JaxpTransformerCreationException> HANDLER = new Handler<>() {
+        @Override
+        protected final void handleCustom(Throwable cause) throws JaxpTransformerCreationException {
+            if (cause instanceof TransformerConfigurationException) {
+                throw new JaxpTransformerCreationException((TransformerConfigurationException) cause);
             }
-        };
+            if (cause instanceof SAXException) {
+                throw new JaxpTransformerCreationException((SAXException) cause);
+            }
+            if (cause instanceof ParserConfigurationException) {
+                throw new JaxpTransformerCreationException((ParserConfigurationException) cause);
+            }
+        }
+    };
 
     /**
      * Throws an appropriate Exception or Error based on the given cause.

@@ -34,7 +34,6 @@ import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.net.MediaTypeUtil;
 import com.tractionsoftware.commons.properties.*;
 import com.tractionsoftware.commons.text.NumberFormats;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -695,7 +694,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             if (StringUtils.isBlank(propValue)) {
                 return null;
             }
-            return propName + "=" + SnippetUtil.truncate(propValue, 100);
+            return propName + "=" + StringUtil.truncate(propValue, 100);
         };
     }
 

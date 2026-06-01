@@ -116,6 +116,7 @@ public abstract class LocalTempFileService {
         LocalTempFileService.class, DEFAULT, TempFileResource.LOGGER
     );
 
+    @Nonnull
     public static final LocalTempFileService get() {
         return instance.get();
     }

@@ -18,9 +18,8 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-package com.tractionsoftware.commons.properties;
+package com.tractionsoftware.commons.lang;
 
-import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -39,12 +38,12 @@ public class NativeTypeConversionTest {
         NativeTypeConversion.stringToList(
             input, actual, converter, new NativeTypeConversion.CollectionToStringOptions() {
                 @Override
-                public boolean escapeValues() {
+                public final boolean escapeValues() {
                     return escaped;
                 }
 
                 @Override
-                public StringSplitUtil.Options getJoinOptions() {
+                public final StringSplitUtil.Options getJoinOptions() {
                     return new StringSplitUtil.Options() {
                         @Override
                         public boolean escapeValues() {

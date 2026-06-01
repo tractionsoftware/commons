@@ -20,9 +20,11 @@
 
 package com.tractionsoftware.commons.lang;
 
+import com.google.common.annotations.Beta;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.io.StringWriteUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
@@ -30,6 +32,7 @@ import com.tractionsoftware.commons.text.CodePointBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.ArraysUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -37,11 +40,14 @@ import org.apache.commons.lang3.Strings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntPredicate;
-import java.util.function.UnaryOperator;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -60,6 +66,79 @@ public final class StringUtil {
 
     public static final String PALETTE_ALPHA_NUMERIC =
         "ABCDEFGHIJIKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+
+    public static final String ELLIPSES_MULTI_CHARACTER = "...";
+
+    public static final String ELLIPSES_SINGLE_CHARACTER = "…";
+
+    public static final Joiner JOINER_SPACE = Joiner.on(' ').skipNulls();
+
+    public static final Joiner JOINER_COMMA = Joiner.on(',').skipNulls();
+
+    public static final Joiner JOINER_COMMA_WITH_SPACE = Joiner.on(", ").skipNulls();
+
+    public static final Joiner JOINER_NO_SEPARATOR = Joiner.on("").skipNulls();
+
+    public static final Joiner JOINER_AMPERSAND = Joiner.on('&').skipNulls();
+
+    public static final Joiner JOINER_INFIX_OR = Joiner.on(" OR ").skipNulls();
+
+    public static final Joiner JOINER_INFIX_AND = Joiner.on(" AND ").skipNulls();
+
+    public static final Joiner JOINER_SLASH = Joiner.on("/").skipNulls();
+
+    public static final Joiner JOINER_BACKSLASH = Joiner.on("\\").skipNulls();
+
+    private static final Random random = new SecureRandom();
+
+    /**
+     * The Unicode non-breaking space (U+00A0), which is not considered whitespace by
+     * {@link Character#isWhitespace(char)}. See {@link #isAlternativeWhitespaceChar(char)}.
+     */
+    public static final char CHAR_NON_BREAKING_SPACE = '\u00a0';
+
+    /**
+     * The zero-width space (U+200B), which is not considered whitespace by {@link Character#isWhitespace(char)}. See
+     * {@link #isAlternativeWhitespaceChar(char)}.
+     */
+    public static final char CHAR_ZERO_WIDTH_SPACE = '\u200b';
+
+    public static final CharSequence LINE_BREAKS = EnhancedCharSequence.getInstance(new char[] { '\n', '\r' });
+
+    public static final CharMatcher LINE_BREAK_MATCHER = CharMatcher.anyOf(LINE_BREAKS);
+
+    /**
+     * Matches either {@code \n} followed by an optional {@code \r}, or {@code \r} followed by an optional {@code \n}.
+     */
+    public static final Pattern LINE_BREAK_PATTERN = Pattern.compile("(\\n\\r?|\\r\\n?)");
+
+    /**
+     * Splits along any line breaks per {@link #LINE_BREAK_PATTERN}, producing results that may be blank or empty.
+     */
+    public static final Splitter LINE_SPLITTER = Splitter.on(LINE_BREAK_PATTERN);
+
+    /**
+     * Splits along any line break characters ({@code \n} or {@code \r}), and produces results that are trimmed and
+     * non-empty.
+     */
+    public static final Splitter TRIMMED_NON_EMPTY_LINE_SPLITTER = Splitter.on(LINE_BREAK_PATTERN)
+        .trimResults()
+        .omitEmptyStrings();
+
+    /**
+     * Splits along any whitespace characters, and produces results that are trimmed and non-empty.
+     */
+    public static final Splitter TRIMMED_NON_EMPTY_PART_SPLITTER = Splitter.on(CharMatcher.whitespace())
+        .trimResults()
+        .omitEmptyStrings();
+
+    public static final Splitter TRIMMED_NON_EMPTY_LIST_SPLITTER = Splitter
+        .on(StringSplitUtil.DEFAULT_STRING_LIST_SEPARATOR_CHAR)
+        .trimResults()
+        .omitEmptyStrings();
+
+    public static final Comparator<String> SAFE_CASE_INSENSITIVE_ORDER =
+        Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER);
 
     public interface TextEnclosureScheme {
 
@@ -503,88 +582,15 @@ public final class StringUtil {
 
     }
 
-    public static final Joiner JOINER_SPACE = Joiner.on(' ').skipNulls();
+    private static final record TruncatedToString(Object object, int maxLength, String ellipses) {
 
-    public static final Joiner JOINER_COMMA = Joiner.on(',').skipNulls();
-
-    public static final Joiner JOINER_COMMA_WITH_SPACE = Joiner.on(", ").skipNulls();
-
-    public static final Joiner JOINER_NO_SEPARATOR = Joiner.on("").skipNulls();
-
-    public static final Joiner JOINER_AMPERSAND = Joiner.on('&').skipNulls();
-
-    public static final Joiner JOINER_INFIX_OR = Joiner.on(" OR ").skipNulls();
-
-    public static final Joiner JOINER_INFIX_AND = Joiner.on(" AND ").skipNulls();
-
-    public static final Joiner JOINER_SLASH = Joiner.on("/").skipNulls();
-
-    public static final Joiner JOINER_BACKSLASH = Joiner.on("\\").skipNulls();
-
-    private static final Random random = new SecureRandom();
-
-    /**
-     * The Unicode non-breaking space (U+00A0), which is not considered whitespace by
-     * {@link Character#isWhitespace(char)}. See {@link #isAlternativeWhitespaceChar(char)}.
-     */
-    public static final char CHAR_NON_BREAKING_SPACE = '\u00a0';
-
-    /**
-     * The zero-width space (U+200B), which is not considered whitespace by {@link Character#isWhitespace(char)}. See
-     * {@link #isAlternativeWhitespaceChar(char)}.
-     */
-    public static final char CHAR_ZERO_WIDTH_SPACE = '\u200b';
-
-    public static final CharSequence LINE_BREAKS = EnhancedCharSequence.getInstance(new char[] { '\n', '\r' });
-
-    public static final CharMatcher LINE_BREAK_MATCHER = CharMatcher.anyOf(LINE_BREAKS);
-
-    /**
-     * Matches either {@code \n} followed by an optional {@code \r}, or {@code \r} followed by an optional {@code \n}.
-     */
-    public static final Pattern LINE_BREAK_PATTERN = Pattern.compile("(\\n\\r?|\\r\\n?)");
-
-    /**
-     * Splits along any line breaks per {@link #LINE_BREAK_PATTERN}, producing results that may be blank or empty.
-     */
-    public static final Splitter LINE_SPLITTER = Splitter.on(LINE_BREAK_PATTERN);
-
-    /**
-     * Splits along any line break characters ({@code \n} or {@code \r}), and produces results that are trimmed and
-     * non-empty.
-     */
-    public static final Splitter TRIMMED_NON_EMPTY_LINE_SPLITTER = Splitter.on(LINE_BREAK_PATTERN)
-        .trimResults()
-        .omitEmptyStrings();
-
-    /**
-     * Splits along any whitespace characters, and produces results that are trimmed and non-empty.
-     */
-    public static final Splitter TRIMMED_NON_EMPTY_PART_SPLITTER = Splitter.on(CharMatcher.whitespace())
-        .trimResults()
-        .omitEmptyStrings();
-
-    public static final Splitter TRIMMED_NON_EMPTY_LIST_SPLITTER = Splitter
-        .on(StringSplitUtil.DEFAULT_STRING_LIST_SEPARATOR_CHAR)
-        .trimResults()
-        .omitEmptyStrings();
-
-    public static final Comparator<String> SAFE_CASE_INSENSITIVE_ORDER =
-        Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER);
-
-    public static final UnaryOperator<String> STRING2LOWERCASE = new UnaryOperator<>() {
-
+        @Nonnull
         @Override
-        public String toString() {
-            return "toLowerCase operator";
+        public final String toString() {
+            return truncate(ObjectUtil.safeToString(object, "?"), maxLength, ellipses);
         }
 
-        @Override
-        public String apply(String rawValue) {
-            return StringUtils.lowerCase(rawValue);
-        }
-
-    };
+    }
 
     public static Joiner getNullSkippingJoiner(char separator) {
         return switch (separator) {
@@ -694,6 +700,179 @@ public final class StringUtil {
             return "";
         }
         return join(ArraysUtil.asList(arr), separator);
+    }
+
+    /**
+     * A method similar to {@link StringUtils#abbreviate(String, int)}, but with some slight variation in behavior,
+     * including tolerance of apparently invalid input parameters. This version uses empty ellipses.
+     *
+     * <p>
+     * Note that this truncation also normalizes and collapses whitespace, per
+     * {@link StringUtil#collapseAndNormalizeWhitespace(String, boolean)}.
+     *
+     * @param text
+     *     the text to be truncated.
+     * @param maximumLength
+     *     the maximum length of the truncated output, including the space for the ellipses.
+     * @return a truncated version of the input text which is as long as possible while still fitting into the requested
+     *     maximum length.
+     */
+    public static final String truncate(String text, int maximumLength) {
+        return truncate(text, maximumLength, "");
+    }
+
+    /**
+     * A method similar to {@link StringUtils#abbreviate(String, int)}, but with some slight variation in behavior,
+     * including tolerance of apparently invalid input parameters, and the ability to specify custom text for the
+     * ellipses.
+     *
+     * <p>
+     * Note that this truncation also normalizes and collapses whitespace, per
+     * {@link StringUtil#collapseAndNormalizeWhitespace(String, boolean)}.
+     *
+     * @param text
+     *     the text to be truncated. This really should be plain text (not HTML or even text with HTML entities), since
+     *     this method does not do any of the parsing or tokenization that would be required for proper handling of
+     *     HTML.
+     * @param maximumLength
+     *     the maximum length of the truncated output, including the space for the ellipses.
+     * @param ellipses
+     *     to use at the end of truncated output if necessary.
+     * @return a truncated version of the input text which is as long as possible while still fitting into the requested
+     *     maximum length, including any ellipses.
+     */
+    public static final String truncate(String text, int maximumLength, String ellipses) {
+        return truncate(text, maximumLength, Suppliers.ofInstance(ellipses));
+    }
+
+    /**
+     * A method similar to {@link StringUtils#abbreviate(String, int)}, but with some slight variation in behavior,
+     * including tolerance of apparently invalid input parameters, and the ability to specify custom text for the
+     * ellipses which is only retrieved when needed.
+     *
+     * <p>
+     * Note that this truncation also normalizes and collapses whitespace, per
+     * {@link StringUtil#collapseAndNormalizeWhitespace(String, boolean)}.
+     *
+     * @param text
+     *     the text to be truncated. This really should be plain text (not HTML or even text with HTML entities), since
+     *     this method does not do any of the parsing or tokenization that would be required for proper handling of
+     *     HTML.
+     * @param requestedMaximumLength
+     *     the maximum length of the truncated output, including the space for the ellipses.
+     * @param ellipsesProvider
+     *     supplies the ellipses to use at the end of truncated output if necessary.
+     * @return a truncated version of the input text which is as long as possible while still fitting into the requested
+     *     maximum length, including any ellipses.
+     */
+    public static final String truncate(String text, int requestedMaximumLength, Supplier<String> ellipsesProvider) {
+
+        if (requestedMaximumLength <= 0) {
+            return "";
+        }
+
+        text = StringUtil.collapseAndNormalizeWhitespace(text, true);
+        if (StringUtils.isEmpty(text)) {
+            return "";
+        }
+
+        if (text.length() <= requestedMaximumLength) {
+            return text;
+        }
+
+        String ellipses = StringUtils.defaultString(ellipsesProvider.get());
+        int ellipsesLen = ellipses.length();
+        if (ellipsesLen == requestedMaximumLength) {
+            return ellipses;
+        }
+        if (ellipsesLen > requestedMaximumLength) {
+            return ellipses.substring(requestedMaximumLength);
+        }
+        return text.substring(0, requestedMaximumLength - ellipses.length()) + ellipses;
+
+    }
+
+    /**
+     * Truncates the given String such that the encoded bytes for the requested {@link Charset} will not exceed the
+     * requested maximum length, adding the given ellipses if necessary. The idea is that the bytes required to encode
+     * the resulting String in that Charset will definitely fit into the maximum byte length, including the ellipses.
+     *
+     * <p>
+     * Unfortunately this requires scanning through the String, char value by char value. This is to ensure that all the
+     * bytes required to encode the String will be properly counted; and also that the truncation doesn't happen between
+     * two of the bytes required to represent a single logical character.
+     *
+     * @param text
+     *     the String to truncate.
+     * @param maximumByteSize
+     *     the maximum number of bytes that are available to encode the given String using the given Charset.
+     * @param charset
+     *     an optional custom {@link Charset} to be used to encode the String. If the argument for this parameter is
+     *     null, the method will use {@link StandardCharsets#UTF_8 UTF-8}.
+     * @param ellipses
+     *     the ellipses, if any, that should be appended to the resulting String at the point of truncation, if
+     *     accommodated by the requested maximum byte length.
+     * @return the given String such that the encoded bytes for the requested {@link Charset} will not exceed the
+     *     requested maximum length, adding the given ellipses if necessary.
+     */
+    public static final String truncateEncodedBytes(String text, int maximumByteSize, Charset charset, String ellipses) {
+
+        if (text == null) {
+            return null;
+        }
+
+        if (maximumByteSize <= 0) {
+            return "";
+        }
+
+        if (charset == null) {
+            charset = StandardCharsets.UTF_8;
+        }
+
+        ellipses = StringUtils.defaultString(ellipses);
+
+        int byteLen = 0;
+
+        int ellipsesLen = ellipses.getBytes(charset).length;
+        if (ellipsesLen > maximumByteSize) {
+            ellipses = "";
+            ellipsesLen = 0;
+        }
+
+        int totalMax = maximumByteSize - ellipsesLen;
+        StringBuilder result = new StringBuilder(maximumByteSize);
+        PrimitiveIterator.OfInt points = text.codePoints().iterator();
+
+        while (points.hasNext()) {
+
+            char[] oneCharacter = Character.toChars(points.nextInt());
+            int characterByteLen = String.valueOf(oneCharacter).getBytes(charset).length;
+            if (byteLen + characterByteLen > totalMax) {
+                result.append(ellipses);
+                // Un-comment this to do something with the total length outside of this loop.
+//                byteLen += ellipsesLen;
+                break;
+            }
+
+            byteLen += characterByteLen;
+            result.append(oneCharacter);
+
+        }
+
+        return result.toString();
+
+    }
+
+    public static final Object truncatedToStringForLog(Object object) {
+        return truncatedToStringForLog(object, 50);
+    }
+
+    public static final Object truncatedToStringForLog(Object object, int maxLength) {
+        return truncatedToStringForLog(object, maxLength, ELLIPSES_MULTI_CHARACTER);
+    }
+
+    public static final Object truncatedToStringForLog(Object object, int maxLength, String ellipses) {
+        return new TruncatedToString(object, maxLength, ellipses);
     }
 
     public static String findReplace(String str, String find, String replace) {
@@ -849,6 +1028,44 @@ public final class StringUtil {
     }
 
     /**
+     * Removes the given code point from the given String. This method is a more efficient variation of
+     * {@link StringUtils#remove(String, char)} which handles non-BMP code points.
+     *
+     * @param str
+     *     the string from which the character should be removed.
+     * @param remove
+     *     the character to remove.
+     * @return a String with all occurrences of the given code point removed, if any appear; the same String otherwise.a
+     * @see #remove(String, char)
+     */
+    public static final String remove(String str, int remove) {
+        if (StringUtils.isEmpty(str)) {
+            return str;
+        }
+        if (Character.isBmpCodePoint(remove)) {
+            return removeImpl(str, (char) remove);
+        }
+        return removeImpl(str, remove);
+    }
+
+    /**
+     * Removes the given char from the given String. This method is a more efficient variation of
+     * {@link StringUtils#remove(String, char)}.
+     *
+     * @param str
+     *     the string from which the character should be removed.
+     * @param remove
+     *     the character to remove.
+     * @return a String with all occurrences of the given code point removed, if any appear; the same String otherwise.a
+     */
+    public static final String remove(String str, char remove) {
+        if (StringUtils.isEmpty(str)) {
+            return str;
+        }
+        return removeImpl(str, remove);
+    }
+
+    /**
      * Returns a string representing the given string with all occurrences of the characters in the given remove string
      * from the subject string. This method examines the characters in the remove set to see if there are any non-BMP
      * code points, and handles the operation accordingly.
@@ -869,7 +1086,7 @@ public final class StringUtil {
                 str, codePoint -> ArrayUtils.contains(remove.codePoints().toArray(), codePoint)
             );
         }
-        return CharBasedFilteringTextMapper.removeIf(str, CharMatcher.anyOf(remove));
+        return CharBasedFilteringTextMapper.removeIf(CharMatcher.anyOf(remove), str);
     }
 
     /**
@@ -1068,7 +1285,7 @@ public final class StringUtil {
      * @return true if the input text has any runs of one or more consecutive whitespace characters, if any appear and
      *     if the input text is not null; false otherwise.
      */
-    public static boolean hasCollapseableOrNormalizableWhitespace(String text, boolean alternativeWhitespace) {
+    public static boolean hasCollapsableOrNormalizableWhitespace(String text, boolean alternativeWhitespace) {
         if (StringUtils.isEmpty(text)) {
             return false;
         }
@@ -1076,6 +1293,25 @@ public final class StringUtil {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Removes all whitespace characters from the given text.
+     *
+     * @param text
+     *     the text to process.
+     * @param alternativeWhitespace
+     *     whether "alternative whitespace" should be considered whitespace for the purposes of removal.
+     * @return the given String with all whitespace removed, if it was not already null or empty to begin with; else the
+     *     supplied argument as-is.
+     */
+    public static final String removeWhitespace(String text, boolean alternativeWhitespace) {
+        if (StringUtils.isEmpty(text)) {
+            return text;
+        }
+        StringBuilder ret = new StringBuilder(text.length());
+        text.codePoints().filter(cp -> !isWhitespaceCodePoint(cp, alternativeWhitespace)).forEach(ret::appendCodePoint);
+        return ret.toString();
     }
 
     /**
@@ -1259,6 +1495,31 @@ public final class StringUtil {
     }
 
     /**
+     * Returns true if the given code point is considered whitespace.
+     *
+     * <p>
+     * This method simply returns true if {@link Character#isWhitespace(int)} returns true for the input char; or if
+     * the client indicated that "alternative whitespace" characters are to be considered whitespace, returns true if
+     * {@link #isAlternativeWhitespaceChar(char)} returns true for the input char; and returns false otherwise.
+     *
+     * @param c
+     *     the char to be examined.
+     * @param alternativeSpaces
+     *     whether "alternative whitespace" characters, defined according to the
+     *     {@link #isAlternativeWhitespaceChar(char)} method, are to be considered whitespace.
+     * @return returns true if the given char is considered whitespace; false otherwise.
+     */
+    public static final boolean isWhitespaceCodePoint(int c, boolean alternativeSpaces) {
+        if (Character.isWhitespace(c)) {
+            return true;
+        }
+        if (alternativeSpaces && isAlternativeWhitespaceCodePoint(c)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns true if the given char is considered an "alternative whitespace" character.
      *
      * <p>
@@ -1269,7 +1530,7 @@ public final class StringUtil {
      *     the char to be examined, expressed as an int.
      * @return true if the given char is considered an "alternative whitespace" character; false otherwise.
      */
-    public static boolean isAlternativeWhitespaceChar(int c) {
+    public static boolean isAlternativeWhitespaceCodePoint(int c) {
         return switch (c) {
             case CHAR_NON_BREAKING_SPACE, CHAR_ZERO_WIDTH_SPACE -> true;
             default -> false;
@@ -1288,7 +1549,7 @@ public final class StringUtil {
      * @return true if the given char is considered an "alternative whitespace" character; false otherwise.
      */
     public static boolean hasAlternativeWhitespaceChar(CharSequence str) {
-        return str.chars().anyMatch(StringUtil::isAlternativeWhitespaceChar);
+        return str.chars().anyMatch(StringUtil::isAlternativeWhitespaceCodePoint);
     }
 
     public static boolean isEnclosed(String str, TextEnclosureScheme... possibleSchemes) {
@@ -1458,6 +1719,15 @@ public final class StringUtil {
         if (StringUtils.isBlank(str)) {
             throw new IllegalArgumentException(desc + " cannot be blank.");
         }
+    }
+
+    public static final String trimNotBlankX(String str, String desc) {
+        Objects.requireNonNull(str, desc);
+        str = str.trim();
+        if (str.isEmpty()) {
+            throw new IllegalArgumentException(desc + " cannot be blank.");
+        }
+        return str;
     }
 
     public static String toStringOrNull(Object obj) {
@@ -1644,6 +1914,141 @@ public final class StringUtil {
 
     public static final boolean isBasicLatin(char c) {
         return (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.BASIC_LATIN);
+    }
+
+    /**
+     * Performs a binary search in a List of case-insensitive sorted strings to find the first one starting with the
+     * given code point.
+     *
+     * <p>
+     * The algorithm used in this method is was borrowed, with a few modifications, from the binary search used to
+     * implement methods like {@link Arrays#binarySearch(long[], long)}. It is therefore subject to the GNU General
+     * Public License version 2 license agreement as per the source code license notice in that file.
+     *
+     * <p>
+     * If no value starts with a matching code point, the returned index will be a special value, as per the
+     * {@link Arrays} implementations of binary searches,
+     *
+     * <blockquote>
+     * <code>(-(<i>insertion point</i>) - 1)</code>. The <i>insertion point</i> is defined as the point at which the
+     * key would be inserted into the list</blockquote>
+     *
+     * <p>
+     * where such a string value would be inserted to maintain the ordering. Note that this means that for a null or
+     * empty list, the return value would be -1 (insertion point of 0, minus 1 = -1).
+     *
+     * <p>
+     * When considering a string value that is null or empty, the first code point will be considered to be -1, which
+     * would place such a value before any actual code points, since code points are unsigned short values (and
+     * therefore also positive).
+     *
+     * @param caseInsensitiveSortedStrings
+     *     the case-insensitive sorted strings to search.
+     * @param codePoint
+     *     the code point prefix to find.
+     * @return the index of the first list element whose values starts with the requested code point, if such a string
+     *     value exists; otherwise the index representing the insertion point where such a string value would be
+     *     inserted to maintain the order.
+     */
+    @Beta
+    public static final int caseInsensitiveBinarySearchFirstCodePoint(List<String> caseInsensitiveSortedStrings, int codePoint) {
+
+        if (!Character.isValidCodePoint(codePoint)) {
+            throw new IllegalArgumentException(
+                "Invalid code point " + codePoint + " (" + Integer.toHexString(codePoint) + ")."
+            );
+        }
+
+        if (CollectionsUtil.isNullOrEmpty(caseInsensitiveSortedStrings)) {
+            return -1;
+        }
+
+        codePoint = Character.toUpperCase(codePoint);
+
+        int low = 0;
+        int high = caseInsensitiveSortedStrings.size() - 1;
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            String midStr = caseInsensitiveSortedStrings.get(mid);
+            int midVal;
+            if (StringUtils.isEmpty(midStr)) {
+                midVal = -1;
+            }
+            else {
+                midVal = Character.toUpperCase(midStr.codePointAt(0));
+            }
+            if (midVal < codePoint) {
+                low = mid + 1;
+            }
+            else if (midVal > codePoint) {
+                high = mid - 1;
+            }
+            else {
+                // code point prefix found. search backwards to find the first matching word.
+                if (mid > 0) {
+                    Predicate<String> startsWithCaseInsensitive =
+                        startsWithCodePointCaseInsensitiveCodePointMatcherForUpper(
+                            codePoint
+                        );
+                    while (mid > 0 && startsWithCaseInsensitive.test(caseInsensitiveSortedStrings.get(mid - 1))) {
+                        mid--;
+                    }
+                }
+                return mid;
+            }
+        }
+        // code point prefix not found.
+        return -(low + 1);
+
+    }
+
+    public static final int indexOfIgnoringLeadingWhitespace(CharSequence str) {
+        if (str == null) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
+        return indexOfLeadingWhitespaceImpl(str, str.length() - 1);
+    }
+
+    public static final int indexOfIgnoringLeadingWhitespace(CharSequence str, int lastEligibleIndex) {
+        if (str == null) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
+        int len = str.length() - 1;
+        if (lastEligibleIndex >= len) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
+        return indexOfLeadingWhitespaceImpl(str, lastEligibleIndex);
+    }
+
+    public static final int lastIndexOfIgnoringTrailingWhitespace(CharSequence str) {
+        if (str == null) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
+        return lastIndexOfIgnoringTrailingWhitespaceImpl(str, 0);
+    }
+
+    public static final int lastIndexOfIgnoringTrailingWhitespace(CharSequence str, int firstEligibleIndex) {
+        if (str == null || firstEligibleIndex < 0) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
+        return lastIndexOfIgnoringTrailingWhitespaceImpl(str, firstEligibleIndex);
+    }
+
+    public static final boolean startsWithIgnoringLeadingWhitespace(String str, String search) {
+        return startsWithIgnoringLeadingWhitespaceImpl(str, search, false);
+    }
+
+    public static final boolean startsWithIgnoringLeadingWhitespaceIgnoreCase(String str, String search) {
+        return startsWithIgnoringLeadingWhitespaceImpl(str, search, true);
+    }
+
+    public static final boolean endsWithIgnoringTrailingWhitespace(String str, String search) {
+        return endsWithIgnoringLeadingWhitespaceImpl(str, search, false);
+    }
+
+    public static final boolean endsWithIgnoringTrailingWhitespaceIgnoreCase(String str, String search) {
+        return endsWithIgnoringLeadingWhitespaceImpl(str, search, true);
     }
 
     private static IndexRange getMatchingRangeImpl(CharSequence sequence, final int startSearchIndex, final int endSearchIndex, CharMatcher matcher) {
@@ -1833,6 +2238,91 @@ public final class StringUtil {
         return false;
     }
 
+    private static final int indexOfLeadingWhitespaceImpl(CharSequence str, int lastEligibleIndex) {
+        for (int i = 0; i <= lastEligibleIndex; i++) {
+            if (!Character.isWhitespace(str.charAt(i))) {
+                return i;
+            }
+        }
+        return StringUtils.INDEX_NOT_FOUND;
+    }
+
+    private static final int lastIndexOfIgnoringTrailingWhitespaceImpl(CharSequence str, int firstEligibleIndex) {
+        for (int i = str.length() - 1; i >= firstEligibleIndex; i--) {
+            if (!Character.isWhitespace(str.charAt(i))) {
+                return i;
+            }
+        }
+        return StringUtils.INDEX_NOT_FOUND;
+    }
+
+    private static final boolean startsWithIgnoringLeadingWhitespaceImpl(String str, String search, boolean ignoreCase) {
+
+        if (str == null || search == null) {
+            return false;
+        }
+
+        int searchLen = search.length();
+        if (searchLen == 0) {
+            return true;
+        }
+
+        int strLen = str.length();
+        if (strLen == 0) {
+            return false;
+        }
+
+        int maxStrIndexOfLastWhitespace = strLen - searchLen;
+        if (maxStrIndexOfLastWhitespace < 0) {
+            return false;
+        }
+
+        int startIndex = indexOfLeadingWhitespaceImpl(str, maxStrIndexOfLastWhitespace);
+        if (startIndex == StringUtils.INDEX_NOT_FOUND) {
+            return false;
+        }
+
+        return str.regionMatches(ignoreCase, startIndex, search, 0, searchLen);
+
+    }
+
+    private static final boolean endsWithIgnoringLeadingWhitespaceImpl(String str, String search, boolean ignoreCase) {
+
+        if (str == null || search == null) {
+            return false;
+        }
+
+        int searchLen = search.length();
+        if (searchLen == 0) {
+            return true;
+        }
+
+        int strLen = str.length();
+        if (strLen == 0) {
+            return false;
+        }
+
+        int diff = strLen - searchLen;
+        if (diff < 0) {
+            return false;
+        }
+
+        // searching for, e.g., "foo" needs length 3, so the first non-whitespace character can't be any earlier than
+        // index = 3 - 1 = 2 in that case.
+        int endIndex = lastIndexOfIgnoringTrailingWhitespaceImpl(str, searchLen - 1);
+        if (endIndex == StringUtils.INDEX_NOT_FOUND) {
+            return false;
+        }
+
+        // "abc foo  " - first non-whitespace index = 6
+        //  0123456789
+        // endIndex = 6
+        // startIndex = 6 - 3 + 1 = 4
+        // match candidate region covers index range 4, 5, 6
+        return str.regionMatches(ignoreCase, endIndex - searchLen + 1, search, 0, searchLen);
+
+    }
+
     private static boolean matchesAnyCodePointAt(String str, SpecialPosition position, Set<Integer> codePoints) {
         if (CollectionsUtil.isNullOrEmpty(codePoints)) {
             return false;
@@ -1842,6 +2332,62 @@ public final class StringUtil {
             return codePoints.contains(position.getCodePoint(str, len));
         }
         return false;
+    }
+
+    private static final String removeImpl(String str, int remove) {
+
+        int nextIndex = str.indexOf(remove);
+        if (nextIndex == StringUtils.INDEX_NOT_FOUND) {
+            return str;
+        }
+
+        StringBuilder buff = new StringBuilder();
+        int lastIndex = 0;
+        do {
+            buff.append(str, lastIndex, nextIndex);
+            lastIndex = nextIndex + 2;
+            nextIndex = str.indexOf(remove, lastIndex);
+        }
+        while (nextIndex != StringUtils.INDEX_NOT_FOUND);
+
+        buff.append(str, lastIndex, str.length());
+        return buff.toString();
+
+    }
+
+    private static final String removeImpl(String str, char remove) {
+        int nextIndex = str.indexOf(remove);
+        if (nextIndex == StringUtils.INDEX_NOT_FOUND) {
+            return str;
+        }
+        StringBuilder buff = new StringBuilder();
+        int lastIndex = 0;
+        do {
+            buff.append(str, lastIndex, nextIndex);
+            lastIndex = nextIndex + 1;
+            nextIndex = str.indexOf(remove, lastIndex);
+        }
+        while (nextIndex != StringUtils.INDEX_NOT_FOUND);
+
+        buff.append(str, lastIndex, str.length());
+        return buff.toString();
+
+    }
+
+    private static final Predicate<String> startsWithCodePointCaseInsensitiveCodePointMatcherForUpper(int codePointUpper) {
+        if (Character.isBmpCodePoint(codePointUpper)) {
+            char charUpper = (char) codePointUpper;
+            char charLower = Character.toLowerCase(charUpper);
+            if (charUpper == charLower) {
+                return (str) -> matchCharAt(str, SpecialPosition.FIRST, charUpper);
+            }
+            return (str) -> matchAnyCharAt(str, SpecialPosition.FIRST, charUpper, charLower);
+        }
+        int codePointLower = Character.toLowerCase(codePointUpper);
+        if (codePointUpper == codePointLower) {
+            return (str) -> matchCodePointAt(str, SpecialPosition.FIRST, codePointUpper);
+        }
+        return (str) -> matchesAnyCodePointAt(str, SpecialPosition.FIRST, codePointLower, codePointUpper);
     }
 
 }

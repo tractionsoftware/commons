@@ -708,7 +708,7 @@ public final class XmlUtil {
 
     public static void printLiteralText(PrintWriter out, String str) {
         if (StringUtils.isNotEmpty(str)) {
-            CodePointBasedFilteringTextMapper.replace(out, str, XmlUtil::getRequiredLiteralEncodingReplacement);
+            CodePointBasedFilteringTextMapper.replace(str, out, XmlUtil::getRequiredLiteralEncodingReplacement);
         }
     }
 

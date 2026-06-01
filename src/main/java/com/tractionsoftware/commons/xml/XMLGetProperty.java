@@ -18,9 +18,9 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-package com.tractionsoftware.commons.properties;
+package com.tractionsoftware.commons.xml;
 
-import com.tractionsoftware.commons.xml.JaxpUtil;
+import com.tractionsoftware.commons.properties.GetProperty;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -54,7 +54,14 @@ public class XMLGetProperty implements GetProperty {
         return getNodeValueForTagName(name);
     }
 
-    private final String getNodeValueForTagName(String tagName) {
+    @Override
+    public final Set<String> getPropertyNames() {
+        Set<String> allNames = new LinkedHashSet<>();
+        JaxpUtil.safelyTraverseDescendants(dom, (n) -> allNames.add(n.getNodeName()));
+        return allNames;
+    }
+
+    protected final String getNodeValueForTagName(String tagName) {
         NodeList tags = dom.getElementsByTagName(tagName);
         if (tags.getLength() > 0) {
             Node tag = tags.item(0);
@@ -63,13 +70,6 @@ public class XMLGetProperty implements GetProperty {
             }
         }
         return null;
-    }
-
-    @Override
-    public final Set<String> getPropertyNames() {
-        Set<String> allNames = new LinkedHashSet<>();
-        JaxpUtil.safelyTraverseDescendants(dom, (n) -> allNames.add(n.getNodeName()));
-        return allNames;
     }
 
 }

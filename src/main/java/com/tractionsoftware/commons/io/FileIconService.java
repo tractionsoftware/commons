@@ -67,6 +67,7 @@ public abstract class FileIconService {
         FileIconService.class, NONE, LOGGER
     );
 
+    @Nonnull
     public static final FileIconService get() {
         return instance.get();
     }

@@ -158,4 +158,5 @@ public interface Configuration extends GetProperty {
     public default Configuration getPrefix(String prefix, char separator) {
         return PropertyNameMappingConfiguration.wrapInPrefix(this, prefix, separator);
     }
+
 }

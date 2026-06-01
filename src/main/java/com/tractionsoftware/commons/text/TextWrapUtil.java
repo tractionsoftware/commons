@@ -89,7 +89,7 @@ public final class TextWrapUtil {
 
         protected final boolean shouldCancelWrap(int codePoint) {
             if (Character.isWhitespace(codePoint) ||
-                StringUtil.isAlternativeWhitespaceChar(codePoint) ||
+                StringUtil.isAlternativeWhitespaceCodePoint(codePoint) ||
                 codePoint == '\'' ||
                 codePoint == '"') {
                 return true;

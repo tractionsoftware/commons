@@ -22,18 +22,34 @@ package com.tractionsoftware.commons.text;
 
 import com.google.common.annotations.Beta;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.function.IntPredicate;
 
+/**
+ * A {@link FilteringTextMapper} that works in terms of int values representing code points.
+ *
+ * @param <T>
+ *     the type of object used to write or contain the result -- e.g., a {@link PrintWriter}, a {@link StringBuilder},
+ *     etc.
+ * @param <R>
+ *     the type of the final result -- e.g., a {@link String}, or nothing ({@link Void}, if the result is written to
+ *     some other object), etc.
+ */
 @Beta
-public final class CodePointBasedFilteringTextMapper<T, R>
-    extends FilteringTextMapper<T,R> {
+public final class CodePointBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R> {
 
     @FunctionalInterface
-    private interface Creator<T> {
+    private static interface Creator<T> {
 
         T create(int[] codePoints, int nextIndex);
 
@@ -45,14 +61,20 @@ public final class CodePointBasedFilteringTextMapper<T, R>
             super(matcher);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return removeIf(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(removeIf(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            removeIf(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
+            removeIf(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
+            removeIf(in, out, operator);
         }
 
     }
@@ -63,14 +85,20 @@ public final class CodePointBasedFilteringTextMapper<T, R>
             super(matcher);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return retainIf(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(retainIf(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            retainIf(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
+            retainIf(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
+            retainIf(in, out, operator);
         }
 
     }
@@ -81,14 +109,20 @@ public final class CodePointBasedFilteringTextMapper<T, R>
             super(replacer);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return replace(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(replace(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            replace(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
+            replace(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
+            replace(in, out, operator);
         }
 
     }
@@ -100,19 +134,25 @@ public final class CodePointBasedFilteringTextMapper<T, R>
             super(replacer);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return replace(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(replace(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            replace(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
+            replace(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
+            replace(in, out, operator);
         }
 
     }
 
-    public static CodePointBasedFilteringTextMapper<StringBuilder,String> createDefaultInstance(CharSequence str) {
+    public static final CodePointBasedFilteringTextMapper<StringBuilder,String> createDefaultInstance(@Nullable CharSequence str) {
         return createInstance(
             str,
             null,
@@ -121,118 +161,179 @@ public final class CodePointBasedFilteringTextMapper<T, R>
         );
     }
 
-    public static CodePointBasedFilteringTextMapper<PrintWriter,Void> createInstanceForPrint(PrintWriter out, CharSequence str) {
+    public static final CodePointBasedFilteringTextMapper<PrintWriter,Void> createInstanceForPrint(@Nullable CharSequence str, @Nonnull PrintWriter out) {
         return createInstance(str, out, PRINT_WRITER_RESULT_WRITER, null);
     }
 
-    public static CodePointBasedFilteringTextMapper<StringBuilder,Void> createInstanceForAppend(StringBuilder buff, CharSequence str) {
+    public static final CodePointBasedFilteringTextMapper<StringBuilder,Void> createInstanceForAppend(@Nullable CharSequence str, @Nonnull StringBuilder buff) {
         return createInstance(str, buff, EXISTING_STRING_BUILDER_WRITER, null);
     }
 
-    public static CodePointBasedFilteringTextMapper<? extends Appendable,Void> createInstanceForGenericAppend(Appendable out, CharSequence str) {
+    public static final CodePointBasedFilteringTextMapper<? extends Appendable,Void> createInstanceForGenericAppend(@Nullable CharSequence str, @Nonnull Appendable out) {
+        str = Objects.requireNonNullElse(str, "");
+        Objects.requireNonNull(out, "output");
         if (out instanceof PrintWriter pw) {
-            return createInstanceForPrint(pw, str);
+            return createInstanceForPrint(str, pw);
         }
         if (out instanceof StringBuilder buff) {
-            return createInstanceForAppend(buff, str);
+            return createInstanceForAppend(str, buff);
         }
         return createInstance(str, out, GENERIC_APPENDABLE_RESULT_WRITER, null);
     }
 
-    private static <T, R> CodePointBasedFilteringTextMapper<T,R> createInstance(CharSequence str, T out, ResultWriter<T,R> writer, Creator<T> creator) {
-        Objects.requireNonNull(str, "input string");
-        return new CodePointBasedFilteringTextMapper<>(str, str.codePoints().toArray(), out, writer, creator);
-    }
-
-    public static String removeIf(CharSequence str, IntPredicate filter) {
+    @Nullable
+    public static final String removeIf(@Nullable CharSequence str, @Nonnull IntPredicate filter) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return removeIf(createDefaultInstance(str), filter);
     }
 
-    public static void removeIf(PrintWriter out, CharSequence str, IntPredicate filter) {
-        removeIf(createInstanceForPrint(out, str), filter);
+    public static final void removeIf(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull IntPredicate filter) {
+        if (str != null) {
+            removeIf(createInstanceForPrint(str, out), filter);
+        }
     }
 
-    public static void removeIf(StringBuilder buff, CharSequence str, IntPredicate filter) {
-        removeIf(createInstanceForAppend(buff, str), filter);
+    public static final void removeIf(@Nullable CharSequence str, @Nonnull StringBuilder buff, @Nonnull IntPredicate filter) {
+        if (str != null) {
+            removeIf(createInstanceForAppend(str, buff), filter);
+        }
     }
 
-    public static void removeIf(Appendable out, CharSequence str, IntPredicate filter) {
-        removeIf(createInstanceForGenericAppend(out, str), filter);
+    public static final void removeIf(@Nullable CharSequence str, @Nonnull Appendable out, @Nonnull IntPredicate filter) {
+        if (str != null) {
+            removeIf(createInstanceForGenericAppend(str, out), filter);
+        }
     }
 
-    public static String retainIf(CharSequence str, IntPredicate filter) {
+    public static final void removeIf(@Nonnull Reader in, @Nonnull Writer out, @Nonnull IntPredicate filter)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        removeIf(IOUtils.toString(in), out, filter);
+    }
+
+    @Nullable
+    public static final String retainIf(@Nullable CharSequence str, @Nonnull IntPredicate filter) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return retainIf(createDefaultInstance(str), filter);
     }
 
-    public static void retainIf(PrintWriter out, CharSequence str, IntPredicate filter) {
-        retainIf(createInstanceForPrint(out, str), filter);
+    public static final void retainIf(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull IntPredicate filter) {
+        retainIf(createInstanceForPrint(str, out), filter);
     }
 
-    public static void retainIf(StringBuilder buff, CharSequence str, IntPredicate filter) {
-        retainIf(createInstanceForAppend(buff, str), filter);
+    public static final void retainIf(@Nullable CharSequence str, @Nonnull StringBuilder buff, @Nonnull IntPredicate filter) {
+        retainIf(createInstanceForAppend(str, buff), filter);
     }
 
-    public static void retainIf(Appendable out, CharSequence str, IntPredicate filter) {
-        retainIf(createInstanceForGenericAppend(out, str), filter);
+    public static final void retainIf(@Nullable CharSequence str, @Nonnull Appendable out, @Nonnull IntPredicate filter) {
+        retainIf(createInstanceForGenericAppend(str, out), filter);
     }
 
-    public static String replace(CharSequence str, StringUtil.CodePointMapper replacer) {
+    public static final void retainIf(@Nonnull Reader in, @Nonnull Writer out, @Nonnull IntPredicate filter)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        retainIf(IOUtils.toString(in), filter);
+    }
+
+    @Nullable
+    public static final String replace(@Nullable CharSequence str, @Nonnull StringUtil.CodePointMapper replacer) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return replace(createDefaultInstance(str), replacer);
     }
 
-    public static String replace(CharSequence str, IntFunction<CharSequence> replacer) {
+    @Nullable
+    public static final String replace(@Nullable CharSequence str, @Nonnull IntFunction<CharSequence> replacer) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return replace(createDefaultInstance(str), replacer);
     }
 
-    public static void replace(PrintWriter out, CharSequence str, IntFunction<CharSequence> replacer) {
-        replace(createInstanceForPrint(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull IntFunction<CharSequence> replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForPrint(str, out), replacer);
+        }
     }
 
-    public static void replace(StringBuilder buff, CharSequence str, IntFunction<CharSequence> replacer) {
-        replace(createInstanceForAppend(buff, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull StringBuilder buff, @Nonnull IntFunction<CharSequence> replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForAppend(str, buff), replacer);
+        }
     }
 
-    public static void replace(Appendable out, CharSequence str, IntFunction<CharSequence> replacer) {
-        replace(createInstanceForGenericAppend(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull Appendable out, @Nonnull IntFunction<CharSequence> replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForGenericAppend(str, out), replacer);
+        }
     }
 
-    public static void replace(PrintWriter out, CharSequence str, StringUtil.CodePointMapper replacer) {
-        replace(createInstanceForPrint(out, str), replacer);
+    public static final void replace(@Nonnull Reader in, @Nonnull Writer out, @Nonnull IntFunction<CharSequence> replacer)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        replace(IOUtils.toString(in), replacer);
     }
 
-    public static void replace(StringBuilder buff, CharSequence str, StringUtil.CodePointMapper replacer) {
-        replace(createInstanceForAppend(buff, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull StringUtil.CodePointMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForPrint(str, out), replacer);
+        }
     }
 
-    public static void replace(Appendable out, CharSequence str, StringUtil.CodePointMapper replacer) {
-        replace(createInstanceForGenericAppend(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull StringBuilder buff, @Nonnull StringUtil.CodePointMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForAppend(str, buff), replacer);
+        }
     }
 
-    public static TextTransformer createRemovingTransformer(IntPredicate filter) {
+    public static final void replace(@Nullable CharSequence str, @Nonnull Appendable out, @Nonnull StringUtil.CodePointMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForGenericAppend(str, out), replacer);
+        }
+    }
+
+    public static final void replace(@Nonnull Reader in, @Nonnull Writer out, @Nonnull StringUtil.CodePointMapper replacer)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        replace(IOUtils.toString(in), out, replacer);
+    }
+
+    public static final TextTransformer createRemovingTransformer(@Nonnull IntPredicate filter) {
         Objects.requireNonNull(filter, "filter");
         return new RemovingTransformer(filter);
     }
 
-    public static TextTransformer createRetainingTransformer(IntPredicate matcher) {
+    public static final TextTransformer createRetainingTransformer(@Nonnull IntPredicate matcher) {
         Objects.requireNonNull(matcher, "matcher");
         return new RetainingTransformer(matcher);
     }
 
-    public static TextTransformer createReplacingTransformer(StringUtil.CodePointMapper mapper) {
+    public static final TextTransformer createReplacingTransformer(@Nonnull StringUtil.CodePointMapper mapper) {
         Objects.requireNonNull(mapper, "mapper");
         return new CodePointMappingTransformer(mapper);
     }
 
-    public static TextTransformer createReplacingTransformer(IntFunction<CharSequence> mapper) {
+    public static final TextTransformer createReplacingTransformer(@Nonnull IntFunction<CharSequence> mapper) {
         Objects.requireNonNull(mapper, "mapper");
         return new CodePointToStringMappingTransformer(mapper);
     }
 
-    private static StringBuilder createBuilder(int[] codePoints, int currentIndex) {
+    private static final <T, R> CodePointBasedFilteringTextMapper<T,R> createInstance(@Nullable CharSequence str, T out, @Nonnull ResultWriter<T,R> writer, @Nullable Creator<T> creator) {
+        str = Objects.requireNonNullElse(str, "");
+        return new CodePointBasedFilteringTextMapper<>(str, str.codePoints().toArray(), out, writer, creator);
+    }
+
+    @Nonnull
+    private static final StringBuilder createBuilder(@Nonnull int[] codePoints, int currentIndex) {
         return new StringBuilder(codePoints.length + (codePoints.length / 2));
     }
 
-    private static <R> R removeIf(CodePointBasedFilteringTextMapper<?,R> mapper, IntPredicate filter) {
+    private static final <R> R removeIf(@Nonnull CodePointBasedFilteringTextMapper<?,R> mapper, @Nonnull IntPredicate filter) {
         while (mapper.hasNext()) {
             if (filter.test(mapper.nextImpl())) {
                 mapper.removePrevious();
@@ -244,7 +345,7 @@ public final class CodePointBasedFilteringTextMapper<T, R>
         return mapper.finish();
     }
 
-    private static <R> R retainIf(CodePointBasedFilteringTextMapper<?,R> mapper, IntPredicate filter) {
+    private static final <R> R retainIf(@Nonnull CodePointBasedFilteringTextMapper<?,R> mapper, @Nonnull IntPredicate filter) {
         while (mapper.hasNext()) {
             if (filter.test(mapper.nextImpl())) {
                 mapper.keepPrevious();
@@ -256,7 +357,7 @@ public final class CodePointBasedFilteringTextMapper<T, R>
         return mapper.finish();
     }
 
-    private static <R> R replace(CodePointBasedFilteringTextMapper<?,R> mapper, IntFunction<CharSequence> replacer) {
+    private static final <R> R replace(@Nonnull CodePointBasedFilteringTextMapper<?,R> mapper, @Nonnull IntFunction<CharSequence> replacer) {
         while (mapper.hasNext()) {
             int codePoint = mapper.nextImpl();
             CharSequence replacement = replacer.apply(codePoint);
@@ -273,7 +374,7 @@ public final class CodePointBasedFilteringTextMapper<T, R>
         return mapper.finish();
     }
 
-    private static <R> R replace(CodePointBasedFilteringTextMapper<?,R> mapper, StringUtil.CodePointMapper replacer) {
+    private static final <R> R replace(@Nonnull CodePointBasedFilteringTextMapper<?,R> mapper, @Nonnull StringUtil.CodePointMapper replacer) {
         while (mapper.hasNext()) {
             int codePoint = mapper.nextImpl();
             int replacementCodePoint = replacer.getReplacement(codePoint);
@@ -307,7 +408,7 @@ public final class CodePointBasedFilteringTextMapper<T, R>
         this.creator = creator;
     }
 
-    public CodePointValue next() {
+    public final CodePointValue next() {
         return new CodePointValue(nextImpl());
     }
 

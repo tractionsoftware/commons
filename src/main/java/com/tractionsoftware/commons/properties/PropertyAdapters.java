@@ -23,6 +23,7 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.config.Configuration;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
+import com.tractionsoftware.commons.util.CollectionsUtil;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 
@@ -104,10 +105,7 @@ public final class PropertyAdapters {
 
             @Override
             public final Set<String> getPropertyNames() {
-                if (domain instanceof ImmutableSet<String> immutable) {
-                    return immutable;
-                }
-                return Collections.unmodifiableSet(domain);
+                return CollectionsUtil.unmodifiableSet(domain);
             }
 
         };

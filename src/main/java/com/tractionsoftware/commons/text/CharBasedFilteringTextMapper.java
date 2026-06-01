@@ -23,21 +23,33 @@ package com.tractionsoftware.commons.text;
 import com.google.common.annotations.Beta;
 import com.google.common.base.CharMatcher;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Objects;
 
 /**
  * A {@link FilteringTextMapper} that works in terms of char values.
  *
- * <p>
- * For cases when the input
+ * @param <T>
+ *     the type of object used to write or contain the result -- e.g., a {@link PrintWriter}, a {@link StringBuilder},
+ *     etc.
+ * @param <R>
+ *     the type of the final result -- e.g., a {@link String}, or nothing ({@link Void}, if the result is written to
+ *     some other object), etc.
  */
 @Beta
 public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R> {
 
     @FunctionalInterface
-    private interface Creator<T> {
+    private static interface Creator<T> {
 
         T create(CharSequence original, int currentIndex);
 
@@ -49,14 +61,20 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
             super(filter);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return removeIf(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(removeIf(operator, text));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            removeIf(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+            removeIf(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+            removeIf(in, out, operator);
         }
 
     }
@@ -67,150 +85,244 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
             super(matcher);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return retainIf(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(retainIf(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            retainIf(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+            retainIf(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+            retainIf(in, out, operator);
         }
 
     }
 
     private static final class CharToCharMappingTransformer extends TextTransformerAdapter<StringUtil.CharMapper> {
 
-        CharToCharMappingTransformer(StringUtil.CharMapper operator) {
+        private CharToCharMappingTransformer(StringUtil.CharMapper operator) {
             super(operator);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return replace(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(replace(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            replace(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+            replace(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+            replace(in, out, operator);
         }
 
     }
 
-    private static final class CharToStringMappingTransformer extends TextTransformerAdapter<StringUtil.CharToStringMapper> {
+    private static final class CharToStringMappingTransformer
+        extends TextTransformerAdapter<StringUtil.CharToStringMapper> {
 
         CharToStringMappingTransformer(StringUtil.CharToStringMapper operator) {
             super(operator);
         }
 
+        @Nonnull
         @Override
-        protected CharSequence transformImpl(CharSequence text) {
-            return replace(text, operator);
+        protected final CharSequence transformImpl(@Nonnull CharSequence text) {
+            return Objects.requireNonNull(replace(text, operator));
         }
 
         @Override
-        protected void transformImpl(CharSequence text, Appendable out) {
-            replace(out, text, operator);
+        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+            replace(text, out, operator);
+        }
+
+        @Override
+        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+            replace(in, out, operator);
         }
 
     }
 
-    public static CharBasedFilteringTextMapper<StringBuilder,String> createDefaultInstance(CharSequence str) {
+    public static final CharBasedFilteringTextMapper<StringBuilder,String> createDefaultInstance(@Nullable CharSequence str) {
         return createInstance(str, null, ON_DEMAND_STRING_BUILDER_WRITER, CharBasedFilteringTextMapper::createBuilder);
     }
 
-    public static CharBasedFilteringTextMapper<PrintWriter,Void> createInstanceForPrint(PrintWriter out, CharSequence str) {
+    public static final CharBasedFilteringTextMapper<PrintWriter,Void> createInstanceForPrint(@Nullable CharSequence str, @Nonnull PrintWriter out) {
         return createInstance(str, out, PRINT_WRITER_RESULT_WRITER, null);
     }
 
-    public static CharBasedFilteringTextMapper<StringBuilder,Void> createInstanceForAppend(StringBuilder buff, CharSequence str) {
+    public static final CharBasedFilteringTextMapper<StringBuilder,Void> createInstanceForAppend(@Nullable CharSequence str, @Nonnull StringBuilder buff) {
         return createInstance(str, buff, EXISTING_STRING_BUILDER_WRITER, null);
     }
 
-    public static CharBasedFilteringTextMapper<? extends Appendable,Void> createInstanceForGenericAppend(Appendable out, CharSequence str) {
+    public static final CharBasedFilteringTextMapper<? extends Appendable,Void> createInstanceForGenericAppend(@Nullable CharSequence str, @Nonnull Appendable out) {
+        str = Objects.requireNonNullElse(str, "");
+        Objects.requireNonNull(out, "output");
         if (out instanceof PrintWriter pw) {
-            return createInstanceForPrint(pw, str);
+            return createInstanceForPrint(str, pw);
         }
         if (out instanceof StringBuilder buff) {
-            return createInstanceForAppend(buff, str);
+            return createInstanceForAppend(str, buff);
         }
         return createInstance(str, out, GENERIC_APPENDABLE_RESULT_WRITER, null);
     }
 
-    private static <T,R> CharBasedFilteringTextMapper<T,R> createInstance(CharSequence str, T out, ResultWriter<T,R> writer, Creator<T> creator) {
-        Objects.requireNonNull(str, "input string");
-        return new CharBasedFilteringTextMapper<>(str, out, writer, creator);
-    }
-
-    public static String removeIf(CharSequence str, CharMatcher filter) {
+    @Nullable
+    public static final String removeIf(CharMatcher filter, CharSequence str) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return removeIf(createDefaultInstance(str), filter);
     }
 
-    public static void removeIf(PrintWriter out, CharSequence str, CharMatcher filter) {
-        removeIf(createInstanceForPrint(out, str), filter);
+    public static final void removeIf(CharSequence str, PrintWriter out, CharMatcher filter) {
+        removeIf(createInstanceForPrint(str, out), filter);
     }
 
-    public static void removeIf(StringBuilder buff, CharSequence str, CharMatcher filter) {
-        removeIf(createInstanceForAppend(buff, str), filter);
+    public static final void removeIf(CharSequence str, StringBuilder buff, CharMatcher filter) {
+        removeIf(createInstanceForAppend(str, buff), filter);
     }
 
-    public static void removeIf(Appendable out, CharSequence str, CharMatcher filter) {
-        removeIf(createInstanceForGenericAppend(out, str), filter);
+    public static final void removeIf(CharSequence str, Appendable out, CharMatcher filter) {
+        removeIf(createInstanceForGenericAppend(str, out), filter);
     }
 
-    public static String retainIf(CharSequence str, CharMatcher filter) {
+    public static final void removeIf(@Nonnull Reader in, @Nonnull Writer out, @Nonnull CharMatcher filter)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        removeIf(IOUtils.toString(in), out, filter);
+    }
+
+    @Nullable
+    public static String retainIf(@Nullable CharSequence str, @Nonnull CharMatcher filter) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return retainIf(createDefaultInstance(str), filter);
     }
 
-    public static void retainIf(PrintWriter out, CharSequence str, CharMatcher filter) {
-        retainIf(createInstanceForPrint(out, str), filter);
+    public static final void retainIf(CharSequence str, @Nonnull PrintWriter out, @Nonnull CharMatcher filter) {
+        retainIf(createInstanceForPrint(str, out), filter);
     }
 
-    public static void retainIf(StringBuilder buff, CharSequence str, CharMatcher filter) {
-        retainIf(createInstanceForAppend(buff, str), filter);
+    public static final void retainIf(CharSequence str, @Nonnull StringBuilder buff, @Nonnull CharMatcher filter) {
+        retainIf(createInstanceForAppend(str, buff), filter);
     }
 
-    public static void retainIf(Appendable out, CharSequence str, CharMatcher filter) {
-        retainIf(createInstanceForGenericAppend(out, str), filter);
+    public static final void retainIf(CharSequence str, @Nonnull Appendable out, @Nonnull CharMatcher filter) {
+        retainIf(createInstanceForGenericAppend(str, out), filter);
     }
 
-    public static String replace(CharSequence str, StringUtil.CharMapper replacer) {
+    public static final void retainIf(@Nonnull Reader in, @Nonnull Writer out, @Nonnull CharMatcher filter)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        Objects.requireNonNull(out, "output");
+        retainIf(IOUtils.toString(in), out, filter);
+    }
+
+    @Nullable
+    public static String replace(@Nullable CharSequence str, @Nonnull StringUtil.CharMapper replacer) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return replace(createDefaultInstance(str), replacer);
     }
 
-    public static String replace(CharSequence str, StringUtil.CharToStringMapper replacer) {
+    @Nullable
+    public static String replace(@Nullable CharSequence str, @Nonnull StringUtil.CharToStringMapper replacer) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
+        }
         return replace(createDefaultInstance(str), replacer);
     }
 
-    public static void replace(PrintWriter out, CharSequence str, StringUtil.CharMapper replacer) {
-        replace(createInstanceForPrint(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull StringUtil.CharMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForPrint(str, out), replacer);
+        }
     }
 
-    public static void replace(PrintWriter out, CharSequence str, StringUtil.CharToStringMapper replacer) {
-        replace(createInstanceForPrint(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull StringUtil.CharToStringMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForPrint(str, out), replacer);
+        }
     }
 
-    public static void replace(StringBuilder out, CharSequence str, StringUtil.CharMapper replacer) {
-        replace(createInstanceForAppend(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull StringBuilder out, @Nonnull StringUtil.CharMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForAppend(str, out), replacer);
+        }
     }
 
-    public static void replace(StringBuilder out, CharSequence str, StringUtil.CharToStringMapper replacer) {
-        replace(createInstanceForAppend(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull StringBuilder out, @Nonnull StringUtil.CharToStringMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForAppend(str, out), replacer);
+        }
     }
 
-    public static void replace(Appendable out, CharSequence str, StringUtil.CharMapper replacer) {
-        replace(createInstanceForGenericAppend(out, str), replacer);
+    public static final void replace(@Nullable CharSequence str, @Nonnull Appendable out, @Nonnull StringUtil.CharMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForGenericAppend(str, out), replacer);
+        }
     }
 
-    public static void replace(Appendable out, CharSequence str, StringUtil.CharToStringMapper replacer) {
-        replace(createInstanceForGenericAppend(out, str), replacer);
+    public static final void replace(@Nonnull Reader in, @Nonnull Writer out, @Nonnull StringUtil.CharMapper replacer)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        replace(IOUtils.toString(in), out, replacer);
     }
 
-    private static StringBuilder createBuilder(CharSequence original, int currentIndex) {
+    public static final void replace(CharSequence str, @Nonnull Appendable out, @Nonnull StringUtil.CharToStringMapper replacer) {
+        if (StringUtils.isNotEmpty(str)) {
+            replace(createInstanceForGenericAppend(str, out), replacer);
+        }
+    }
+
+    public static final void replace(@Nonnull Reader in, @Nonnull Writer out, @Nonnull StringUtil.CharToStringMapper replacer)
+        throws IOException {
+        Objects.requireNonNull(in, "input");
+        replace(IOUtils.toString(in), out, replacer);
+    }
+
+    public static final TextTransformer createRemovingTransformer(@Nonnull CharMatcher filter) {
+        Objects.requireNonNull(filter, "filter");
+        return new RemovingTransformer(filter);
+    }
+
+    public static final TextTransformer createRetainingTransformer(@Nonnull CharMatcher filter) {
+        Objects.requireNonNull(filter, "filter");
+        return new RetainingTransformer(filter);
+    }
+
+    public static final TextTransformer createReplacingTransformer(@Nonnull StringUtil.CharMapper mapper) {
+        Objects.requireNonNull(mapper, "mapper");
+        return new CharToCharMappingTransformer(mapper);
+    }
+
+    public static final TextTransformer createReplacingTransformer(@Nonnull StringUtil.CharToStringMapper mapper) {
+        Objects.requireNonNull(mapper, "mapper");
+        return new CharToStringMappingTransformer(mapper);
+    }
+
+    private static final <T, R> CharBasedFilteringTextMapper<T,R> createInstance(@Nullable CharSequence str, T out, @Nonnull ResultWriter<T,R> writer, @Nullable Creator<T> creator) {
+        str = Objects.requireNonNullElse(str, "");
+        return new CharBasedFilteringTextMapper<>(str, out, writer, creator);
+    }
+
+    private static final StringBuilder createBuilder(@Nonnull CharSequence original, int currentIndex) {
         return new StringBuilder(original.length() + 25);
     }
 
-    private static <R> R removeIf(CharBasedFilteringTextMapper<?,R> mapper, CharMatcher filter) {
+    private static final <R> R removeIf(@Nonnull CharBasedFilteringTextMapper<?,R> mapper, @Nonnull CharMatcher filter) {
         while (mapper.hasNext()) {
             if (filter.matches(mapper.nextImpl())) {
                 mapper.removePrevious();
@@ -222,7 +334,7 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         return mapper.finish();
     }
 
-    private static <R> R retainIf(CharBasedFilteringTextMapper<?,R> mapper, CharMatcher filter) {
+    private static final <R> R retainIf(@Nonnull CharBasedFilteringTextMapper<?,R> mapper, @Nonnull CharMatcher filter) {
         while (mapper.hasNext()) {
             if (filter.matches(mapper.nextImpl())) {
                 mapper.keepPrevious();
@@ -234,7 +346,7 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         return mapper.finish();
     }
 
-    private static <R> R replace(CharBasedFilteringTextMapper<?,R> mapper, StringUtil.CharToStringMapper replacer) {
+    private static final <R> R replace(@Nonnull CharBasedFilteringTextMapper<?,R> mapper, @Nonnull StringUtil.CharToStringMapper replacer) {
         while (mapper.hasNext()) {
             char c = mapper.nextImpl();
             CharSequence replacement = replacer.getReplacement(c);
@@ -251,7 +363,7 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         return mapper.finish();
     }
 
-    private static <R> R replace(CharBasedFilteringTextMapper<?,R> mapper, StringUtil.CharMapper replacer) {
+    private static final <R> R replace(@Nonnull CharBasedFilteringTextMapper<?,R> mapper, @Nonnull StringUtil.CharMapper replacer) {
         while (mapper.hasNext()) {
             char c = mapper.nextImpl();
             char replacement = replacer.getReplacement(c);

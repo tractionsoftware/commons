@@ -28,9 +28,13 @@ import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
+import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.TextWrapUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,7 +241,7 @@ public final class HtmlUtil {
 
         private final void appendLiteralText(CharSequence text) {
             if (StringUtils.isNotEmpty(text)) {
-                CharBasedFilteringTextMapper.replace(out, text, this::encodeForLiteral);
+                CharBasedFilteringTextMapper.replace(text, out, this::encodeForLiteral);
             }
         }
 
@@ -516,7 +520,7 @@ public final class HtmlUtil {
 
     public static final void printLiteralText(Appendable out, CharSequence text) {
         if (StringUtils.isNotEmpty(text)) {
-            CharBasedFilteringTextMapper.replace(out, text, SimpleHtmlEntity::encodeForLiteral);
+            CharBasedFilteringTextMapper.replace(text, out, SimpleHtmlEntity::encodeForLiteral);
         }
     }
 
@@ -536,7 +540,7 @@ public final class HtmlUtil {
 
     public static final void printTagAttributeValue(Appendable out, String text) {
         if (StringUtils.isNotEmpty(text)) {
-            CharBasedFilteringTextMapper.replace(out, text, SimpleHtmlEntity::encodeForTagAttributeValue);
+            CharBasedFilteringTextMapper.replace(text, out, SimpleHtmlEntity::encodeForTagAttributeValue);
         }
     }
 
@@ -715,7 +719,7 @@ public final class HtmlUtil {
         );
     }
 
-    public static final Appendable getLiteralAppendable(Appendable out, String preferredZeroWidthSpace) {
+    public static final Appendable getLiteralAppendable(@Nonnull Appendable out, @Nullable String preferredZeroWidthSpace) {
         Objects.requireNonNull(out, "Appendable");
         if (StringUtils.isBlank(preferredZeroWidthSpace)) {
             preferredZeroWidthSpace = TextWrapUtil.DEFAULT_ZERO_WIDTH_SPACE;
@@ -727,16 +731,109 @@ public final class HtmlUtil {
         return new HtmlLiteralAppendableWrapper(out, preferredZeroWidthSpace);
     }
 
-    public static final String createComment(String text) {
+    public static final String createComment(@Nonnull String text) {
+        Objects.requireNonNull(text, "text");
         return INLINE_COMMENT_START + " " + text + " " + INLINE_COMMENT_END;
     }
 
-    public static final int getApparentHeadingLevel(String tagText) {
+    public static final int getApparentHeadingLevel(@Nonnull String tagText) {
+        Objects.requireNonNull(tagText, "tag text");
         Matcher m = HTML_HEADING_START_TAG.matcher(tagText);
         if (m.matches()) {
             return NativeTypeConversion.stringToInt(m.group(2), 0);
         }
         return 0;
+    }
+
+    /**
+     * Computes a simple text snippet from the given HTML, no longer than the requested maximum length.
+     *
+     * @param html
+     *     the HTML to be snippetized.
+     * @param maximumLength
+     *     the maximum length of the snippet.
+     * @param ellipses
+     *     the ellipses to use in the event the content is truncated.
+     * @return a simple text snippet from the given HTML, no longer than the requested maximum length.
+     */
+    public static final String getTextSnippetFromHtml(@Nullable String html, int maximumLength, @Nullable String ellipses) {
+        if (maximumLength <= 0 || StringUtils.isBlank(html)) {
+            return "";
+        }
+        return SnippetUtil.getSnippet(
+            getUnescapedHtmlForSnippet(html, maximumLength), maximumLength, ellipses
+        );
+    }
+
+    /**
+     * Applies an HTML-to-text transformation appropriate for preparing the given HTML content to be snippetized.
+     *
+     * @param html
+     *     the HTML to be turned into a text-only equivalent for snippetizing.
+     * @param maximumLength
+     *     the maximum length of the snippet.
+     * @return a text-only version of the input HTML suitable for snippetizing.
+     * @implNote We would like to avoid spending time applying HTML entity unescaping to text that is only going to
+     *     be discarded. Since the unescape utility code we're using does not allow us to stop after we've got a desired
+     *     amount of output, we take special pains to only unescape text if we know we need to, and then sending only as
+     *     much HTML text as we think can possibly need to be unescaped to fulfill the requirement for the maximum
+     *     snippet length.
+     */
+    private static final String getUnescapedHtmlForSnippet(@Nonnull String html, int maximumLength) {
+
+        // Extract text by removing HTML tags and any other text that should not be included here.
+        String htmlText = HtmlTransformerService.get().textExtractionSnippets().transform(html).trim();
+        if (StringUtils.isBlank(htmlText)) {
+            return htmlText;
+        }
+
+        // Maximum expected amount of a text-only string we'll need
+        // for snippetizing.
+        int maximumLengthOfText = maximumLength + 50;
+
+        int firstAmpersand = htmlText.indexOf('&');
+        if (firstAmpersand == -1) {
+            if (htmlText.length() > maximumLengthOfText) {
+                return htmlText.substring(0, maximumLengthOfText);
+            }
+            return htmlText;
+        }
+
+        String textHead = htmlText.substring(0, firstAmpersand);
+        int textHeadLen = textHead.length();
+        if (textHeadLen >= maximumLengthOfText) {
+            return textHead.substring(0, maximumLengthOfText);
+        }
+
+        if (textHeadLen > 0) {
+            // Take into account the text-only part we took from the
+            // "head" of the string by removing that length from the
+            // maximum required text length, and by removing that head
+            // text from the remaining HTML text.
+            maximumLengthOfText -= textHeadLen;
+            htmlText = htmlText.substring(textHeadLen);
+        }
+
+        // We'd like to make sure that we supply enough possibly
+        // entity-encoded text to get a sufficient amount of plain
+        // text output. We go with a factor of 10 here, which is
+        // probably overkill in practice, but safe to cover weird
+        // corner cases.
+        int maximumLengthOfRemainingHtmlText = maximumLengthOfText * 10;
+        if (htmlText.length() > maximumLengthOfRemainingHtmlText) {
+            htmlText = htmlText.substring(0, maximumLengthOfRemainingHtmlText);
+        }
+
+        String unescapedTail = StringEscapeUtils.unescapeHtml4(htmlText);
+        if (unescapedTail.length() > maximumLengthOfText) {
+            unescapedTail = unescapedTail.substring(0, maximumLengthOfText);
+        }
+
+        if (textHeadLen == 0) {
+            return unescapedTail;
+        }
+        return textHead + unescapedTail;
+
     }
 
 }

@@ -26,7 +26,6 @@ import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.StringUtil;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -440,7 +439,7 @@ public final class FileNameUtil {
             StringWriteUtil.safeAppend(out, path);
         }
         else {
-            CharBasedFilteringTextMapper.replace(out, path, GENERIC_TO_PLATFORM_SEPARATOR_REPLACEMENT);
+            CharBasedFilteringTextMapper.replace(path, out, GENERIC_TO_PLATFORM_SEPARATOR_REPLACEMENT);
         }
     }
 

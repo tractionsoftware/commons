@@ -22,7 +22,6 @@ package com.tractionsoftware.commons.lang;
 
 import com.google.common.base.Joiner;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
@@ -115,6 +114,11 @@ public final class NativeTypeConversion {
             return false;
         }
 
+    }
+
+    @Nonnull
+    public static final BooleanStrings booleanStrings() {
+        return booleanStrings.get();
     }
 
     public static final boolean stringToBoolean(String value) {
@@ -622,7 +626,7 @@ public final class NativeTypeConversion {
     }
 
     private static final void logNumberFormatException(String value, String numberType, NumberFormatException e) {
-        LOGGER.info("Failed to parse {} as {}", SnippetUtil.truncatedToString(value), numberType, e);
+        LOGGER.info("Failed to parse {} as {}", StringUtil.truncatedToStringForLog(value), numberType, e);
     }
 
 }

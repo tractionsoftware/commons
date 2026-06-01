@@ -29,6 +29,9 @@ import com.tractionsoftware.commons.processor.Consumer;
 import com.tractionsoftware.commons.processor.Result;
 import com.tractionsoftware.commons.properties.GetPutProperty;
 import com.tractionsoftware.commons.properties.MapPropertyStore;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+import org.apache.commons.io.output.AppendableWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
@@ -74,7 +77,7 @@ public final class JaxpUtil {
     );
 
     /**
-     * An ErrorListener that throws TractionRuntimeExceptions wrapping the original TransformerExceptions.
+     * An ErrorListener that throws RuntimeExceptions wrapping the original {@link TransformerException}s.
      */
     public static final ErrorListener THROW_RUNTIME_EXCEPTION_ON_ERROR_LISTENER = new ErrorListener() {
 
@@ -112,7 +115,7 @@ public final class JaxpUtil {
          * Consumes the input stream by creating the appropriate type of JAXP object.
          */
         @Override
-        public final void consume(SizedInputStream xmlInputStream) throws IOException {
+        public final void consume(SizedInputStream xmlInputStream) throws IOException, X {
             try {
                 generated = generate(xmlInputStream);
             }
@@ -135,13 +138,13 @@ public final class JaxpUtil {
     }
 
     /**
-     * A Consumer class that consumes an InputStream and converts it to a javax.xml.transform.Transformer object.
+     * A Consumer class that consumes an InputStream and converts it to a Transformer object.
      *
      * @author Dave Shepperton
      * @since 4.0
      */
     public static final class Xsl2TransformerConsumer
-        extends Xml2JaxpObjectConsumer<javax.xml.transform.Transformer,JaxpTransformerCreationException> {
+        extends Xml2JaxpObjectConsumer<Transformer,JaxpTransformerCreationException> {
 
         private final ErrorListener listener;
 
@@ -153,7 +156,7 @@ public final class JaxpUtil {
          * Creates a Transformer from the InputStream.
          */
         @Override
-        protected final javax.xml.transform.Transformer generate(InputStream xslInputStream) throws Exception {
+        protected final Transformer generate(InputStream xslInputStream) throws Exception {
             return JaxpUtil.getTransformer(xslInputStream, listener);
         }
 
@@ -182,7 +185,7 @@ public final class JaxpUtil {
         }
 
         @Override
-        protected final void handleException(Exception e) throws IOException {
+        protected final void handleException(Exception e) throws IOException, JaxpTransformerCreationException {
             JaxpTransformerCreationException.handle(e);
         }
 
@@ -216,6 +219,7 @@ public final class JaxpUtil {
      * Returns an ErrorListener that logs stack traces to the given {@link Logger}.
      */
     public static final ErrorListener getLoggingErrorListener(Logger logger) {
+        Objects.requireNonNull(logger, "logger");
         return new ErrorListener() {
             @Override
             public final void error(TransformerException e) {
@@ -278,10 +282,8 @@ public final class JaxpUtil {
      * @param xmlInput
      *     the InputStream for the UTF-8 character data representing an XML document.
      * @return the resulting InputSource.
-     * @throws IOException
-     *     if there is a problem reading the InputStream.
      */
-    public static final InputSource getInputSource(InputStream xmlInput) throws IOException {
+    public static final InputSource getInputSource(InputStream xmlInput) {
         return getInputSource(IOUtil.getBufferedUtf8Reader(xmlInput));
     }
 
@@ -291,10 +293,8 @@ public final class JaxpUtil {
      * @param xmlReader
      *     the Reader for the character data representing an XML document.
      * @return the resulting InputSource.
-     * @throws IOException
-     *     if there is a problem reading from the Reader.
      */
-    public static final InputSource getInputSource(Reader xmlReader) throws IOException {
+    public static final InputSource getInputSource(Reader xmlReader) {
         return new InputSource(xmlReader);
     }
 
@@ -382,7 +382,7 @@ public final class JaxpUtil {
     public static final Document getTransformedDocument(Document document, File xsl, ErrorListener listener)
         throws TransformerConfigurationException, ParserConfigurationException, SAXException, IOException {
         DOMResult domResult = new DOMResult();
-        javax.xml.transform.Transformer transformer = getTransformer(xsl);
+        Transformer transformer = getTransformer(xsl);
         try {
             transformer.transform(new DOMSource(document), domResult);
         }
@@ -403,14 +403,9 @@ public final class JaxpUtil {
      *     if there is a serious configuration error related to the Transformer.
      * @throws ParserConfigurationException
      *     if there is a serious configuration error with the XML parser.
-     * @throws SAXException
-     *     if an error is encountered during XML parsing, such as in the case of the input not representing a valid XML
-     *     document.
-     * @throws IOException
-     *     if there is a problem reading the File.
      */
     public static final Document getTransformedDocument(Document document)
-        throws TransformerException, TransformerConfigurationException, ParserConfigurationException, SAXException, IOException {
+        throws TransformerException, TransformerConfigurationException, ParserConfigurationException {
         return getTransformedDocument(document, (ErrorListener) null);
     }
 
@@ -429,14 +424,9 @@ public final class JaxpUtil {
      *     if there is a serious configuration error related to the Transformer.
      * @throws ParserConfigurationException
      *     if there is a serious configuration error with the XML parser.
-     * @throws SAXException
-     *     if an error is encountered during XML parsing, such as in the case of the input not representing a valid XML
-     *     document.
-     * @throws IOException
-     *     if there is a problem reading the File.
      */
     public static final Document getTransformedDocument(Document document, ErrorListener listener)
-        throws TransformerException, TransformerConfigurationException, ParserConfigurationException, SAXException, IOException {
+        throws TransformerException, TransformerConfigurationException, ParserConfigurationException {
         return getTransformedDocument(document, getTransformer(listener));
     }
 
@@ -448,15 +438,13 @@ public final class JaxpUtil {
      * @param transformer
      *     the Transformer to be applied.
      * @return a new XML Document which is the result of applying the given Transformer to the given input Document.
-     * @throws TransformerConfigurationException
-     *     if there is a serious configuration error related to the Transformer.
      * @throws TransformerException
      *     if there is a problem applying the transformation.
      * @throws ParserConfigurationException
      *     if there is a serious configuration error with the XML parser.
      */
-    public static final Document getTransformedDocument(Document document, javax.xml.transform.Transformer transformer)
-        throws TransformerConfigurationException, TransformerException, ParserConfigurationException {
+    public static final Document getTransformedDocument(Document document, Transformer transformer)
+        throws TransformerException, ParserConfigurationException {
         Document resultDocument = getDocumentBuilder().newDocument();
         DOMResult domResult = new DOMResult(resultDocument);
         transformer.transform(new DOMSource(document), domResult);
@@ -479,7 +467,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(InputStream xslInput)
+    public static final Transformer getTransformer(InputStream xslInput)
         throws ParserConfigurationException, SAXException, IOException, TransformerConfigurationException {
         return getTransformer(xslInput, null);
     }
@@ -545,7 +533,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(InputStream xslInput, ErrorListener listener)
+    public static final Transformer getTransformer(InputStream xslInput, ErrorListener listener)
         throws ParserConfigurationException, SAXException, IOException, TransformerConfigurationException {
         return getTransformer(getDocumentBuilder().parse(getInputSource(xslInput)), listener);
     }
@@ -566,7 +554,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(File xsl)
+    public static final Transformer getTransformer(File xsl)
         throws ParserConfigurationException, SAXException, IOException, TransformerConfigurationException {
         return getTransformer(xsl, null);
     }
@@ -590,7 +578,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(File xsl, ErrorListener listener)
+    public static final Transformer getTransformer(File xsl, ErrorListener listener)
         throws ParserConfigurationException, SAXException, IOException, TransformerConfigurationException {
         InputSource inputSource = getInputSource(FileUtil.getBufferedUtf8Reader(xsl));
         inputSource.setSystemId(xsl.toURI().toString());
@@ -606,18 +594,12 @@ public final class JaxpUtil {
      *     an optional {@link ErrorListener} that should be used to handle any errors encountered during the
      *     transformation process when using the Transformer returned by this method.
      * @return a Transformer created by treating the given Document as an XSL document.
-     * @throws ParserConfigurationException
-     *     if there is a serious configuration error with the XML parser.
-     * @throws SAXException
-     *     if an error is encountered during XML parsing, such as in the case of the input not representing a valid XML
-     *     document.
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(Document xslDoc, ErrorListener listener)
-        throws ParserConfigurationException, SAXException, TransformerConfigurationException {
-        javax.xml.transform.Transformer transformer =
-            TransformerFactory.newInstance().newTransformer(new DOMSource(xslDoc));
+    public static final Transformer getTransformer(Document xslDoc, ErrorListener listener)
+        throws TransformerConfigurationException {
+        Transformer transformer = TransformerFactory.newInstance().newTransformer(new DOMSource(xslDoc));
         if (transformer == null) {
             throw new RuntimeException("Transformer could not be created.");
         }
@@ -632,7 +614,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer()
+    public static final Transformer getTransformer()
         throws TransformerConfigurationException {
         return getTransformer((ErrorListener) null);
     }
@@ -647,9 +629,9 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(ErrorListener listener)
+    public static final Transformer getTransformer(ErrorListener listener)
         throws TransformerConfigurationException {
-        javax.xml.transform.Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        Transformer transformer = TransformerFactory.newInstance().newTransformer();
         if (transformer == null) {
             throw new RuntimeException("Transformer could not be created.");
         }
@@ -657,6 +639,32 @@ public final class JaxpUtil {
             setErrorListener(transformer, listener);
         }
         return transformer;
+    }
+
+    /**
+     * Writes the given XML Document to the given Appendable.
+     *
+     * @param document
+     *     the XML Document to be written.
+     * @param out
+     *     for writing the Document.
+     * @throws TransformerConfigurationException
+     *     if there is a serious configuration error related to the Transformer used as part of the writing process.
+     * @throws TransformerException
+     *     if there is a problem applying the Transformer used as part of the writing process.
+     */
+    public static final void writeXml(Document document, Appendable out) throws TransformerException {
+        if (out instanceof Writer w) {
+            writeXml(document, w);
+            return;
+        }
+        if (out instanceof OutputStream outStream) {
+            writeXml(document, outStream);
+            return;
+        }
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(out, "Appendable");
+        writeXml(document, new AppendableWriter<>(out));
     }
 
     /**
@@ -673,6 +681,8 @@ public final class JaxpUtil {
      */
     public static final void writeXml(Document document, OutputStream out)
         throws TransformerConfigurationException, TransformerException {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(out, "output stream");
         TransformerFactory.newInstance().newTransformer().transform(new DOMSource(document), new StreamResult(out));
     }
 
@@ -688,8 +698,9 @@ public final class JaxpUtil {
      * @throws TransformerException
      *     if there is a problem applying the Transformer used as part of the writing process.
      */
-    public static final void writeXml(Document document, Writer out)
-        throws TransformerConfigurationException, TransformerException {
+    public static final void writeXml(Document document, Writer out) throws TransformerException {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(out, "writer");
         TransformerFactory.newInstance().newTransformer().transform(new DOMSource(document), new StreamResult(out));
     }
 
@@ -703,7 +714,7 @@ public final class JaxpUtil {
      *     an optional {@link ErrorListener} that should be used to handle any errors encountered during the
      *     transformation process when using the Transformer returned by this method.
      */
-    public static final void setErrorListener(javax.xml.transform.Transformer transformer, ErrorListener listener) {
+    public static final void setErrorListener(Transformer transformer, ErrorListener listener) {
         if (listener != null) {
             transformer.setErrorListener(listener);
         }
@@ -729,7 +740,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final javax.xml.transform.Transformer getTransformer(Result result, ErrorListener listener)
+    public static final Transformer getTransformer(Result result, ErrorListener listener)
         throws IOException, TransformerConfigurationException, SAXException, ParserConfigurationException {
         Xsl2TransformerConsumer consumer = new Xsl2TransformerConsumer(listener);
         try {
@@ -738,7 +749,7 @@ public final class JaxpUtil {
         catch (JaxpTransformerCreationException e) {
             e.throwOriginal();
         }
-        javax.xml.transform.Transformer transformer = consumer.getGenerated();
+        Transformer transformer = consumer.getGenerated();
         if (listener != null) {
             transformer.setErrorListener(listener);
         }
@@ -860,21 +871,55 @@ public final class JaxpUtil {
     }
 
     /**
-     * Returns a new Transformer from the Templates object.
+     * Returns a new {@link Transformer} from the {@link Templates} object.
      *
      * @param templates
-     *     the Templates instance to use to produce the new Transformer instance.
+     *     the {@link Templates} instance to use to produce the new {@link Transformer} instance.
+     * @return a new {@link Transformer} from the {@link Templates} object.
+     * @throws TransformerConfigurationException
+     *     if there is a serious configuration error related to the {@link Transformer}.
+     */
+    public static final Transformer getTransformer(@Nonnull Templates templates)
+        throws TransformerConfigurationException {
+        return getTransformer(templates, (ErrorListener) null);
+    }
+
+    /**
+     * Returns a new {@link Transformer} from the {@link Templates} object.
+     *
+     * @param templates
+     *     the {@link Templates} instance to use to produce the new {@link Transformer} instance.
+     * @param logger
+     *     a {@link Logger} that should be used to log any errors encountered during the transformation process when
+     *     using the {@link Transformer} returned by this method.
+     * @return a new {@link Transformer} from the {@link Templates} object.
+     * @throws TransformerConfigurationException
+     *     if there is a serious configuration error related to the {@link Transformer}.
+     */
+    public static final Transformer getTransformer(@Nonnull Templates templates, @Nonnull Logger logger)
+        throws TransformerConfigurationException {
+        return getTransformer(templates, getLoggingErrorListener(logger));
+    }
+
+    /**
+     * Returns a new {@link Transformer} from the {@link Templates} object.
+     *
+     * @param templates
+     *     the {@link Templates} instance to use to produce the new {@link Transformer} instance.
      * @param listener
      *     an optional {@link ErrorListener} that should be used to handle any errors encountered during the
-     *     transformation process when using the Transformer returned by this method.
-     * @return a new Transformer from the Templates object.
+     *     transformation process when using the {@link Transformer} returned by this method.
+     * @return a new {@link Transformer} from the {@link Templates} object.
      * @throws TransformerConfigurationException
-     *     if there is a serious configuration error related to the Transformer.
+     *     if there is a serious configuration error related to the {@link Transformer}.
      */
-    public static final javax.xml.transform.Transformer getTransformer(Templates templates, ErrorListener listener)
+    public static final Transformer getTransformer(@Nonnull Templates templates, @Nullable ErrorListener listener)
         throws TransformerConfigurationException {
-        javax.xml.transform.Transformer transformer = templates.newTransformer();
-        setErrorListener(transformer, listener);
+        Objects.requireNonNull(templates, "templates");
+        Transformer transformer = templates.newTransformer();
+        if (listener != null) {
+            setErrorListener(transformer, listener);
+        }
         return transformer;
     }
 
@@ -894,7 +939,7 @@ public final class JaxpUtil {
     }
 
     public static final void safelyTraverseDescendants(Node root, java.util.function.Consumer<? super Node> visitor) {
-        Queue<Node> queue = new LinkedList<Node>();
+        Queue<Node> queue = new LinkedList<>();
         addChildren(root, queue);
         Node next = queue.poll();
         while (next != null) {

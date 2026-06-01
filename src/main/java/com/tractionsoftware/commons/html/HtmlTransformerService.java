@@ -18,39 +18,45 @@
 
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
 
-package com.tractionsoftware.commons.text;
+package com.tractionsoftware.commons.html;
 
 import com.tractionsoftware.commons.lang.JavaUtil;
+import com.tractionsoftware.commons.text.TextTransformer;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.Supplier;
 
-public abstract class TextTransformerService {
+public abstract class HtmlTransformerService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TextTransformerService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HtmlTransformerService.class);
 
-    private static final Supplier<? extends TextTransformerService> instance =
-        JavaUtil.<TextTransformerService>lazyServiceLoader(
-            TextTransformerService.class, TextTransformerService::defaultTextTransformerService, LOGGER
+    private static final Supplier<? extends HtmlTransformerService> instance =
+        JavaUtil.<HtmlTransformerService>lazyServiceLoader(
+            HtmlTransformerService.class, HtmlTransformerService::defaultTextTransformerService, LOGGER
         );
 
-    public static final TextTransformerService get() {
+    @Nonnull
+    public static final HtmlTransformerService get() {
         return instance.get();
     }
 
-    private static final TextTransformerService defaultTextTransformerService() {
-        return new TextTransformerService() {
+    @Nonnull
+    private static final HtmlTransformerService defaultTextTransformerService() {
+        return new HtmlTransformerService() {
 
+            @Nonnull
             @Override
             public final TextTransformer textExtractionSnippets() {
-                return null;
+                return HtmlCleanerAdapterTransformer.getDefaultHtmlToTextInstance();
             }
 
         };
 
     }
 
+    @Nonnull
     public abstract TextTransformer textExtractionSnippets();
 
 }

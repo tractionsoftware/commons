@@ -23,15 +23,19 @@ package com.tractionsoftware.commons.lang;
 import com.google.common.annotations.Beta;
 import com.google.common.base.Suppliers;
 import com.tractionsoftware.commons.io.IOUtil;
-import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
-import org.apache.commons.lang3.StringUtils;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 
-import java.io.PrintWriter;
 import java.lang.ref.Cleaner;
 import java.util.*;
 import java.util.function.Supplier;
 
+/**
+ * Helper methods pertaining to basic Java capabilities.
+ *
+ * @author Dave Shepperton
+ */
 @Beta
 public final class JavaUtil {
 
@@ -44,21 +48,95 @@ public final class JavaUtil {
      */
     public static final Cleaner RESOURCE_CLEANER = Cleaner.create();
 
-    public static final String[] JAVA_LITERALS_UNENCODED = new String[] {
-        "\n", "\r", "'", "\"", "\\"
-    };
-
-    public static final String[] JAVA_LITERALS_ENCODED = new String[] {
-        "\\n", "\\r", "'", "\"", "\\"
-    };
-
     public static final char QUALIFIER_CHAR = '.';
 
-    public static Cleaner.Cleanable registerCloseCleanerAction(Object object, AutoCloseable closeMe) {
-        return JavaUtil.RESOURCE_CLEANER.register(object, () -> IOUtil.close(closeMe));
+    /**
+     * A {@link Supplier} that implements {@link AutoCloseable}, which is
+     * {@link JavaUtil#registerCloseCleanerAction(Object, AutoCloseable) registered to be closed as a cleanup action}
+     * for a given reference object.
+     *
+     * @param <T>
+     *     the type of object that is being supplied.
+     */
+    public static final class CleanupTargetWrapper<T extends AutoCloseable> implements Supplier<T>, AutoCloseable {
+
+        /**
+         * Returns a new CleanupTargetWrapper that provides access to the given instance, and which is
+         * {@link JavaUtil#registerCloseCleanerAction(Object, AutoCloseable) registered to be closed as a cleanup
+         * action} for the given reference object. Specifically, the returned instance's {@link #close()} method will be
+         * invoked when the given reference object becomes "phantom reachable." The client code may also invoke the
+         * close method, which will prevent the cleanup action from having to do so.
+         *
+         * @param object
+         *     the reference object, to be monitored.
+         * @param instance
+         *     the object to be supplied.
+         * @param <T>
+         *     the type of object that is being supplied.
+         * @return a new CleanupTargetWrapper that provides access to the given instance, and which is
+         *     {@link JavaUtil#registerCloseCleanerAction(Object, AutoCloseable) registered to be closed as a cleanup
+         *     action} for the given reference object.
+         */
+        @Nonnull
+        public static final <T extends AutoCloseable> CleanupTargetWrapper<T> create(@Nonnull Object object, @Nonnull T instance) {
+            Objects.requireNonNull(object, "object");
+            Objects.requireNonNull(instance, "instance");
+            return new CleanupTargetWrapper<>(instance, registerCloseCleanerAction(object, instance));
+        }
+
+        private T instance;
+
+        private final Cleaner.Cleanable closer;
+
+        private CleanupTargetWrapper(T instance, Cleaner.Cleanable closer) {
+            this.instance = instance;
+            this.closer = closer;
+        }
+
+        @Nonnull
+        @Override
+        public final T get() {
+            return instance;
+        }
+
+        /**
+         * Runs the cleanup closer action.
+         */
+        @Override
+        public final void close() {
+            try {
+                closer.clean();
+            }
+            finally {
+                instance = null;
+            }
+        }
+
     }
 
-    public static int getApproximateInternalByteSize(String s) {
+    /**
+     * Returns a {@link Cleaner.Cleanable} that will {@link AutoCloseable#close() close the given resource} when the
+     * given object becomes "phantom reachable."
+     *
+     * @param object
+     *     the object to monitor.
+     * @param resource
+     *     the resource to be {@link AutoCloseable#close() closed} as the cleanup action for the given object.
+     * @return a {@link Cleaner.Cleanable} that will {@link AutoCloseable#close() close the given resource} when the
+     *     given object becomes "phantom reachable."
+     */
+    public static final Cleaner.Cleanable registerCloseCleanerAction(Object object, AutoCloseable resource) {
+        return JavaUtil.RESOURCE_CLEANER.register(object, () -> IOUtil.close(resource));
+    }
+
+    /**
+     * Returns the approximate internal byte size of the given {@link String}.
+     *
+     * @param s
+     *     the {@link String} to examine.
+     * @return the approximate internal byte size of the given {@link String}; or 0 if the given String is null.
+     */
+    public static final int getApproximateInternalByteSize(@Nullable String s) {
         if (s == null) {
             return 0;
         }
@@ -67,7 +145,14 @@ public final class JavaUtil {
         return 8 + (s.length() * 2);
     }
 
-    public static int getApproximateInternalByteSize(Collection<String> list) {
+    /**
+     * Returns the approximate internal byte size of the given {@link Collection}.
+     *
+     * @param list
+     *     the {@link Collection} to examine.
+     * @return the approximate internal byte size of the given {@link Collection}; or 0 if the given Collection is null.
+     */
+    public static final int getApproximateInternalByteSize(@Nullable Collection<String> list) {
         if (list == null) {
             return 0;
         }
@@ -81,7 +166,14 @@ public final class JavaUtil {
         return ret;
     }
 
-    public static int getApproximateInternalByteSize(Map<String,String> map) {
+    /**
+     * Returns the approximate internal byte size of the given {@link Map}.
+     *
+     * @param map
+     *     the {@link Map} to examine.
+     * @return the approximate internal byte size of the given {@link Map}; or 0 if the given Map is null.
+     */
+    public static final int getApproximateInternalByteSize(@Nullable Map<String,String> map) {
         if (map == null) {
             return 0;
         }
@@ -100,124 +192,82 @@ public final class JavaUtil {
         return ret;
     }
 
-    public static final class CleanupTargetWrapper<T extends AutoCloseable> implements AutoCloseable {
-
-        public static <T extends AutoCloseable> CleanupTargetWrapper<T> create(Object object, T instance) {
-            return new CleanupTargetWrapper<>(instance, registerCloseCleanerAction(object, instance));
-        }
-
-        private T instance;
-
-        private final Cleaner.Cleanable closer;
-
-        private CleanupTargetWrapper(T instance, Cleaner.Cleanable closer) {
-            this.instance = instance;
-            this.closer = closer;
-        }
-
-        public T get() {
-            return instance;
-        }
-
-        @Override
-        public void close() {
-            try {
-                closer.clean();
-            }
-            finally {
-                instance = null;
-            }
-        }
-
-    }
-
-    public enum CharacterRequiringEscaping {
-
-        LINE_FEED('n'),
-
-        CARRIAGE_RETURN('r'),
-
-        DOUBLE_QUOTATION_MARK('"', true);
-
-        public static CharacterRequiringEscaping get(char c) {
-            return switch (c) {
-                case '\n' -> LINE_FEED;
-                case '\r' -> CARRIAGE_RETURN;
-                case '"' -> DOUBLE_QUOTATION_MARK;
-                default -> null;
-            };
-        }
-
-        public static String getReplacement(char c) {
-            CharacterRequiringEscaping value = get(c);
-            if (value == null) {
-                return null;
-            }
-            return value.getEscapeSequence();
-        }
-
-        private final String escapeSequence;
-
-        private final boolean isQuotationMark;
-
-        CharacterRequiringEscaping(char escapingChar) {
-            this(escapingChar, false);
-        }
-
-        CharacterRequiringEscaping(char escapingChar, boolean isQuotationMark) {
-            this.escapeSequence = "\\" + escapingChar;
-            this.isQuotationMark = isQuotationMark;
-        }
-
-        @Override
-        public final String toString() {
-            return name() + " (" + escapeSequence + ")";
-        }
-
-        public final String getEscapeSequence() {
-            return escapeSequence;
-        }
-
-        public final boolean isQuotationMark() {
-            return isQuotationMark;
-        }
-
-    }
-
-    public static String getStringLiteral(String str) {
-        if (StringUtils.isEmpty(str)) {
-            return str;
-        }
-        return CharBasedFilteringTextMapper.replace(str, CharacterRequiringEscaping::getReplacement);
-    }
-
-    public static void printStringLiteral(PrintWriter out, String str) {
-        if (StringUtils.isNotEmpty(str)) {
-            CharBasedFilteringTextMapper.replace(out, str, CharacterRequiringEscaping::getReplacement);
-        }
-    }
-
-    public static final <T> Supplier<? extends T> lazyServiceLoader(Class<T> type, T defaultService, Logger logger) {
+    /**
+     * Returns a "lazy service loader," which will simply be a {@link Supplier} of the requested type of object loaded
+     * on demand via {@code ServiceLoader.load(type).findFirst()}.
+     *
+     * @param type
+     *     the requested type of service object to load.
+     * @param defaultService
+     *     an optional default service to be used if no service can be found, or if there is a problem encountered while
+     *     loading it.
+     * @param logger
+     *     an optional {@link Logger} for logging errors or other diagnostics.
+     * @param <T>
+     *     the type of service object to be supplied.
+     * @return a "lazy service loader," which will simply be a {@link Supplier} of the requested type of object loaded
+     *     on demand.
+     * @throws NullPointerException
+     *     if the given service type is null
+     */
+    public static final <T> Supplier<? extends T> lazyServiceLoader(@Nonnull Class<T> type, @Nullable T defaultService, @Nullable Logger logger) {
         return lazyServiceLoader(type, Suppliers.ofInstance(defaultService), logger);
     }
 
-    public static final <T> Supplier<? extends T> lazyServiceLoader(Class<T> type, Supplier<? extends T> defaultService, Logger logger) {
+    /**
+     * Returns a "lazy service loader," which will simply be a {@link Supplier} of the requested type of object loaded
+     * on demand via {@code ServiceLoader.load(type).findFirst()}.
+     *
+     * @param type
+     *     the requested type of service object to load.
+     * @param defaultService
+     *     an optional supplier for a default service to be used if no service can be found, or if there is a problem
+     *     encountered while loading it.
+     * @param logger
+     *     an optional {@link Logger} for logging errors or other diagnostics.
+     * @param <T>
+     *     the type of service object to be supplied.
+     * @return a "lazy service loader," which will simply be a {@link Supplier} of the requested type of object loaded
+     *     on demand.
+     * @throws NullPointerException
+     *     if the given service type is null
+     */
+    public static final <T> Supplier<? extends T> lazyServiceLoader(@Nonnull Class<T> type, @Nullable Supplier<? extends T> defaultService, @Nullable Logger logger) {
+        Objects.requireNonNull(type, "service type");
         return Suppliers.memoize(() -> loadService(type, defaultService, logger));
     }
 
-    public static final <T> T loadService(Class<T> type, T defaultService, Logger logger) {
+    /**
+     * Loads a service of the given type without allowing any exceptions to propagate.
+     *
+     * @param type
+     *     the requested type of service object to load.
+     * @param defaultService
+     *     an optional default service to be used if no service can be found, or if there is a problem encountered while
+     *     loading it.
+     * @param logger
+     *     an optional {@link Logger} for logging errors or other diagnostics.
+     * @param <T>
+     *     the type of service object to be supplied.
+     * @return a service of the given type if one can be loaded via {@code ServiceLoader.load(type).findFirst()}; else
+     *     the given default.
+     * @throws NullPointerException
+     *     if the given service type is null
+     */
+    public static final <T> T loadService(@Nonnull Class<T> type, @Nullable T defaultService, @Nullable Logger logger) {
         return loadService(type, Suppliers.ofInstance(defaultService), logger);
     }
 
-    public static final <T> T loadService(Class<T> type, Supplier<? extends T> getDefault, Logger logger) {
+    public static final <T> T loadService(@Nonnull Class<T> type, @Nullable Supplier<? extends T> getDefault, @Nullable Logger logger) {
         Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(logger, "logger");
         Optional<T> loaded;
         try {
             loaded = ServiceLoader.load(type).findFirst();
         }
         catch (Exception e) {
-            logger.error("Failed to load type", e);
+            if (logger != null) {
+                logger.error("Failed to load type", e);
+            }
             loaded = Optional.empty();
         }
         if (getDefault == null) {

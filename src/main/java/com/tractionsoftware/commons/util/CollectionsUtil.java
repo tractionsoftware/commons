@@ -23,7 +23,7 @@ package com.tractionsoftware.commons.util;
 import com.google.common.collect.*;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.ObjectUtil;
-import com.tractionsoftware.commons.text.SnippetUtil;
+import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.util.function.FunctionsUtil;
 import com.tractionsoftware.commons.util.function.PredicatesUtil;
 import jakarta.annotation.Nonnull;
@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
@@ -242,7 +243,7 @@ public final class CollectionsUtil {
 
     }
 
-    private static final class SafeIndex2ListValue<T> implements Function<Integer,T> {
+    private static final class SafeIndex2ListValue<T> implements IntFunction<T> {
 
         private final List<? extends T> list;
 
@@ -252,12 +253,11 @@ public final class CollectionsUtil {
         }
 
         @Override
-        public final T apply(Integer index) {
-            int idx = index;
-            if (idx < 0 || idx >= list.size()) {
+        public final T apply(int value) {
+            if (value < 0 || value >= list.size()) {
                 return null;
             }
-            return list.get(idx);
+            return list.get(value);
         }
 
         @Override
@@ -267,15 +267,16 @@ public final class CollectionsUtil {
 
         @Override
         public final boolean equals(Object other) {
-            if (!(other instanceof SafeIndex2ListValue)) {
-                return false;
+            if (other instanceof SafeIndex2ListValue<?> otherListF &&
+                list.equals(otherListF.list)) {
+                return true;
             }
-            return list.equals(((SafeIndex2ListValue<?>) other).list);
+            return false;
         }
 
         @Override
         public final int hashCode() {
-            return ~list.hashCode();
+            return Objects.hash(list);
         }
 
     }
@@ -297,7 +298,7 @@ public final class CollectionsUtil {
             catch (NullPointerException e) {
                 LOGGER.debug(
                     "The Map {} ({}) may not support null values.",
-                    SnippetUtil.truncatedToString(map),
+                    StringUtil.truncatedToStringForLog(map),
                     ObjectUtil.safeClassNameToString(map),
                     e
                 );
@@ -312,10 +313,11 @@ public final class CollectionsUtil {
 
         @Override
         public final boolean equals(Object other) {
-            if (!(other instanceof SafeMapKey2Value)) {
-                return false;
+            if (other instanceof SafeMapKey2Value<?,?> otherMap &&
+                map.equals(otherMap.map)) {
+                return true;
             }
-            return map.equals(((SafeMapKey2Value<?,?>) other).map);
+            return false;
         }
 
         @Override
@@ -531,7 +533,7 @@ public final class CollectionsUtil {
         catch (NullPointerException e) {
             LOGGER.debug(
                 "The Collection {} ({}) may not support null keys.",
-                SnippetUtil.truncatedToString(coll),
+                StringUtil.truncatedToStringForLog(coll),
                 ObjectUtil.safeClassNameToString(coll),
                 e
             );
@@ -561,9 +563,9 @@ public final class CollectionsUtil {
      *     the {@link List} whose elements are to be mapped.
      * @return a {@link Function} which maps an {@link Integer}s to the element at that index in the given {@link List}.
      */
-    public static final <T> Function<Integer,T> getListIndex2ListValueFunction(List<? extends T> list) {
+    public static final <T> IntFunction<T> getListIndex2ListValueFunction(List<? extends T> list) {
         if (list == null) {
-            return FunctionsUtil.nullValueFunction();
+            return i -> null;
         }
         return new SafeIndex2ListValue<>(list);
     }
@@ -687,8 +689,8 @@ public final class CollectionsUtil {
         if (coll == null) {
             return null;
         }
-        if (coll instanceof ArrayList) {
-            return (ArrayList<T>) coll;
+        if (coll instanceof ArrayList<T> arrayList) {
+            return arrayList;
         }
         return new ArrayList<>(coll);
     }
@@ -963,7 +965,7 @@ public final class CollectionsUtil {
         catch (NullPointerException e) {
             LOGGER.debug(
                 "The Map {} ({}) may not support null keys.",
-                SnippetUtil.truncatedToString(map),
+                StringUtil.truncatedToStringForLog(map),
                 ObjectUtil.safeClassNameToString(map),
                 e
             );
@@ -1717,6 +1719,46 @@ public final class CollectionsUtil {
 
     }
 
+    public static final <T> Collection<T> unmodifiableCollection(@Nullable Collection<T> coll) {
+        if (coll == null) {
+            return Collections.emptyList();
+        }
+        if (coll instanceof ImmutableCollection<T> immutable) {
+            return immutable;
+        }
+        return Collections.unmodifiableCollection(coll);
+    }
+
+    public static final <T> List<T> unmodifiableList(@Nullable List<T> list) {
+        if (list == null) {
+            return Collections.emptyList();
+        }
+        if (list instanceof ImmutableList<T> immutable) {
+            return immutable;
+        }
+        return Collections.unmodifiableList(list);
+    }
+
+    public static final <T> Set<T> unmodifiableSet(@Nullable Set<T> set) {
+        if (set == null) {
+            return Collections.emptySet();
+        }
+        if (set instanceof ImmutableSet<T> immutable) {
+            return immutable;
+        }
+        return Collections.unmodifiableSet(set);
+    }
+
+    public static final <K, V> Map<K,V> unmodifiableMap(@Nullable Map<K,V> map) {
+        if (map == null) {
+            return Collections.emptyMap();
+        }
+        if (map instanceof ImmutableMap<K,V> immutable) {
+            return immutable;
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
     @SuppressWarnings("unchecked")
     public static final <T> SequencedSet<T> emptySequencedSet() {
         return (SequencedSet<T>) EMPTY_SEQUENCED_SET;
@@ -1734,7 +1776,7 @@ public final class CollectionsUtil {
         return new SingletonSequencedSet<>(o);
     }
 
-    public static final <T> SequencedSet<T> firstNonNullElementSingletonOrEmptySequencedSet(Collection<T> coll) {
+    public static final <T> SequencedSet<T> firstNonNullElementSingletonOrEmptySequencedSet(@Nullable Collection<T> coll) {
         if (isNullOrEmpty(coll)) {
             return Collections.unmodifiableSequencedSet(Collections.emptySortedSet());
         }
@@ -1746,9 +1788,12 @@ public final class CollectionsUtil {
         return emptySequencedSet();
     }
 
-    public static final <T> SequencedSet<T> unmodifiableSequencedSet(SequencedSet<T> set) {
-        if (isNullOrEmpty(set)) {
+    public static final <T> SequencedSet<T> unmodifiableSequencedSet(@Nullable SequencedSet<T> set) {
+        if (set == null) {
             return emptySequencedSet();
+        }
+        if (set instanceof AbstractUnmodifiableSequencedSet<T> unmodifiable) {
+            return unmodifiable;
         }
         return Collections.unmodifiableSequencedSet(set);
     }
