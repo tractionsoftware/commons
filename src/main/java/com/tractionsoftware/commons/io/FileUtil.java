@@ -30,6 +30,7 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,10 @@ public final class FileUtil {
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileUtil.class.getName());
+
+    private static final String SYSTEM_PROPERTY_NAME_TEMP_DIRECTORY = "java.io.tmpdir";
+
+    private static final String SYSTEM_PROPERTY_NAME_WORKING_DIRECTORY = "user.dir";
 
     /**
      * The different types of results of an attempt to delete a file or directory.
@@ -505,7 +510,36 @@ public final class FileUtil {
     }
 
     public static File createSystemTempFile(String prefix, String extension) throws IOException {
-        return File.createTempFile(prefix, extension);
+        if (StringUtils.isBlank(extension)) {
+            return File.createTempFile(prefix, null);
+        }
+        return File.createTempFile(prefix, Strings.CS.prependIfMissing(extension, FileNameUtil.EXTENSION_SEPARATOR));
+    }
+
+    /**
+     * Returns a File for the directory that is determined to be the working directory for the current Java process.
+     *
+     * @return a File for the directory that is determined to be the working directory for the current Java process.
+     */
+    public static final File getWorkingDirectory() {
+        String pathFromProperty = System.getProperty(SYSTEM_PROPERTY_NAME_WORKING_DIRECTORY);
+        return new File(StringUtils.defaultIfBlank(pathFromProperty, "."));
+    }
+
+    public static final void setTempDirectory(String directoryPath) {
+        setTempDirectory(new File(StringUtils.defaultString(directoryPath)));
+    }
+
+    public static final void setTempDirectory(File directory) {
+        checkTempDirectoryX(directory);
+    }
+
+    public static final File getTempDirectory() {
+        String defaultTempDirectoryPath = System.getProperty(SYSTEM_PROPERTY_NAME_TEMP_DIRECTORY);
+        if (StringUtils.isNotBlank(defaultTempDirectoryPath)) {
+            return new File(defaultTempDirectoryPath);
+        }
+        throw new Error("No temp directory has been set.");
     }
 
     @CanIgnoreReturnValue
@@ -719,6 +753,47 @@ public final class FileUtil {
             throw new RuntimeException(message);
         }
         throw xcp;
+    }
+
+    /**
+     * Applies tests for requirements for a valid temp file directory path.
+     *
+     * @param candidateTempDirectory
+     *     the directory to test.
+     * @throws IllegalArgumentException
+     *     if the given path is found to be invalid for some reason.
+     */
+    private static final void checkTempDirectoryX(File candidateTempDirectory) throws IllegalArgumentException {
+
+        if (StringUtils.isBlank(candidateTempDirectory.getPath())) {
+            throw new IllegalArgumentException("Missing or blank temp directory path.");
+        }
+
+        try {
+
+            if (!candidateTempDirectory.exists()) {
+                throw new IllegalArgumentException("Temp directory " + candidateTempDirectory + " does not exist.");
+            }
+
+            if (!candidateTempDirectory.isDirectory()) {
+                throw new IllegalArgumentException(
+                    "Temp directory " + candidateTempDirectory + " exists, but is a file."
+                );
+            }
+
+            if (!candidateTempDirectory.canRead()) {
+                throw new IllegalArgumentException("Can't read the temp directory " + candidateTempDirectory + ".");
+            }
+
+            if (!candidateTempDirectory.canWrite()) {
+                throw new IllegalArgumentException("Can't write in the temp directory " + candidateTempDirectory + ".");
+            }
+
+        }
+        catch (SecurityException e) {
+            throw new IllegalArgumentException("Not allowed to use this directory for temp files.", e);
+        }
+
     }
 
 }

@@ -210,10 +210,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         ret.setFilename(fileName);
         String ext = FileNameUtil.getExtension(fileName, null);
         if (StringUtils.isNotBlank(ext)) {
-            String contentType = MediaTypeUtil.getContentTypeFromExtension(ext).toString();
-            if (StringUtils.isNotBlank(contentType)) {
-                ret.setContentType(contentType);
-            }
+            ret.setContentType(MediaTypeUtil.getContentTypeFromExtension(ext));
         }
         return ret;
     }

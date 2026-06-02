@@ -588,7 +588,7 @@ public final class FileNameUtil {
      *
      * <ul>
      * <li>consecutive file extension separators (.)</li>
-     * <li>alternative whitespace (see {@link StringUtil#isAlternativeWhitespaceChar(int)})</li>
+     * <li>alternative whitespace (see {@link StringUtil#isAlternativeWhitespaceCodePoint(int)})</li>
      * <li>ending with a file extension separator (.) or whitespace</li>
      * <li>case-sensitive matches for any of the proscribed file names for Windows operating systems, such as "CON",
      * "PRN" or "NUL", with or without a file extension (e.g., "nul", "NUL", or "NUL.txt")</li>

@@ -27,8 +27,8 @@ import java.net.URI;
 import java.util.Date;
 import java.util.Objects;
 
-public final class ErrorTempFileResource extends FileMetadataBasedFileResource<MutableFileMetadata> implements
-    TempFileResource {
+public final class ErrorTempFileResource extends FileMetadataBasedFileResource<MutableFileMetadata>
+    implements TempFileResource {
 
     public final static ErrorTempFileResource createInstance(MutableFileMetadata metadata, Exception error) {
         Objects.requireNonNull(metadata, "metadata");

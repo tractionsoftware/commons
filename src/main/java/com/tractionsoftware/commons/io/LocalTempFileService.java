@@ -32,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -77,7 +78,7 @@ public abstract class LocalTempFileService {
         @Override
         protected final LocalTempFileResource createNewImpl(@Nonnull FileMetadata metadata) throws IOException {
             MutableFileMetadata updatedMetadata = metadata.mutableCopy();
-            File temp = File.createTempFile("temp", metadata.getExtension());
+            File temp = FileUtil.createSystemTempFile("temp-", metadata.getExtension());
             try {
                 updatedMetadata.setURI(getURIImpl(temp));
                 updatedMetadata.ensureValidFilename();
@@ -103,7 +104,7 @@ public abstract class LocalTempFileService {
             if (StringUtils.isBlank(name)) {
                 throw new FileNotFoundException();
             }
-            File file = new File(name);
+            File file = new File(FileUtil.getTempDirectory(), name);
             if (!file.exists() || !file.canRead()) {
                 throw new FileNotFoundException(part);
             }

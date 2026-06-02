@@ -1831,7 +1831,7 @@ public final class CollectionsUtil {
 
         for (String nv : nvPairs) {
 
-            if (StringUtils.isEmpty(nv)) {
+            if (StringUtils.isBlank(nv)) {
                 continue;
             }
 

@@ -415,21 +415,8 @@ public final class HtmlEncodingUtil {
         return NON_SPACE_BREAK_OPPORTUNITIES.matcher(text).replaceAll("$1" + getNonSpaceBreaksHtml() + "$3");
     }
 
-    /**
-     * Converts all occurrences of the ampersand character to HTML ampersand entities.
-     */
-    public static String escapeAmps(String str) {
-        if (StringUtils.isEmpty(str)) {
-            return str;
-        }
-        return Objects.toString(
-            CharBasedFilteringTextMapper.replace(str, SimpleHtmlEntity::escapeAmpersand),
-            null
-        );
-    }
-
     public static Appendable getLiteralAppendable(Appendable out, String preferredZeroWidthSpace) {
-        Objects.requireNonNull(out, "Appendable");
+        Objects.requireNonNull(out, "output");
         if (StringUtils.isBlank(preferredZeroWidthSpace)) {
             preferredZeroWidthSpace = TextWrapUtil.DEFAULT_ZERO_WIDTH_SPACE;
         }

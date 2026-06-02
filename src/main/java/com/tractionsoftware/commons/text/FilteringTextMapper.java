@@ -390,6 +390,10 @@ public abstract class FilteringTextMapper<T, R> {
     }
 
     public final R finish() {
+        if (out != null && currentKeepRange != null) {
+            commitInterval(out, writer, currentKeepRange);
+            currentKeepRange = null;
+        }
         return writer.finish(original, out, currentKeepRange);
     }
 

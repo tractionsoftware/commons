@@ -36,6 +36,7 @@ import java.math.BigInteger;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 public final class MD5Util {
 
@@ -248,7 +249,7 @@ public final class MD5Util {
     }
 
     public static final String getHashString(byte[] digestedBytes) {
-        return HexUtil.getEncodedString(digestedBytes);
+        return HexFormat.of().formatHex(digestedBytes);
     }
 
     public static final String getPaddedHashString(byte[] digestedBytes) {

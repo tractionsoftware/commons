@@ -1,10 +1,32 @@
+/*
+ *
+ *    Copyright 1996-2026 Traction Software, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *
+ */
+
+// PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
+
 package com.tractionsoftware.commons.io;
 
+import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.net.URLUtil;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public interface MutableFileMetadata extends FileMetadata {
@@ -61,6 +83,29 @@ public interface MutableFileMetadata extends FileMetadata {
      *     if the description is considered a read-only property for this FileMetadata.
      */
     public void setDescription(String description);
+
+    /**
+     * Sets the media type designation -- "Content-Type" or "mime type" -- that was associated with this file as it was
+     * originally created. This may come from the "Content-Type" header in a MIME message part (i.e., an email
+     * attachment), the "Content-Type" HTTP request header, or some other source. See:
+     *
+     * <ul>
+     * <li><a href="https://tools.ietf.org/html/rfc1341">RFC 1341</a>
+     * <li><a href="https://tools.ietf.org/html/rfc1049">RFC 1049</a>
+     * <li><a href="https://www.iana.org/assignments/media-types/media-types.xhtml">IANA Media Types</a>
+     * </ul>
+     *
+     * @param contentType
+     *     the {@link MediaType} representing the "Content-Type" to be used for the file if one is known or can be
+     *     determined for this FileMetadata; null otherwise.
+     * @throws UnsupportedOperationException
+     *     if the "Content-Type" is considered a read-only property for this FileMetadata.
+     * @throws IllegalArgumentException
+     *     if the given value is considered an invalid "Content-Type" for this FileMetadata.
+     */
+    public default void setContentType(MediaType contentType) {
+        setContentType(Objects.toString(contentType, null));
+    }
 
     /**
      * Sets the media type designation -- "Content-Type" or "mime type" -- that was associated with this file as it was

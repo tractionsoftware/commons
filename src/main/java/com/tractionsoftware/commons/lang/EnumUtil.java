@@ -20,6 +20,8 @@
 
 package com.tractionsoftware.commons.lang;
 
+import org.apache.commons.lang3.StringUtils;
+
 public final class EnumUtil {
 
     private EnumUtil() {
@@ -40,7 +42,7 @@ public final class EnumUtil {
      */
     public static <E extends Enum<E>> E enumFromString(Class<E> enumType, String str, E defaultValue) {
 
-        if (enumType == null || str == null) {
+        if (enumType == null || StringUtils.isBlank(str)) {
             return defaultValue;
         }
 

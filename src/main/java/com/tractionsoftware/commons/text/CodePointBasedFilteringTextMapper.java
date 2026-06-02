@@ -236,7 +236,7 @@ public final class CodePointBasedFilteringTextMapper<T, R> extends FilteringText
     public static final void retainIf(@Nonnull Reader in, @Nonnull Writer out, @Nonnull IntPredicate filter)
         throws IOException {
         Objects.requireNonNull(in, "input");
-        retainIf(IOUtils.toString(in), filter);
+        retainIf(IOUtils.toString(in), out, filter);
     }
 
     @Nullable
@@ -276,7 +276,7 @@ public final class CodePointBasedFilteringTextMapper<T, R> extends FilteringText
     public static final void replace(@Nonnull Reader in, @Nonnull Writer out, @Nonnull IntFunction<CharSequence> replacer)
         throws IOException {
         Objects.requireNonNull(in, "input");
-        replace(IOUtils.toString(in), replacer);
+        replace(IOUtils.toString(in), out, replacer);
     }
 
     public static final void replace(@Nullable CharSequence str, @Nonnull PrintWriter out, @Nonnull StringUtil.CodePointMapper replacer) {

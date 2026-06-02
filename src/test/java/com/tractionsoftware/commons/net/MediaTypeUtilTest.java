@@ -223,4 +223,107 @@ public final class MediaTypeUtilTest {
         assertFalse(MediaTypeUtil.hasCharsetParameter("charset=UTF-8"));
     }
 
+    // -------------------------------------------------------------------------
+    // parseMediaType
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void parseMediaType_null_returnsNull() {
+        assertNull(MediaTypeUtil.parseMediaType(null));
+    }
+
+    @Test
+    public void parseMediaType_blank_returnsNull() {
+        assertNull(MediaTypeUtil.parseMediaType("  "));
+    }
+
+    @Test
+    public void parseMediaType_valid_returnsType() {
+        var result = MediaTypeUtil.parseMediaType("text/html");
+        assertNotNull(result);
+        assertEquals("text", result.type());
+        assertEquals("html", result.subtype());
+    }
+
+    @Test
+    public void parseMediaType_invalid_returnsDefault() {
+        var fallback = com.google.common.net.MediaType.PLAIN_TEXT_UTF_8;
+        var result = MediaTypeUtil.parseMediaType("not-a-media-type!!!", fallback);
+        assertEquals(fallback, result);
+    }
+
+    // -------------------------------------------------------------------------
+    // isTextHtmlContentType
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isTextHtmlContentType_null_returnsFalse() {
+        assertFalse(MediaTypeUtil.isTextHtmlContentType(null));
+    }
+
+    @Test
+    public void isTextHtmlContentType_textHtml_returnsTrue() {
+        assertTrue(MediaTypeUtil.isTextHtmlContentType("text/html"));
+    }
+
+    @Test
+    public void isTextHtmlContentType_textPlain_returnsFalse() {
+        assertFalse(MediaTypeUtil.isTextHtmlContentType("text/plain"));
+    }
+
+    // -------------------------------------------------------------------------
+    // matchesMainAndSubTypes
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void matchesMainAndSubTypes_nullSpec_returnsFalse() {
+        assertFalse(MediaTypeUtil.matchesMainAndSubTypes(null, com.google.common.net.MediaType.HTML_UTF_8));
+    }
+
+    @Test
+    public void matchesMainAndSubTypes_nullType_returnsFalse() {
+        assertFalse(MediaTypeUtil.matchesMainAndSubTypes("text/html", null));
+    }
+
+    @Test
+    public void matchesMainAndSubTypes_match_returnsTrue() {
+        assertTrue(MediaTypeUtil.matchesMainAndSubTypes("text/html; charset=UTF-8", com.google.common.net.MediaType.HTML_UTF_8));
+    }
+
+    @Test
+    public void matchesMainAndSubTypes_noMatch_returnsFalse() {
+        assertFalse(MediaTypeUtil.matchesMainAndSubTypes("text/plain", com.google.common.net.MediaType.HTML_UTF_8));
+    }
+
+    // -------------------------------------------------------------------------
+    // getExtensionFromContentType / getContentTypeFromExtension
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getExtensionFromContentType_null_returnsNull() {
+        assertNull(MediaTypeUtil.getExtensionFromContentType((String) null));
+    }
+
+    @Test
+    public void getExtensionFromContentType_textHtml_returnsHtml() {
+        String ext = MediaTypeUtil.getExtensionFromContentType("text/html");
+        assertNotNull(ext);
+        // Expected to return "html" (or "htm") for text/html
+        assertTrue(ext.equals("html") || ext.equals("htm"),
+            "Expected html extension, got: " + ext);
+    }
+
+    @Test
+    public void getContentTypeFromExtension_html_returnsTextHtml() {
+        var type = MediaTypeUtil.getContentTypeFromExtension("html");
+        assertNotNull(type);
+        assertEquals("text", type.type());
+        assertEquals("html", type.subtype());
+    }
+
+    @Test
+    public void getContentTypeFromExtension_null_returnsNull() {
+        assertNull(MediaTypeUtil.getContentTypeFromExtension(null));
+    }
+
 }

@@ -37,7 +37,10 @@ import java.util.Objects;
 public final class LocalFileResource extends FileMetadataBasedFileResource<FileMetadata> implements FileResource {
 
     public final static LocalFileResource createInstance(File file) {
-        return createInstance(file, null);
+        Objects.requireNonNull(file, "File");
+        SimpleMutableFileMetadata metadata = SimpleMutableFileMetadata.createFromFileName(file.getName());
+        metadata.setURI(file.toURI());
+        return new LocalFileResource(file, metadata);
     }
 
     public final static LocalFileResource createInstance(File file, FileMetadata metadata) {
@@ -55,12 +58,6 @@ public final class LocalFileResource extends FileMetadataBasedFileResource<FileM
     @Override
     public final boolean isValid() {
         return file.exists() && file.canRead();
-    }
-
-    @Nonnull
-    @Override
-    public final String getFilename() {
-        return file.getName();
     }
 
     @Override

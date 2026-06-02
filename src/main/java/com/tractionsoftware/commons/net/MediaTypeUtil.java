@@ -23,10 +23,12 @@ package com.tractionsoftware.commons.net;
 import com.google.common.collect.*;
 import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.lang.JavaUtil;
+import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +87,7 @@ public final class MediaTypeUtil {
 
         @Nullable
         @Override
-        public final String getPreferredFileExtension(MediaType contentType) {
+        public final String getPreferredFileExtension(@Nullable MediaType contentType) {
             if (contentType == null) {
                 return null;
             }
@@ -98,7 +100,7 @@ public final class MediaTypeUtil {
 
         @Nonnull
         @Override
-        public SequencedSet<String> getFileExtensions(MediaType contentType) {
+        public final SequencedSet<String> getFileExtensions(@Nullable MediaType contentType) {
             if (contentType == null) {
                 return CollectionsUtil.emptySequencedSet();
             }
@@ -116,7 +118,7 @@ public final class MediaTypeUtil {
 
         @Nullable
         @Override
-        public MediaType getPreferredContentType(String extension) {
+        public final MediaType getPreferredContentType(@Nullable String extension) {
             extension = StringUtils.removeStart(extension, '.');
             if (StringUtils.isBlank(extension)) {
                 return null;
@@ -126,7 +128,7 @@ public final class MediaTypeUtil {
 
         @Nonnull
         @Override
-        public SequencedSet<MediaType> getContentTypes(String extension) {
+        public final SequencedSet<MediaType> getContentTypes(@Nullable String extension) {
             if (extension == null) {
                 return CollectionsUtil.emptySequencedSet();
             }
@@ -137,11 +139,14 @@ public final class MediaTypeUtil {
 
     }
 
-    public static final MediaType parseMediaType(String contentTypeSpec) {
+    public static final MediaType parseMediaType(@Nullable String contentTypeSpec) {
         return parseMediaType(contentTypeSpec, null);
     }
 
-    public static final MediaType parseMediaType(String contentTypeSpec, MediaType defaultType) {
+    public static final MediaType parseMediaType(@Nullable String contentTypeSpec, @Nullable MediaType defaultType) {
+        if (StringUtils.isBlank(contentTypeSpec)) {
+            return defaultType;
+        }
         try {
             return MediaType.parse(contentTypeSpec);
         }
@@ -153,15 +158,15 @@ public final class MediaTypeUtil {
         }
     }
 
-    public static final boolean isTextHtmlContentType(String contentTypeSpec) {
+    public static final boolean isTextHtmlContentType(@Nullable String contentTypeSpec) {
         return matchesMainAndSubTypes(contentTypeSpec, MediaType.HTML_UTF_8);
     }
 
-    public static final boolean isTextPlainContentType(String contentTypeSpec) {
+    public static final boolean isTextPlainContentType(@Nullable String contentTypeSpec) {
         return matchesMainAndSubTypes(contentTypeSpec, MediaType.PLAIN_TEXT_UTF_8);
     }
 
-    public static final boolean matchesMainAndSubTypes(String contentTypeSpec, MediaType typeToMatch) {
+    public static final boolean matchesMainAndSubTypes(@Nullable String contentTypeSpec, @Nullable MediaType typeToMatch) {
         if (contentTypeSpec == null || typeToMatch == null) {
             return false;
         }
@@ -179,14 +184,14 @@ public final class MediaTypeUtil {
      *     the value for a "Content-Type" HTTP response header field.
      * @return true if the given "Content-Type" value is not null and is a text-oriented type; false otherwise.
      */
-    public static final boolean isTextContentType(String contentTypeSpec) {
+    public static final boolean isTextContentType(@Nullable String contentTypeSpec) {
         if (contentTypeSpec == null) {
             return false;
         }
         return isTextContentType(parseMediaType(contentTypeSpec));
     }
 
-    public static final boolean isTextContentType(MediaType type) {
+    public static final boolean isTextContentType(@Nullable MediaType type) {
 
         if (type == null) {
             return false;
@@ -217,7 +222,7 @@ public final class MediaTypeUtil {
 
     }
 
-    public static final boolean hasCharsetParameter(String contentTypeSpec) {
+    public static final boolean hasCharsetParameter(@Nullable String contentTypeSpec) {
 
         if (StringUtils.isBlank(contentTypeSpec)) {
             return false;
@@ -236,19 +241,27 @@ public final class MediaTypeUtil {
 
     }
 
-    public static final String getExtensionFromContentType(String contentType) {
+    public static final String getExtensionFromContentType(@Nullable String contentType) {
         return getExtensionFromContentType(parseMediaType(contentType));
     }
 
-    public static final String getExtensionFromContentType(MediaType contentType) {
+    public static final String getExtensionFromContentType(@Nullable MediaType contentType) {
         if (contentType == null) {
             return null;
         }
         return contentTypeFileExtensionMapper.get().getPreferredFileExtension(contentType);
     }
 
-    public static final MediaType getContentTypeFromExtension(String extension) {
-        return contentTypeFileExtensionMapper.get().getPreferredContentType(extension);
+    @Nullable
+    public static final MediaType getContentTypeFromExtension(@Nullable String extension) {
+        return getContentTypeFromExtension(extension, null);
+    }
+
+    @Nullable
+    public static final MediaType getContentTypeFromExtension(@Nullable String extension, @Nullable MediaType defaultType) {
+        return ObjectUtils.getIfNull(
+            contentTypeFileExtensionMapper.get().getPreferredContentType(extension), defaultType
+        );
     }
 
     private static final SimpleMultimapContentTypeFileExtensionMapper createDefaultContentTypeFileExtensionMapper() {
@@ -273,6 +286,9 @@ public final class MediaTypeUtil {
         );
         addFallbackContentTypeSingletonMapping(
             MediaType.PNG.withoutParameters(), "png", type2extensions, extension2types
+        );
+        addFallbackContentTypeSingletonMapping(
+            MediaType.PDF.withoutParameters(), "pdf", type2extensions, extension2types
         );
         type2extensions.put(
             MediaType.HEIF, CollectionsUtil.unmodifiableSequencedSet("heif", "heifs", "heic", "heics", "hif")
@@ -328,7 +344,7 @@ public final class MediaTypeUtil {
 
     }
 
-    private static void addFallbackContentTypeSingletonMapping(MediaType type, String ext, ImmutableMap.Builder<MediaType,SequencedSet<String>> type2extensions, ImmutableMap.Builder<String,SequencedSet<MediaType>> extension2types) {
+    private static void addFallbackContentTypeSingletonMapping(@Nonnull MediaType type, @Nonnull String ext, @Nonnull ImmutableMap.Builder<MediaType,SequencedSet<String>> type2extensions, ImmutableMap.Builder<String,SequencedSet<MediaType>> extension2types) {
         type = type.withoutParameters();
         type2extensions.put(type, CollectionsUtil.singletonSequencedSet(ext));
         extension2types.put(ext, CollectionsUtil.singletonSequencedSet(type));

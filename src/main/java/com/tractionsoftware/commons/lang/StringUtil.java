@@ -895,7 +895,7 @@ public final class StringUtil {
         }
         int len = str.length();
         for (int i = 0; i < len; i++) {
-            if (!isAsciiDigit(str.charAt(0))) {
+            if (!isAsciiDigit(str.charAt(i))) {
                 return false;
             }
         }

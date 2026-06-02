@@ -834,4 +834,94 @@ public final class EnhancedCharSequenceTest {
         assertEquals("bcdef   a", enhanced.getRightRotated(2).trim().toString());
     }
 
+    // -------------------------------------------------------------------------
+    // matches
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void matches_sameContent_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertTrue(seq.matches("hello"));
+    }
+
+    @Test
+    public void matches_differentContent_returnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertFalse(seq.matches("world"));
+    }
+
+    @Test
+    public void matches_differentLength_returnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertFalse(seq.matches("hell"));
+    }
+
+    @Test
+    public void matches_null_emptySeqReturnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.getInstance(new char[0]);
+        assertTrue(seq.matches(null));
+    }
+
+    @Test
+    public void matches_null_nonEmptySeqReturnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertFalse(seq.matches(null));
+    }
+
+    // -------------------------------------------------------------------------
+    // isBlank
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isBlank_emptyString_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.getInstance(new char[0]);
+        assertTrue(seq.isBlank());
+    }
+
+    @Test
+    public void isBlank_whitespaceOnly_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.getInstance("   ".toCharArray());
+        assertTrue(seq.isBlank());
+    }
+
+    @Test
+    public void isBlank_nonBlank_returnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.getInstance("  a  ".toCharArray());
+        assertFalse(seq.isBlank());
+    }
+
+    // -------------------------------------------------------------------------
+    // contains
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void contains_null_returnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertFalse(seq.contains(null));
+    }
+
+    @Test
+    public void contains_emptySequence_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertTrue(seq.contains(""));
+    }
+
+    @Test
+    public void contains_presentSubstring_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello world");
+        assertTrue(seq.contains("world"));
+    }
+
+    @Test
+    public void contains_absentSubstring_returnsFalse() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello world");
+        assertFalse(seq.contains("xyz"));
+    }
+
+    @Test
+    public void contains_entireString_returnsTrue() {
+        EnhancedCharSequence seq = EnhancedCharSequence.enhance("hello");
+        assertTrue(seq.contains("hello"));
+    }
+
 }

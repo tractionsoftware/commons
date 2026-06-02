@@ -53,7 +53,7 @@ public final class NativeTypeConversion {
         @Nonnull
         public String get(boolean value);
 
-        public boolean get(@Nullable String value);
+        public boolean get(@Nullable String value, boolean defaultValue);
 
     }
 
@@ -92,7 +92,9 @@ public final class NativeTypeConversion {
     private static final Logger LOGGER = LoggerFactory.getLogger(NativeTypeConversion.class);
 
     private static final Supplier<? extends BooleanStrings> booleanStrings = JavaUtil.<BooleanStrings>lazyServiceLoader(
-        BooleanStrings.class, NativeTypeConversion::defaultBooleanStrings, LOGGER
+        BooleanStrings.class,
+        NativeTypeConversion::defaultBooleanStrings,
+        LOGGER
     );
 
     public static abstract class String2NativeTypeConverter<T, R> implements CacheSupportingFunction<T,R> {
@@ -143,10 +145,7 @@ public final class NativeTypeConversion {
      * @return the boolean value resulting from converting the given String or the given default.
      */
     public static final boolean stringToBoolean(String value, boolean defaultValue) {
-        if (value == null) {
-            return defaultValue;
-        }
-        return booleanStrings.get().get(value);
+        return booleanStrings().get(value, defaultValue);
     }
 
     public static final String booleanToString(boolean value) {
@@ -368,7 +367,9 @@ public final class NativeTypeConversion {
     @CanIgnoreReturnValue
     public static final <T> boolean stringToList(String value, Collection<? super T> list, Function<String,? extends T> converter, CollectionToStringOptions options) {
         return StringSplitUtil.splitString(
-            value, getConvertingNonNullCollectionAdder(list, converter), options.getJoinOptions()
+            value,
+            getConvertingNonNullCollectionAdder(list, converter),
+            options.getJoinOptions()
         );
     }
 
@@ -613,12 +614,19 @@ public final class NativeTypeConversion {
                 return Boolean.FALSE.toString();
             }
 
+            /**
+             * This implementation favors true more than {@link Boolean#valueOf(String)} does, because unless the value
+             * is a case-insensitive match for "f" or "false", this implementation returns true.
+             */
             @Override
-            public final boolean get(@Nullable String value) {
-                if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
-                    return true;
+            public final boolean get(@Nullable String value, boolean defaultValue) {
+                if (value == null) {
+                    return defaultValue;
                 }
-                return false;
+                if (value.equalsIgnoreCase("f") || value.equalsIgnoreCase("false")) {
+                    return false;
+                }
+                return true;
             }
 
         };

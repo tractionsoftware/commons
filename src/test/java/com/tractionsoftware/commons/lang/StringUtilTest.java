@@ -2491,4 +2491,225 @@ public final class StringUtilTest {
         assertEquals("", StringUtil.truncate(null, 25, "..."));
     }
 
+    // -------------------------------------------------------------------------
+    // isNonNegativeNumber
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isNonNegativeNumber_null_returnsFalse() {
+        assertFalse(StringUtil.isNonNegativeNumber(null));
+    }
+
+    @Test
+    public void isNonNegativeNumber_blank_returnsFalse() {
+        assertFalse(StringUtil.isNonNegativeNumber("   "));
+    }
+
+    @Test
+    public void isNonNegativeNumber_zero_returnsTrue() {
+        assertTrue(StringUtil.isNonNegativeNumber("0"));
+    }
+
+    @Test
+    public void isNonNegativeNumber_positiveInt_returnsTrue() {
+        assertTrue(StringUtil.isNonNegativeNumber("12345"));
+    }
+
+    @Test
+    public void isNonNegativeNumber_withNonDigitInMiddle_returnsFalse() {
+        assertFalse(StringUtil.isNonNegativeNumber("1a2"));
+    }
+
+    @Test
+    public void isNonNegativeNumber_leadingZeros_returnsTrue() {
+        assertTrue(StringUtil.isNonNegativeNumber("007"));
+    }
+
+    @Test
+    public void isNonNegativeNumber_negative_returnsFalse() {
+        assertFalse(StringUtil.isNonNegativeNumber("-1"));
+    }
+
+    @Test
+    public void isNonNegativeNumber_decimalPoint_returnsFalse() {
+        assertFalse(StringUtil.isNonNegativeNumber("1.0"));
+    }
+
+    // -------------------------------------------------------------------------
+    // findReplace
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void findReplace_null_returnsNull() {
+        assertNull(StringUtil.findReplace(null, "a", "b"));
+    }
+
+    @Test
+    public void findReplace_noOccurrence_returnsOriginal() {
+        assertEquals("hello", StringUtil.findReplace("hello", "x", "y"));
+    }
+
+    @Test
+    public void findReplace_singleOccurrence() {
+        assertEquals("heyo", StringUtil.findReplace("hello", "ll", "y"));
+    }
+
+    @Test
+    public void findReplace_multipleOccurrences() {
+        assertEquals("b-b-b", StringUtil.findReplace("a-a-a", "a", "b"));
+    }
+
+    @Test
+    public void findReplace_findEqualsReplace_returnsSameRef() {
+        String s = "hello";
+        // When find == replace, should short-circuit and return the same object
+        assertSame(s, StringUtil.findReplace(s, "x", "x"));
+    }
+
+    // -------------------------------------------------------------------------
+    // equalsIgnoreCaseAndWhitespace
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_bothNull_returnsTrue() {
+        assertTrue(StringUtil.equalsIgnoreCaseAndWhitespace(null, null));
+    }
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_oneNull_returnsFalse() {
+        assertFalse(StringUtil.equalsIgnoreCaseAndWhitespace(null, "a"));
+        assertFalse(StringUtil.equalsIgnoreCaseAndWhitespace("a", null));
+    }
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_identical_returnsTrue() {
+        assertTrue(StringUtil.equalsIgnoreCaseAndWhitespace("hello", "hello"));
+    }
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_differentContent_returnsFalse() {
+        assertFalse(StringUtil.equalsIgnoreCaseAndWhitespace("hello", "world"));
+    }
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_extraWhitespace_returnsTrue() {
+        assertTrue(StringUtil.equalsIgnoreCaseAndWhitespace("  hello  ", "hello"));
+        assertTrue(StringUtil.equalsIgnoreCaseAndWhitespace("h e l l o", "hello"));
+    }
+
+    @Test
+    public void equalsIgnoreCaseAndWhitespace_extraCharsAfterWhitespaceRemoval_returnsFalse() {
+        assertFalse(StringUtil.equalsIgnoreCaseAndWhitespace("hello world", "hello"));
+    }
+
+    // -------------------------------------------------------------------------
+    // removeAll
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void removeAll_nullStr_returnsNull() {
+        assertNull(StringUtil.removeAll(null, "a"));
+    }
+
+    @Test
+    public void removeAll_emptyStr_returnsEmpty() {
+        assertEquals("", StringUtil.removeAll("", "a"));
+    }
+
+    @Test
+    public void removeAll_emptyRemove_returnsOriginal() {
+        assertEquals("hello", StringUtil.removeAll("hello", ""));
+    }
+
+    @Test
+    public void removeAll_removeSingleChar() {
+        assertEquals("hll", StringUtil.removeAll("hello", "eo"));
+    }
+
+    @Test
+    public void removeAll_removeAllChars() {
+        assertEquals("", StringUtil.removeAll("abc", "abc"));
+    }
+
+    @Test
+    public void removeAll_noMatch_returnsOriginal() {
+        assertEquals("hello", StringUtil.removeAll("hello", "xyz"));
+    }
+
+    // -------------------------------------------------------------------------
+    // hasNonBmpCodePoints
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void hasNonBmpCodePoints_null_returnsFalse() {
+        assertFalse(StringUtil.hasNonBmpCodePoints(null));
+    }
+
+    @Test
+    public void hasNonBmpCodePoints_asciiOnly_returnsFalse() {
+        assertFalse(StringUtil.hasNonBmpCodePoints("hello"));
+    }
+
+    @Test
+    public void hasNonBmpCodePoints_emojiPresent_returnsTrue() {
+        assertTrue(StringUtil.hasNonBmpCodePoints("hello😀"));
+    }
+
+    @Test
+    public void hasNonBmpCodePoints_bmpUnicodeOnly_returnsFalse() {
+        // U+00E9 (é) is BMP
+        assertFalse(StringUtil.hasNonBmpCodePoints("café"));
+    }
+
+    // -------------------------------------------------------------------------
+    // truncateEncodedBytes
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void truncateEncodedBytes_null_returnsNull() {
+        assertNull(StringUtil.truncateEncodedBytes(null, 10, java.nio.charset.StandardCharsets.UTF_8, "..."));
+    }
+
+    @Test
+    public void truncateEncodedBytes_zeroMax_returnsEmpty() {
+        assertEquals("", StringUtil.truncateEncodedBytes("hello", 0, java.nio.charset.StandardCharsets.UTF_8, "..."));
+    }
+
+    @Test
+    public void truncateEncodedBytes_underLimit_returnsOriginal() {
+        assertEquals("hi", StringUtil.truncateEncodedBytes("hi", 100, java.nio.charset.StandardCharsets.UTF_8, "..."));
+    }
+
+    @Test
+    public void truncateEncodedBytes_overLimit_truncatesWithEllipses() {
+        // "hello" = 5 bytes; limit 4 with "..." (3 bytes) leaves 1 byte for content → "h..."
+        String result = StringUtil.truncateEncodedBytes("hello", 4, java.nio.charset.StandardCharsets.UTF_8, "...");
+        assertTrue(result.endsWith("..."), "Expected ellipsis suffix, got: " + result);
+    }
+
+    // -------------------------------------------------------------------------
+    // getTrimmedString(char[], int, int)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getTrimmedString_null_returnsEmpty() {
+        assertEquals("", StringUtil.getTrimmedString(null, 0, 0));
+    }
+
+    @Test
+    public void getTrimmedString_basic() {
+        assertEquals("hello", StringUtil.getTrimmedString("  hello  ".toCharArray(), 0, 9));
+    }
+
+    @Test
+    public void getTrimmedString_offsetAndCount() {
+        char[] data = "hello world".toCharArray();
+        assertEquals("world", StringUtil.getTrimmedString(data, 6, 5));
+    }
+
+    @Test
+    public void getTrimmedString_allWhitespace_returnsEmpty() {
+        assertEquals("", StringUtil.getTrimmedString("   ".toCharArray(), 0, 3));
+    }
+
 }
