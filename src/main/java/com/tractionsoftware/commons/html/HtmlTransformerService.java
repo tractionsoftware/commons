@@ -48,8 +48,13 @@ public abstract class HtmlTransformerService {
 
             @Nonnull
             @Override
-            public final TextTransformer textExtractionSnippets() {
+            public final TextTransformer textOnly() {
                 return HtmlCleanerAdapterTransformer.getDefaultHtmlToTextInstance();
+            }
+
+            @Nonnull
+            public final TextTransformer htmlCompatibleTextOnly() {
+                return HtmlCleanerAdapterTransformer.getDefaultHtmlToHtmlCompatibleTextInstance();
             }
 
         };
@@ -57,6 +62,14 @@ public abstract class HtmlTransformerService {
     }
 
     @Nonnull
-    public abstract TextTransformer textExtractionSnippets();
+    public abstract TextTransformer textOnly();
+
+    @Nonnull
+    public abstract TextTransformer htmlCompatibleTextOnly();
+
+    @Nonnull
+    public TextTransformer textOnlyForSnippets() {
+        return textOnly();
+    }
 
 }

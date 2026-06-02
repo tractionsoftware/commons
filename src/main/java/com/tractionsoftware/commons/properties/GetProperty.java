@@ -408,7 +408,7 @@ public interface GetProperty extends PropertyCollection {
             return;
         }
         Stream<String> propNames = getPropertyNames().stream();
-        if (!CollectionsUtil.isNullOrEmpty(exceptions)) {
+        if (CollectionsUtil.isNotEmpty(exceptions)) {
             propNames = propNames.filter((propName) -> !exceptions.contains(propName));
         }
         propNames.forEach((propName) -> map.put(propName, getProperty(propName)));

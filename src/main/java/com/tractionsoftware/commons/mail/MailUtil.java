@@ -1114,7 +1114,7 @@ public final class MailUtil {
     public static final void dumpNamedHeaders(StringBuilder buffer, EmailHeaders headers, String headerName) {
         buffer.append(headerName);
         List<String> values = headers.getHeaders(headerName);
-        if (CollectionsUtil.isNullOrEmpty(values)) {
+        if (CollectionsUtil.isEmpty(values)) {
             buffer.append(": [no headers with this name]");
             return;
         }

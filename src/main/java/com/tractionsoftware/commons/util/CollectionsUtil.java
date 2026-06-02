@@ -480,7 +480,7 @@ public final class CollectionsUtil {
 
         @Override
         public final boolean containsAll(@Nonnull Collection<?> c) {
-            if (isNullOrEmpty(c)) {
+            if (CollectionsUtil.isEmpty(c)) {
                 return true;
             }
             for (Object o : c) {
@@ -503,11 +503,22 @@ public final class CollectionsUtil {
      *     the {@link Collection} to test.
      * @return true if the given {@link Collection} is either null or empty; false otherwise.
      */
-    public static final boolean isNullOrEmpty(Collection<?> coll) {
+    public static final boolean isEmpty(Collection<?> coll) {
         if (coll == null || coll.isEmpty()) {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Returns true if the given {@link Collection} is neither null or empty.
+     *
+     * @param coll
+     *     the {@link Collection} to test.
+     * @return true if the given {@link Collection} is neither null or empty; false otherwise.
+     */
+    public static final boolean isNotEmpty(Collection<?> coll) {
+        return !isEmpty(coll);
     }
 
     /**
@@ -548,11 +559,22 @@ public final class CollectionsUtil {
      *     the {@link Map} to test.
      * @return true if the given {@link Map} is either null or empty; false otherwise.
      */
-    public static final boolean isNullOrEmpty(Map<?,?> map) {
+    public static final boolean isEmpty(Map<?,?> map) {
         if (map == null || map.isEmpty()) {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Returns true if the given {@link Map} is neither null or empty.
+     *
+     * @param map
+     *     the {@link Map} to test.
+     * @return true if the given {@link Map} is neither null or empty; false otherwise.
+     */
+    public static final boolean isNotEmpty(Map<?,?> map) {
+        return !isEmpty(map);
     }
 
     /**
@@ -813,7 +835,7 @@ public final class CollectionsUtil {
      *     the Map to which the key-value pairs should be copied.
      */
     public static final <K, V> void copy(Map<? extends K,? extends V> source, Map<? super K,? super V> destination) {
-        if (destination == null || isNullOrEmpty(source)) {
+        if (destination == null || isEmpty(source)) {
             return;
         }
         destination.putAll(source);
@@ -1176,7 +1198,7 @@ public final class CollectionsUtil {
      *     given {@link Collection}.
      */
     public static final <E> Iterator<E> includingOnly(Iterator<E> iter, Collection<?> include) {
-        if (iter == null || isNullOrEmpty(include)) {
+        if (iter == null || isEmpty(include)) {
             return Collections.emptyIterator();
         }
         return filteredIterator(iter, PredicatesUtil.onlyThese(include));
@@ -1777,7 +1799,7 @@ public final class CollectionsUtil {
     }
 
     public static final <T> SequencedSet<T> firstNonNullElementSingletonOrEmptySequencedSet(@Nullable Collection<T> coll) {
-        if (isNullOrEmpty(coll)) {
+        if (isEmpty(coll)) {
             return Collections.unmodifiableSequencedSet(Collections.emptySortedSet());
         }
         for (T o : coll) {

@@ -222,7 +222,8 @@ public final class HtmlUtil {
         }
 
         @Override
-        public final Appendable append(CharSequence csq, int start, int end) {
+        public final Appendable append(@Nonnull CharSequence csq, int start, int end) {
+            Objects.requireNonNull(csq, "sequence");
             appendLiteralText(csq.subSequence(start, end));
             return this;
         }
@@ -239,7 +240,7 @@ public final class HtmlUtil {
             return this;
         }
 
-        private final void appendLiteralText(CharSequence text) {
+        private final void appendLiteralText(@Nullable CharSequence text) {
             if (StringUtils.isNotEmpty(text)) {
                 CharBasedFilteringTextMapper.replace(text, out, this::encodeForLiteral);
             }
@@ -323,7 +324,7 @@ public final class HtmlUtil {
      * @return a version of the given plain text with any tag delimiters and ampersands entity-encoded; or null if the
      *     given text is null.
      */
-    public static final String getLiteralText(CharSequence text) {
+    public static final String getLiteralText(@Nullable CharSequence text) {
         if (text == null) {
             return null;
         }
@@ -343,21 +344,21 @@ public final class HtmlUtil {
      * @return some HTML representing the given text converted to HTML-safe text, plus substituting BR tags for line
      *     breaks.
      */
-    public static final String getLiteralTextWithLineBreaks(CharSequence text) {
+    public static final String getLiteralTextWithLineBreaks(@Nullable CharSequence text) {
         if (StringUtils.isEmpty(text)) {
             return "";
         }
         return StringUtil.join(StringUtil.getLines(getLiteralText(text)).iterator(), TAG_BR);
     }
 
-    public static final void printLiteralTextWithLineBreaks(Appendable out, CharSequence text) {
+    public static final void printLiteralTextWithLineBreaks(@Nonnull Appendable out, @Nullable CharSequence text) {
+        Objects.requireNonNull(out, "output");
         if (StringUtils.isEmpty(text)) {
             return;
         }
         try {
             StringUtil.getNullSkippingJoiner(TAG_BR).appendTo(
-                out,
-                StringUtil.getLines(getLiteralText(text)).iterator()
+                out, StringUtil.getLines(getLiteralText(text)).iterator()
             );
         }
         catch (IOException e) {
@@ -374,16 +375,15 @@ public final class HtmlUtil {
      *     the text to be encoded in an HTML-safe manner.
      * @return a version of the given text that is safe for an HTML attribute value.
      */
-    public static final String getTagAttributeValue(CharSequence text) {
+    public static final String getTagAttributeValue(@Nullable CharSequence text) {
         if (text == null) {
-            return null;
+            return "";
         }
         if (text.isEmpty()) {
             return text.toString();
         }
         return Objects.toString(
-            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForTagAttributeValue),
-            null
+            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForTagAttributeValue), null
         );
     }
 
@@ -391,22 +391,17 @@ public final class HtmlUtil {
      * Converts the given text to HTML, including the non-literal and usually unnecessary conversion spaces to
      * non-breaking spaces.
      *
-     * <p>
-     * This method exists to support a handful of classic forms and a few other old use cases. It should not be used for
-     * new code.
-     *
      * @param text
      *     the text to be converted to HTML.
      * @return a conversion of the given text to HTML, including the non-literal and usually unnecessary conversion
      *     spaces to non-breaking spaces.
      */
-    public static String getClassicHtmlText(String text) {
+    public static String getClassicHtmlText(@Nullable String text) {
         if (StringUtils.isBlank(text)) {
             return text;
         }
         return Objects.toString(
-            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForClassicHtmlText),
-            null
+            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForClassicHtmlText), null
         );
     }
 
@@ -418,7 +413,7 @@ public final class HtmlUtil {
      *     the HTML to be converted to text.
      * @return the decoded version of the string.
      */
-    public static String getClassicTextHtml(String html) {
+    public static String getClassicTextHtml(@Nullable String html) {
 
         if (StringUtils.isEmpty(html)) {
             return html;
@@ -451,27 +446,30 @@ public final class HtmlUtil {
     }
 
     /**
-     * Inserts the preferred non-space optional break HTML sequence for the UserAgent being used for the current request
-     * where appropriate in the given text.
+     * Inserts the preferred non-space optional break HTML sequence where applicable in the given text.
      *
      * @param text
      *     the text into which the non-space optional break HTML should be inserted. This must really be pure text and
      *     not contain any markup, since markup might be corrupted by this insertion process.
-     * @return the given text with the preferred non-space optional break HTML sequence for the UserAgent being used for
-     *     the current request inserted where appropriate.
+     * @param nonSpaceBreaksHtml
+     *     to provide the desired non-space break HTML sequence.
+     * @return the given text with the preferred non-space optional break HTML sequence where applicable.
      */
-    public static final String getHtmlWithNonSpaceBreaks(String text, Supplier<String> nonSpaceBreaksHtml) {
+    public static final String getHtmlWithNonSpaceBreaks(@Nonnull String text, @Nonnull Supplier<String> nonSpaceBreaksHtml) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(nonSpaceBreaksHtml, "non-space break HTML");
         return NON_SPACE_BREAK_OPPORTUNITIES.matcher(text).replaceAll("$1" + nonSpaceBreaksHtml.get() + "$3");
     }
 
-    public static final String getTagAttribute(String name, String value) {
+    public static final String getTagAttribute(@Nonnull String name, @Nullable String value) {
+        Objects.requireNonNull(name, "name");
         if (value == null) {
             return name;
         }
         return name + "=\"" + getTagAttributeValue(value) + "\"";
     }
 
-    public static final boolean containsClassName(String classAttr, String className) {
+    public static final boolean containsClassName(@Nullable String classAttr, @Nullable String className) {
 
         classAttr = StringUtils.trimToNull(classAttr);
         if (classAttr == null) {
@@ -494,7 +492,7 @@ public final class HtmlUtil {
     /**
      * Converts all occurrences of the ampersand character to HTML ampersand entities.
      */
-    public static final String escapeAmps(String str) {
+    public static final String escapeAmps(@Nullable String str) {
         if (StringUtils.isEmpty(str)) {
             return str;
         }
@@ -504,27 +502,16 @@ public final class HtmlUtil {
         );
     }
 
-    /**
-     * Returns " checked" if on is true or "" if on is false
-     */
-    public static final String chk(boolean on) {
-        return (on) ? " checked" : "";
-    }
-
-    /**
-     * Returns " selected" if on is true or "" if on is false
-     */
-    public static final String sel(boolean on) {
-        return (on) ? " selected" : "";
-    }
-
-    public static final void printLiteralText(Appendable out, CharSequence text) {
+    public static final void printLiteralText(@Nonnull Appendable out, @Nullable CharSequence text) {
+        Objects.requireNonNull(out, "output");
         if (StringUtils.isNotEmpty(text)) {
             CharBasedFilteringTextMapper.replace(text, out, SimpleHtmlEntity::encodeForLiteral);
         }
     }
 
-    public static final void printTagAttribute(Appendable out, String name, String value) {
+    public static final void printTagAttribute(@Nonnull Appendable out, @Nonnull String name, @Nullable String value) {
+        Objects.requireNonNull(out, "output");
+        Objects.requireNonNull(name, "attribute name");
         try {
             out.append(name);
             if (value != null) {
@@ -538,22 +525,28 @@ public final class HtmlUtil {
         }
     }
 
-    public static final void printTagAttributeValue(Appendable out, String text) {
+    public static final void printTagAttributeValue(@Nonnull Appendable out, @Nullable String text) {
+        Objects.requireNonNull(out, "output");
         if (StringUtils.isNotEmpty(text)) {
             CharBasedFilteringTextMapper.replace(text, out, SimpleHtmlEntity::encodeForTagAttributeValue);
         }
     }
 
-    public static final void printBeginSelect(PrintWriter out, String name) {
+    public static final void printBeginSelect(@Nonnull PrintWriter out, @Nonnull String name) {
+        Objects.requireNonNull(out, "output");
+        Objects.requireNonNull(name, "name");
         out.print("<select name=\"");
         out.print(name);
         out.print("\">");
     }
 
-    public static final void printBeginSelect(PrintWriter out, String name, String attributes) {
+    public static final void printBeginSelect(@Nonnull PrintWriter out, @Nonnull String name, @Nullable String attributes) {
+        Objects.requireNonNull(out, "output");
+        Objects.requireNonNull(name, "name");
         out.print("<select name=\"");
         printTagAttributeValue(out, name);
         out.print("\" ");
+        attributes = StringUtils.trimToNull(attributes);
         if (attributes != null) {
             out.print(attributes);
         }
@@ -561,14 +554,16 @@ public final class HtmlUtil {
         out.print(">");
     }
 
-    public static final void printBeginSelect(PrintWriter out, String name, Map<String,String> attributes) {
+    public static final void printBeginSelect(@Nonnull PrintWriter out, @Nonnull String name, @Nullable Map<String,String> attributes) {
         printStartTag(out, "select", attributes);
     }
 
-    public static final void printBeginSelect(PrintWriter out, String name, String attributes, boolean disabled) {
+    public static final void printBeginSelect(@Nonnull PrintWriter out, @Nonnull String name, @Nullable String attributes, boolean disabled) {
+        Objects.requireNonNull(out, "output");
         out.print("<select name=\"");
         out.print(name);
         out.print("\" ");
+        attributes = StringUtils.trimToNull(attributes);
         if (attributes != null) {
             out.print(attributes);
         }
@@ -579,38 +574,43 @@ public final class HtmlUtil {
         out.print(">");
     }
 
-    public static final void printOption(PrintWriter out, String text, String value, boolean selected) {
+    public static final void printOption(@Nonnull PrintWriter out, @Nullable String text, @Nullable String value, boolean selected) {
+        Objects.requireNonNull(out, "output");
         out.print("<option value=\"");
         out.print(getTagAttributeValue(value));
         out.print((selected) ? "\" selected" : "\"");
         out.print(">");
-        out.print(text);
+        if (StringUtils.isNotEmpty(text)) {
+            out.print(text);
+        }
         out.print("</option>");
     }
 
-    public static final void printOption(PrintWriter out, String text, String value, boolean selected, String attrs) {
+    public static final void printOption(@Nonnull PrintWriter out, @Nullable String text, @Nullable String value, boolean selected, @Nullable String attributes) {
+        Objects.requireNonNull(out, "output");
         out.print("<option value=\"");
         printTagAttributeValue(out, value);
         out.print('"');
         if (selected) {
             out.print(" selected");
         }
-        if (attrs != null) {
+        attributes = StringUtils.trimToNull(attributes);
+        if (attributes != null) {
             out.print(' ');
-            out.print(attrs);
+            out.print(attributes);
         }
         out.print(">");
         printLiteralText(out, text);
         out.print("</option>");
     }
 
-    public static final void printOption(PrintWriter out, String text, String value, boolean selected, Map<String,String> attributes) {
+    public static final void printOption(@Nonnull PrintWriter out, String text, String value, boolean selected, Map<String,String> attributes) {
         if (selected || value != null) {
             Map<String,String> useAttributes = new LinkedHashMap<>();
             if (value != null) {
                 useAttributes.put("value", value);
             }
-            if (!CollectionsUtil.isNullOrEmpty(attributes)) {
+            if (CollectionsUtil.isNotEmpty(attributes)) {
                 useAttributes.putAll(attributes);
             }
             if (selected) {
@@ -623,19 +623,19 @@ public final class HtmlUtil {
         printEndTag(out, "option");
     }
 
-    public static final void printOption(PrintWriter out, String name, boolean selected) {
+    public static final void printOption(@Nonnull PrintWriter out, String name, boolean selected) {
         printOption(out, name, null, selected, ImmutableMap.of());
     }
 
-    public static final void printEndSelect(PrintWriter out) {
+    public static final void printEndSelect(@Nonnull PrintWriter out) {
         printEndTag(out, "select");
     }
 
-    public static final void printBeginOptionGroup(PrintWriter out, String label, String value) {
+    public static final void printBeginOptionGroup(@Nonnull PrintWriter out, String label, String value) {
         printBeginOptionGroup(out, label, value, null);
     }
 
-    public static final void printBeginOptionGroup(PrintWriter out, String label, String value, String className) {
+    public static final void printBeginOptionGroup(@Nonnull PrintWriter out, String label, String value, String className) {
         out.print("<optgroup label=\"");
         out.print(label);
         out.print("\"");
@@ -647,31 +647,36 @@ public final class HtmlUtil {
         out.print(">");
     }
 
-    public static final void printEndOptionGroup(PrintWriter out) {
+    public static final void printEndOptionGroup(@Nonnull PrintWriter out) {
+        Objects.requireNonNull(out, "output");
         out.print("</optgroup>");
     }
 
-    public static final void printBeginLink(PrintWriter out, String url, Map<String,String> otherAttributes) {
+    public static final void printBeginLink(@Nonnull PrintWriter out, @Nonnull String url, @Nullable Map<String,String> otherAttributes) {
+        Objects.requireNonNull(out, "output");
         out.print("<a ");
         printTagAttribute(out, "href", url);
-        for (Map.Entry<String,String> attr : otherAttributes.entrySet()) {
-            out.print(' ');
-            String attrName = attr.getKey();
-            if ("href".equals(attrName)) {
-                continue;
+        if (CollectionsUtil.isNotEmpty(otherAttributes)) {
+            for (Map.Entry<String,String> attr : otherAttributes.entrySet()) {
+                out.print(' ');
+                String attrName = attr.getKey();
+                if ("href".equals(attrName)) {
+                    continue;
+                }
+                printTagAttribute(out, attrName, attr.getValue());
             }
-            printTagAttribute(out, attrName, attr.getValue());
         }
         out.print(">");
     }
 
-    public static final void printLink(PrintWriter out, String url, String linkText, Map<String,String> otherAttributes) {
+    public static final void printLink(PrintWriter out, String url, String linkText, @Nullable Map<String,String> otherAttributes) {
         printBeginLink(out, url, otherAttributes);
         printLiteralText(out, linkText);
         out.print("</a>");
     }
 
-    public static final void printStartTag(PrintWriter out, String tagName, Map<String,String> attributes) {
+    public static final void printStartTag(@Nonnull PrintWriter out, @Nonnull String tagName, @Nullable Map<String,String> attributes) {
+        Objects.requireNonNull(out, "output");
         StringUtil.checkNotBlankX(tagName, "tag name");
         out.print('<');
         out.print(tagName);
@@ -685,13 +690,15 @@ public final class HtmlUtil {
     }
 
     public static final void printEndTag(PrintWriter out, String tagName) {
+        Objects.requireNonNull(out, "output");
         StringUtil.checkNotBlankX(tagName, "tag name");
         out.print("</");
         out.print(tagName);
         out.print('>');
     }
 
-    public static final void printInputTag(PrintWriter out, String name, String value, String type) {
+    public static final void printInputTag(@Nonnull PrintWriter out, String name, String value, String type) {
+        Objects.requireNonNull(out, "output");
         Map<String,String> attributes = new LinkedHashMap<>();
         if (type != null) {
             attributes.put("type", type);
@@ -705,7 +712,7 @@ public final class HtmlUtil {
         printStartTag(out, "input", attributes);
     }
 
-    public static final void printMetaTag(PrintWriter out, Map<String,String> attributes) {
+    public static final void printMetaTag(@Nonnull PrintWriter out, Map<String,String> attributes) {
         printStartTag(out, "META", attributes);
     }
 
@@ -720,7 +727,7 @@ public final class HtmlUtil {
     }
 
     public static final Appendable getLiteralAppendable(@Nonnull Appendable out, @Nullable String preferredZeroWidthSpace) {
-        Objects.requireNonNull(out, "Appendable");
+        Objects.requireNonNull(out, "output");
         if (StringUtils.isBlank(preferredZeroWidthSpace)) {
             preferredZeroWidthSpace = TextWrapUtil.DEFAULT_ZERO_WIDTH_SPACE;
         }
@@ -782,7 +789,7 @@ public final class HtmlUtil {
     private static final String getUnescapedHtmlForSnippet(@Nonnull String html, int maximumLength) {
 
         // Extract text by removing HTML tags and any other text that should not be included here.
-        String htmlText = HtmlTransformerService.get().textExtractionSnippets().transform(html).trim();
+        String htmlText = HtmlTransformerService.get().textOnlyForSnippets().transform(html).trim();
         if (StringUtils.isBlank(htmlText)) {
             return htmlText;
         }

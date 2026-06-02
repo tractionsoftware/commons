@@ -1230,7 +1230,7 @@ public abstract class EnhancedCharSequence implements CharSequence {
      *     if a null or empty collection is supplied.
      */
     public static final CharSequence getConcatenatedSequences(Collection<? extends CharSequence> sequences) {
-        if (CollectionsUtil.isNullOrEmpty(sequences)) {
+        if (CollectionsUtil.isEmpty(sequences)) {
             return WrappedSequence.EMPTY;
         }
         return concatSequencesImpl(sequences.stream());

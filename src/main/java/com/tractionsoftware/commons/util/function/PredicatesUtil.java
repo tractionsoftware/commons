@@ -164,7 +164,7 @@ public final class PredicatesUtil {
     public static final <E> Predicate<E> getFirstOrMultiFilter(Collection<? extends Predicate<? super E>> filters)
         throws IllegalArgumentException {
 
-        if (CollectionsUtil.isNullOrEmpty(filters)) {
+        if (CollectionsUtil.isEmpty(filters)) {
             throw new IllegalArgumentException();
         }
 

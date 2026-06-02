@@ -23,7 +23,6 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ForwardingObject;
 import com.tractionsoftware.commons.util.CollectionsUtil;
 import jakarta.annotation.Nonnull;
-import org.jspecify.annotations.NonNull;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -146,7 +145,7 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
             }
 
             Stream<String> propNames = source.getPropertyNames().stream();
-            if (!CollectionsUtil.isNullOrEmpty(exceptions)) {
+            if (CollectionsUtil.isNotEmpty(exceptions)) {
                 propNames = propNames.filter((propName) -> !exceptions.contains(propName));
             }
             propNames.forEach((propName) -> putProperty(propName, source.getProperty(propName)));

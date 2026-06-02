@@ -903,7 +903,7 @@ public final class StringUtil {
     }
 
     public static boolean containsIgnoreCase(Collection<String> coll, String searchVal) {
-        if (CollectionsUtil.isNullOrEmpty(coll)) {
+        if (CollectionsUtil.isEmpty(coll)) {
             return false;
         }
         return coll.stream().anyMatch(str -> Strings.CI.equals(searchVal, str));
@@ -1959,7 +1959,7 @@ public final class StringUtil {
             );
         }
 
-        if (CollectionsUtil.isNullOrEmpty(caseInsensitiveSortedStrings)) {
+        if (CollectionsUtil.isEmpty(caseInsensitiveSortedStrings)) {
             return -1;
         }
 
@@ -2324,7 +2324,7 @@ public final class StringUtil {
     }
 
     private static boolean matchesAnyCodePointAt(String str, SpecialPosition position, Set<Integer> codePoints) {
-        if (CollectionsUtil.isNullOrEmpty(codePoints)) {
+        if (CollectionsUtil.isEmpty(codePoints)) {
             return false;
         }
         int len = StringUtils.length(str);

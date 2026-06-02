@@ -293,7 +293,7 @@ public interface EmailHeaders extends Iterable<Header> {
             @Override
             public final String getProperty(String propName) {
                 List<String> values = EmailHeaders.this.getHeaders(propName);
-                if (CollectionsUtil.isNullOrEmpty(values)) {
+                if (CollectionsUtil.isEmpty(values)) {
                     return null;
                 }
                 return NativeTypeConversion.iterableToString(values);

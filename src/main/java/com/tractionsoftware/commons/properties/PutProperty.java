@@ -189,7 +189,7 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
         }
 
         Stream<String> propNames = source.getPropertyNames().stream();
-        if (!CollectionsUtil.isNullOrEmpty(exceptions)) {
+        if (CollectionsUtil.isNotEmpty(exceptions)) {
             propNames = propNames.filter((propName) -> !exceptions.contains(propName));
         }
         propNames.forEach((propName) -> putProperty(propName, source.getProperty(propName)));
@@ -227,7 +227,7 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
      */
     @Beta
     public default void copyFrom(Map<? super String,? super String> source, Collection<?> exceptions) {
-        if (CollectionsUtil.isNullOrEmpty(source)) {
+        if (CollectionsUtil.isEmpty(source)) {
             return;
         }
         putProperties(SimpleProperties.asGetProperty(source), exceptions);

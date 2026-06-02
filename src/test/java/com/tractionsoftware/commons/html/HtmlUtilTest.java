@@ -188,7 +188,7 @@ public final class HtmlUtilTest {
 
     @Test
     public void test_getTagAttributeValueNull() {
-        assertNull(HtmlUtil.getTagAttributeValue(null));
+        assertEquals("", HtmlUtil.getTagAttributeValue(null));
     }
 
     @Test

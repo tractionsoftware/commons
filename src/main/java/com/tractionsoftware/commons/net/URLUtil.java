@@ -896,7 +896,7 @@ public final class URLUtil {
 
         StringBuilder ret = new StringBuilder(SCHEME_PREFIX_MAILTO);
         ret.append(getUrlEncoding(address));
-        if (!CollectionsUtil.isNullOrEmpty(params)) {
+        if (CollectionsUtil.isNotEmpty(params)) {
             ret.append(QUERY_MARKER_CHAR);
             ret.append(getQueryString(params));
         }

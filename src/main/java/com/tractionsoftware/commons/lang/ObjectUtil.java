@@ -195,7 +195,7 @@ public final class ObjectUtil {
 
     public static String[] toStringArray(Collection<?> coll, Function<Object,String> converter) {
 
-        if (CollectionsUtil.isNullOrEmpty(coll)) {
+        if (CollectionsUtil.isEmpty(coll)) {
             return new String[0];
         }
 
