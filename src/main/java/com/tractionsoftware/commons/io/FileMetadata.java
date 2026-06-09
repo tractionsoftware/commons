@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.io;
 
 import com.tractionsoftware.commons.image.ImageUtil;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.net.URI;
 import java.util.Objects;
@@ -186,6 +187,7 @@ public interface FileMetadata {
         return false;
     }
 
+    @Nullable
     public FileResourceType getResourceType();
 
     /**

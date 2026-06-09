@@ -22,6 +22,8 @@ package com.tractionsoftware.commons.text;
 
 import com.google.common.base.CharMatcher;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,11 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
+/**
+ * Utilities for escaping and unescaping strings.
+ *
+ * @author Dave Shepperton, Andy Keller
+ */
 public final class StringEscapeUtil {
 
     /**
@@ -38,7 +45,11 @@ public final class StringEscapeUtil {
     private StringEscapeUtil() {
     }
 
-    public static final String DEFAULT_ESCAPED_CHARS = "\r\n,\\";
+    public static final char CHAR_ESCAPE_SEQUENCE_START = '\\';
+
+    public static final String STRING_ESCAPE_SEQUENCE_START = String.valueOf(CHAR_ESCAPE_SEQUENCE_START);
+
+    public static final String DEFAULT_ESCAPED_CHARS = "\r\n," + CHAR_ESCAPE_SEQUENCE_START;
 
     public static final CharMatcher DEFAULT_ESCAPED_CHARS_MATCHER = CharMatcher.anyOf(DEFAULT_ESCAPED_CHARS);
 
@@ -78,39 +89,42 @@ public final class StringEscapeUtil {
 
     }
 
-    private static final class MultiCharUnescapingStringMapper extends AbstractMultiCharEscapingStringMapper
-        implements StringUtil.CharMapper {
+    public static final String getEscapeSequence(char literalChar) {
+        return switch (literalChar) {
+            case '\t' -> "\\t";
+            case '\r' -> "\\r";
+            case '\n' -> "\\n";
+            case '\f' -> "\\f";
+            default -> STRING_ESCAPE_SEQUENCE_START + literalChar;
+        };
+    }
 
-        private MultiCharUnescapingStringMapper(CharMatcher escape) {
-            super(escape);
-        }
-
-        @Override
-        public final char getReplacement(char c) {
-            if (isEscape(c)) {
-                return StringEscapeUtil.getLiteralCharacter(c);
-            }
-            return c;
-        }
-
+    public static final char getLiteralCharacter(char escapedChar) {
+        return switch (escapedChar) {
+            case 't' -> '\t';
+            case 'r' -> '\r';
+            case 'n' -> '\n';
+            case 'f' -> '\f';
+            default -> escapedChar;
+        };
     }
 
     /**
      * @param escapeChars
      *     unescapes all characters in this string.
      */
-    public static final String unescapeMultipleCharacters(CharSequence str, CharSequence escapeChars) {
+    public static final String unescapeMultipleCharacters(@Nullable CharSequence str, @Nonnull CharSequence escapeChars) {
+        Objects.requireNonNull(escapeChars, "escape chars");
         return unescapeMultipleCharacters(str, CharMatcher.anyOf(escapeChars));
     }
 
-    public static final String unescapeMultipleCharacters(CharSequence str, CharMatcher shouldEscape) {
+    public static final String unescapeMultipleCharacters(@Nullable CharSequence str, @Nonnull CharMatcher shouldEscape) {
 
-        if (str == null) {
-            return null;
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
         }
-        if (str.isEmpty()) {
-            return "";
-        }
+
+        Objects.requireNonNull(shouldEscape, "escape characters");
 
         int len = str.length();
         StringBuilder sb = null;
@@ -119,7 +133,7 @@ public final class StringEscapeUtil {
 
             char c = str.charAt(i);
 
-            if (c != '\\') {
+            if (c != CHAR_ESCAPE_SEQUENCE_START) {
                 if (sb != null) {
                     sb.append(c);
                 }
@@ -136,13 +150,7 @@ public final class StringEscapeUtil {
 
             // found a possible escape
             char possiblyEscaped = str.charAt(i);
-            char literalChar = switch (possiblyEscaped) {
-                case 't' -> '\t';
-                case 'r' -> '\r';
-                case 'n' -> '\n';
-                case 'f' -> '\f';
-                default -> possiblyEscaped;
-            };
+            char literalChar = getLiteralCharacter(possiblyEscaped);
 
             if (shouldEscape.matches(literalChar)) {
                 // one of the
@@ -155,11 +163,9 @@ public final class StringEscapeUtil {
             }
 
             if (sb != null) {
-                // Keep the \, which is different than java properties file which drops a single \ before unknown
-                // characters, for example, \a -> a in java where \a -> \a for us. I'm not sure it really matters, but
-                // that's the way it used to be so we keep it that way until we decide that it makes a difference.
-                // [ajm 23.Mar.2006]
-                sb.append('\\');
+                // Keep the \. This differs from situations like java properties file encodings which drops a single \
+                // before unknown characters -- e.g., \a -> a since "\a" isn't a known escape sequence.
+                sb.append(CHAR_ESCAPE_SEQUENCE_START);
                 sb.append(possiblyEscaped);
             }
 
@@ -172,59 +178,46 @@ public final class StringEscapeUtil {
 
     }
 
-    public static final void unescapeMultipleCharacters(Appendable out, CharSequence str, String escaped) {
+    public static final void unescapeMultipleCharacters(Appendable out, CharSequence str, String escaped)
+        throws IOException {
 
         if (StringUtils.isEmpty(str)) {
             return;
         }
+        Objects.requireNonNull(escaped, "escaped characters");
 
-        try {
+        int len = str.length();
 
-            int len = str.length();
+        for (int i = 0; i < len; i++) {
 
-            for (int i = 0; i < len; i++) {
+            char c = str.charAt(i);
 
-                char c = str.charAt(i);
-
-                if (c != '\\') {
-                    out.append(c);
-                    continue;
-                }
-
-                i++;
-                if (i >= len) {
-                    out.append(c);
-                    continue;
-                }
-
-                // found a possible escape
-                char possiblyEscaped = str.charAt(i);
-                char literalChar = switch (possiblyEscaped) {
-                    case 't' -> '\t';
-                    case 'r' -> '\r';
-                    case 'n' -> '\n';
-                    case 'f' -> '\f';
-                    default -> possiblyEscaped;
-                };
-
-                if (escaped.indexOf(literalChar) >= 0) {
-                    // one of the
-                    out.append(literalChar);
-                    continue;
-                }
-
-                // Keep the \, which is different than java properties file which drops a single \ before unknown
-                // characters, for example, \a -> a in java where \a -> \a for us. I'm not sure it really matters, but
-                // that's the way it used to be so we keep it that way until we decide that it makes a difference.
-                // [ajm 23.Mar.2006]
-                out.append('\\');
-                out.append(possiblyEscaped);
-
+            if (c != CHAR_ESCAPE_SEQUENCE_START) {
+                out.append(c);
+                continue;
             }
 
-        }
-        catch (IOException e) {
-            LOGGER.warn("unescapeMultipleCharacters failed", e);
+            i++;
+            if (i >= len) {
+                out.append(c);
+                continue;
+            }
+
+            // found a possible escape
+            char possiblyEscaped = str.charAt(i);
+            char literalChar = getLiteralCharacter(possiblyEscaped);
+
+            if (escaped.indexOf(literalChar) >= 0) {
+                // one of the
+                out.append(literalChar);
+                continue;
+            }
+
+            // Keep the \. This differs from situations like java properties file encodings which drops a single \
+            // before unknown characters -- e.g., \a -> a since "\a" isn't a known escape sequence.
+            out.append(CHAR_ESCAPE_SEQUENCE_START);
+            out.append(possiblyEscaped);
+
         }
 
     }
@@ -239,8 +232,7 @@ public final class StringEscapeUtil {
     }
 
     public static final UnaryOperator<String> escaper(CharMatcher escapeMatcher) {
-        MultiCharEscapingStringMapper escapeMapper = new MultiCharEscapingStringMapper(escapeMatcher);
-        return (text) -> escapeMultipleCharactersImpl(text, escapeMapper);
+        return text -> escapeMultipleCharactersImpl(text, escapeMapper(escapeMatcher));
     }
 
     public static final StringUtil.CharToStringMapper escapeMapper(CharMatcher escapeMatcher) {
@@ -250,50 +242,25 @@ public final class StringEscapeUtil {
 
     public static final void escapeMultipleCharacters(Appendable out, CharSequence str, CharSequence escape) {
         Objects.requireNonNull(escape, "escape");
-        CharBasedFilteringTextMapper.replace(
-            str, out,
-            new MultiCharEscapingStringMapper(CharMatcher.anyOf(escape))
-        );
+        CharBasedFilteringTextMapper.replace(str, out, escapeMapper(CharMatcher.anyOf(escape)));
     }
 
-    public static final String unescapeChars(CharSequence str, char c) {
-        if (str == null) {
-            return null;
+    public static final String unescapeChars(CharSequence str, char escaped) {
+        return unescapeChars(str, escaped, escaped);
+    }
+
+    public static final String unescapeChars(CharSequence str, char escaped, char unescaped) {
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
         }
-        if (str.isEmpty()) {
-            return "";
-        }
-        return StringUtil.findReplace(str.toString(), "\\" + c, String.valueOf(c));
+        return StringUtil.findReplace(str.toString(), "\\" + escaped, String.valueOf(unescaped));
     }
 
     public static final String escapeChars(CharSequence str, char c) {
-        if (str == null) {
-            return null;
+        if (StringUtils.isEmpty(str)) {
+            return Objects.toString(str, null);
         }
-        if (str.isEmpty()) {
-            return "";
-        }
-        return StringUtil.findReplace(str.toString(), String.valueOf(c), "\\" + c);
-    }
-
-    public static final String getEscapeSequence(char literalChar) {
-        return switch (literalChar) {
-            case '\t' -> "\\t";
-            case '\r' -> "\\r";
-            case '\n' -> "\\n";
-            case '\f' -> "\\f";
-            default -> "\\" + literalChar;
-        };
-    }
-
-    public static final char getLiteralCharacter(char escapedChar) {
-        return switch (escapedChar) {
-            case 't' -> '\t';
-            case 'r' -> '\r';
-            case 'n' -> '\n';
-            case 'f' -> '\f';
-            default -> escapedChar;
-        };
+        return StringUtil.findReplace(str.toString(), String.valueOf(c), STRING_ESCAPE_SEQUENCE_START + c);
     }
 
     private static final String escapeMultipleCharactersImpl(CharSequence str, StringUtil.CharToStringMapper escapeMapper) {

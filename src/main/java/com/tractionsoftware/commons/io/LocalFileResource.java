@@ -40,11 +40,14 @@ public final class LocalFileResource extends FileMetadataBasedFileResource<FileM
         Objects.requireNonNull(file, "File");
         SimpleMutableFileMetadata metadata = SimpleMutableFileMetadata.createFromFileName(file.getName());
         metadata.setURI(file.toURI());
+        metadata.ensureValidFilename();
+        metadata.setResourceType(CommonFileResourceType.OTHER);
         return new LocalFileResource(file, metadata);
     }
 
     public final static LocalFileResource createInstance(File file, FileMetadata metadata) {
         Objects.requireNonNull(file, "File");
+        Objects.requireNonNull(metadata, "FileMetadata");
         return new LocalFileResource(file, metadata);
     }
 

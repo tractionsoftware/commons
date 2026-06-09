@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.lang;
 
 import com.tractionsoftware.commons.util.CollectionsUtil;
-import com.tractionsoftware.commons.util.function.SuppliersUtil;
+import com.tractionsoftware.commons.util.function.SupplierUtil;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +64,7 @@ public final class ObjectUtil {
         @Nonnull
         @Override
         public final String toString() {
-            return SuppliersUtil.safeGet(getString, "?");
+            return SupplierUtil.safeGet(getString, "?");
         }
 
     }
@@ -242,7 +242,7 @@ public final class ObjectUtil {
         if (toString == null) {
             return defaultValue;
         }
-        return new ToStringDynamic(() -> SuppliersUtil.safeGet(toString, defaultValue));
+        return new ToStringDynamic(() -> SupplierUtil.safeGet(toString, defaultValue));
     }
 
     public static void requireInstanceOf(Object value, Class<?> superType) {

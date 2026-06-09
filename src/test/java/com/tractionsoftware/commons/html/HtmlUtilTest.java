@@ -528,4 +528,84 @@ public final class HtmlUtilTest {
         );
     }
 
+    // =====================================================================
+    // getLiteralAppendable
+    // =====================================================================
+
+    @Test
+    public void getLiteralAppendable_nullOut_throwsNPE() {
+        assertThrows(NullPointerException.class, () -> HtmlUtil.getLiteralAppendable(null, null));
+    }
+
+    @Test
+    public void getLiteralAppendable_returnsNonNull() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable result = HtmlUtil.getLiteralAppendable(sb, null);
+        assertNotNull(result);
+    }
+
+    @Test
+    public void getLiteralAppendable_sameInstanceAndZws_returnsSameWrapper() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable first = HtmlUtil.getLiteralAppendable(sb, "\u200B");
+        Appendable second = HtmlUtil.getLiteralAppendable(first, "\u200B");
+        assertSame(first, second);
+    }
+
+    @Test
+    public void getLiteralAppendable_differentZws_returnsNewWrapper() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable first = HtmlUtil.getLiteralAppendable(sb, "\u200B");
+        Appendable second = HtmlUtil.getLiteralAppendable(first, "|");
+        assertNotSame(first, second);
+    }
+
+    @Test
+    public void getLiteralAppendable_encodesHtmlEntities() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable literal = HtmlUtil.getLiteralAppendable(sb, null);
+        literal.append("<script>alert('xss')</script>");
+        String result = sb.toString();
+        assertFalse(result.contains("<script>"), result);
+        assertTrue(result.contains("&lt;"), result);
+        assertTrue(result.contains("&gt;"), result);
+    }
+
+    @Test
+    public void getLiteralAppendable_ampersandEncoded() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable literal = HtmlUtil.getLiteralAppendable(sb, null);
+        literal.append("Tom & Jerry");
+        String result = sb.toString();
+        assertFalse(result.contains(" & "), result);
+        assertTrue(result.contains("&amp;"), result);
+    }
+
+    @Test
+    public void getLiteralAppendable_plainText_passesThrough() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable literal = HtmlUtil.getLiteralAppendable(sb, null);
+        literal.append("Hello World");
+        assertEquals("Hello World", sb.toString());
+    }
+
+    @Test
+    public void getLiteralAppendable_charVariant_encodesSpecialChar() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable literal = HtmlUtil.getLiteralAppendable(sb, null);
+        literal.append('<');
+        assertEquals("&lt;", sb.toString());
+    }
+
+    @Test
+    public void getLiteralAppendable_subSequence_encodesCorrectly() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Appendable literal = HtmlUtil.getLiteralAppendable(sb, null);
+        literal.append("abc<def", 3, 7); // "<def"
+        String result = sb.toString();
+        assertFalse(result.contains("<"), result);
+        assertTrue(result.contains("&lt;"), result);
+    }
+
+
 }

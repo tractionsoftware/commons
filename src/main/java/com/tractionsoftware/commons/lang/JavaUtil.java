@@ -58,7 +58,7 @@ public final class JavaUtil {
      * @param <T>
      *     the type of object that is being supplied.
      */
-    public static final class CleanupTargetWrapper<T extends AutoCloseable> implements Supplier<T>, AutoCloseable {
+    public static final class CleanupTargetWrapper<T extends AutoCloseable> implements Supplier<T>, Resource {
 
         /**
          * Returns a new CleanupTargetWrapper that provides access to the given instance, and which is
@@ -110,6 +110,14 @@ public final class JavaUtil {
             finally {
                 instance = null;
             }
+        }
+
+        @Override
+        public final boolean isOpen() {
+            if (instance == null) {
+                return false;
+            }
+            return true;
         }
 
     }

@@ -29,11 +29,11 @@ import java.util.function.Supplier;
 /**
  * @author Dave Shepperton
  */
-public final class SuppliersUtil {
+public final class SupplierUtil {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SuppliersUtil.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(SupplierUtil.class.getName());
 
-    private SuppliersUtil() {
+    private SupplierUtil() {
     }
 
     /**

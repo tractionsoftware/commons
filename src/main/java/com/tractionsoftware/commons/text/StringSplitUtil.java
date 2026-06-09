@@ -221,7 +221,7 @@ public final class StringSplitUtil {
                     break;
                 case '"':
                 case '\'':
-                    if (parens == 0 && (i <= 0 || list.charAt(i - 1) != '\\') && (quote == 0 || quote == c)) {
+                    if (parens == 0 && (i == 0 || list.charAt(i - 1) != '\\') && (quote == 0 || quote == c)) {
                         skip = !skip;
                         // remember the type of quote
                         quote = c;
@@ -318,10 +318,11 @@ public final class StringSplitUtil {
                     // and we stop either when we've found a char that tells us that
                     // we actually haven't found the separator, or until we go through
                     // the whole separator.
-                    for (int j = 1; !falseAlarm && j < s.length; j++) {
+                    for (int j = 1; j < s.length; j++) {
                         // make sure there's another character before checking
                         if (i + j >= v.length || v[i + j] != s[j]) {
                             falseAlarm = true;
+                            break;
                         }
                     }
 

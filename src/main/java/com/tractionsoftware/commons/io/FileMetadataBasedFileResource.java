@@ -30,7 +30,7 @@ public abstract class FileMetadataBasedFileResource<F extends FileMetadata> impl
 
     protected final F metadata;
 
-    public FileMetadataBasedFileResource(F metadata) {
+    public FileMetadataBasedFileResource(@Nonnull F metadata) {
         Objects.requireNonNull(metadata, "metadata");
         this.metadata = metadata;
     }
@@ -74,7 +74,7 @@ public abstract class FileMetadataBasedFileResource<F extends FileMetadata> impl
     @Nonnull
     @Override
     public FileResourceType getType() {
-        return metadata.getResourceType();
+        return Objects.requireNonNullElse(metadata.getResourceType(), CommonFileResourceType.OTHER);
     }
 
 }

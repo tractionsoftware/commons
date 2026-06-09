@@ -32,12 +32,12 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Dave Shepperton
  */
-public final class ThreadsUtil {
+public final class ThreadUtil {
 
-    private ThreadsUtil() {
+    private ThreadUtil() {
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThreadsUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThreadUtil.class);
 
     private static final class CountDownLatchRunnable implements Runnable {
 
@@ -69,9 +69,10 @@ public final class ThreadsUtil {
                 return true;
             }
             boolean finished = taskThreadComplete.await(timeOut, timeOutUnit);
-            if (!finished) {
-                thread.interrupt();
+            if (finished) {
+                return true;
             }
+            thread.interrupt();
         }
         catch (InterruptedException e) {
             LOGGER.warn("Thread interrupted while waiting for synchronous request completion.", e);

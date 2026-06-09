@@ -1123,19 +1123,31 @@ public final class URLUtil {
         return SCHEME_NAME_HTTP;
     }
 
-    public static final String getHttpBaseUrl(boolean secure, String host, int portNumber, boolean forcePortNumber) {
+    public static final String getHttpBaseUrl(boolean secure, String host, Integer portNumber, boolean forcePortNumber) {
+
+        Objects.requireNonNull(host, "host");
+        if (portNumber != null) {
+            if (portNumber < 0) {
+                throw new IllegalArgumentException(portNumber + " < 0");
+            }
+            if (portNumber > 65535) {
+                throw new IllegalArgumentException(portNumber + " > 65535");
+            }
+        }
+
         StringBuilder ret = new StringBuilder(50);
         String scheme = getHttpSchemeName(secure);
         ret.append(scheme)
             .append(SCHEME_RELATIVE_PREFIX)
             .append(host);
-        if (portNumber < 0 && forcePortNumber) {
-            portNumber = getEffectivePort(scheme);
+
+        Integer usePortNumber = getHttpUrlPortNumber(portNumber, forcePortNumber, scheme);
+        if (usePortNumber != null) {
+            ret.append(SCHEME_QUALIFIER_CHAR).append(usePortNumber);
         }
-        if (forcePortNumber || portNumber != getEffectivePort(scheme)) {
-            ret.append(SCHEME_QUALIFIER_CHAR).append(portNumber);
-        }
+
         return ret.toString();
+
     }
 
     /**
@@ -1469,6 +1481,19 @@ public final class URLUtil {
         }
         // shouldn't happen, we're guarded by isHexit()
         return 0;
+    }
+
+    private static final Integer getHttpUrlPortNumber(Integer requestedPortNumber, boolean forcePortNumber, String scheme) {
+        if (requestedPortNumber == null) {
+            if (forcePortNumber) {
+                return getEffectivePort(scheme);
+            }
+            return null;
+        }
+        if (forcePortNumber || requestedPortNumber != getEffectivePort(scheme)) {
+            return requestedPortNumber;
+        }
+        return null;
     }
 
 }

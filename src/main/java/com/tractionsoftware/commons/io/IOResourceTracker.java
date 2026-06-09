@@ -134,7 +134,7 @@ public abstract class IOResourceTracker<C extends Closeable> implements Resource
 
     @Override
     public final boolean isOpen() {
-        return streams.get().isOpen();
+        return streams.isOpen();
     }
 
     @Override

@@ -25,7 +25,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.util.function.FunctionsUtil;
-import com.tractionsoftware.commons.util.function.PredicatesUtil;
+import com.tractionsoftware.commons.util.function.PredicateUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
@@ -1179,7 +1179,7 @@ public final class CollectionsUtil {
         if (exclude == null) {
             return iter;
         }
-        return filteredIterator(iter, PredicatesUtil.onlyOtherThanThese(exclude));
+        return filteredIterator(iter, PredicateUtil.onlyOtherThanThese(exclude));
     }
 
     /**
@@ -1201,7 +1201,7 @@ public final class CollectionsUtil {
         if (iter == null || isEmpty(include)) {
             return Collections.emptyIterator();
         }
-        return filteredIterator(iter, PredicatesUtil.onlyThese(include));
+        return filteredIterator(iter, PredicateUtil.onlyThese(include));
     }
 
     /**
@@ -1593,8 +1593,8 @@ public final class CollectionsUtil {
             result.addAll(Sets.symmetricDifference((Set<? extends E>) a, (Set<? extends E>) b));
         }
         else {
-            Iterables.addAll(result, Iterables.filter(a, PredicatesUtil.onlyOtherThanThese(b)::test));
-            Iterables.addAll(result, Iterables.filter(b, PredicatesUtil.onlyOtherThanThese(a)::test));
+            Iterables.addAll(result, Iterables.filter(a, PredicateUtil.onlyOtherThanThese(b)::test));
+            Iterables.addAll(result, Iterables.filter(b, PredicateUtil.onlyOtherThanThese(a)::test));
         }
 
     }

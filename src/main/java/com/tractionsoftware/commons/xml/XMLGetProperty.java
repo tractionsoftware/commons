@@ -32,14 +32,14 @@ import java.util.Set;
  * This is a very basic implementation that gets properties by XML tag name.
  *
  * @example <pre>
- *         <xml>
- *         ...
- *         <message>This is a message</message>
- *         ...
+ *             <xml>
+ *             ...
+ *             <message>This is a message</message>
+ *             ...
  *
- *         XMLGetProperty xml = new XMLGetProperty(myXmlDocument);
- *         return getProperty("message"); // "This is a message"
- *         </pre>
+ *             XMLGetProperty xml = new XMLGetProperty(myXmlDocument);
+ *             return getProperty("message"); // "This is a message"
+ *             </pre>
  */
 public class XMLGetProperty implements GetProperty {
 
@@ -62,12 +62,16 @@ public class XMLGetProperty implements GetProperty {
     }
 
     protected final String getNodeValueForTagName(String tagName) {
+        if (tagName == null) {
+            return null;
+        }
         NodeList tags = dom.getElementsByTagName(tagName);
-        if (tags.getLength() > 0) {
-            Node tag = tags.item(0);
-            if (tag.hasChildNodes()) {
-                return tag.getFirstChild().getNodeValue();
-            }
+        if (tags == null || tags.getLength() == 0) {
+            return null;
+        }
+        Node tag = tags.item(0);
+        if (tag.hasChildNodes()) {
+            return tag.getFirstChild().getNodeValue();
         }
         return null;
     }

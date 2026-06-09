@@ -34,7 +34,10 @@ import java.util.function.Predicate;
 /**
  * @author Dave Shepperton
  */
-public final class PredicatesUtil {
+public final class PredicateUtil {
+
+    private PredicateUtil() {
+    }
 
     /**
      * A simple {@link Predicate} implementation whose {@link #test(Object)} method will return true or false if the

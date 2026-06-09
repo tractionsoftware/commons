@@ -20,7 +20,6 @@
 
 package com.tractionsoftware.commons.text;
 
-import com.google.common.base.CharMatcher;
 import com.tractionsoftware.commons.lang.StringUtil;
 import org.junit.jupiter.api.Test;
 
@@ -33,41 +32,39 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CharBasedFilteringTextMapperTest {
 
-    static final CharMatcher DIGIT = CharMatcher.inRange('0', '9');
-
     // ---------------------------------------------------------------------------
     // removeIf
     // ---------------------------------------------------------------------------
 
     @Test
     void removeIf_null_returnsNull() {
-        assertNull(CharBasedFilteringTextMapper.removeIf(DIGIT, null));
+        assertNull(CharBasedFilteringTextMapper.removeIf(StringUtil.MATCHER_ASCII_DIGIT, null));
     }
 
     @Test
     void removeIf_emptyString_returnsEmpty() {
-        assertEquals("", CharBasedFilteringTextMapper.removeIf(DIGIT, ""));
+        assertEquals("", CharBasedFilteringTextMapper.removeIf(StringUtil.MATCHER_ASCII_DIGIT, ""));
     }
 
     @Test
     void removeIf_noMatch_returnsOriginal() {
-        assertEquals("abc", CharBasedFilteringTextMapper.removeIf(DIGIT, "abc"));
+        assertEquals("abc", CharBasedFilteringTextMapper.removeIf(StringUtil.MATCHER_ASCII_DIGIT, "abc"));
     }
 
     @Test
     void removeIf_allMatch_returnsEmpty() {
-        assertEquals("", CharBasedFilteringTextMapper.removeIf(DIGIT, "123"));
+        assertEquals("", CharBasedFilteringTextMapper.removeIf(StringUtil.MATCHER_ASCII_DIGIT, "123"));
     }
 
     @Test
     void removeIf_someMatch_removesMatches() {
-        assertEquals("abc", CharBasedFilteringTextMapper.removeIf(DIGIT, "a1b2c"));
+        assertEquals("abc", CharBasedFilteringTextMapper.removeIf(StringUtil.MATCHER_ASCII_DIGIT, "a1b2c"));
     }
 
     @Test
     void removeIf_toStringBuilder_appendsFiltered() {
         StringBuilder sb = new StringBuilder("pre:");
-        CharBasedFilteringTextMapper.removeIf("a1b2c", sb, DIGIT);
+        CharBasedFilteringTextMapper.removeIf("a1b2c", sb, StringUtil.MATCHER_ASCII_DIGIT);
         assertEquals("pre:abc", sb.toString());
     }
 
@@ -75,7 +72,7 @@ class CharBasedFilteringTextMapperTest {
     void removeIf_toPrintWriter_writesFiltered() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        CharBasedFilteringTextMapper.removeIf("a1b2c", pw, DIGIT);
+        CharBasedFilteringTextMapper.removeIf("a1b2c", pw, StringUtil.MATCHER_ASCII_DIGIT);
         pw.flush();
         assertEquals("abc", sw.toString());
     }
@@ -83,7 +80,7 @@ class CharBasedFilteringTextMapperTest {
     @Test
     void removeIf_fromReader_writesFiltered() throws IOException {
         StringWriter sw = new StringWriter();
-        CharBasedFilteringTextMapper.removeIf(new StringReader("a1b2c"), sw, DIGIT);
+        CharBasedFilteringTextMapper.removeIf(new StringReader("a1b2c"), sw, StringUtil.MATCHER_ASCII_DIGIT);
         assertEquals("abc", sw.toString());
     }
 
@@ -93,33 +90,33 @@ class CharBasedFilteringTextMapperTest {
 
     @Test
     void retainIf_null_returnsNull() {
-        assertNull(CharBasedFilteringTextMapper.retainIf(null, DIGIT));
+        assertNull(CharBasedFilteringTextMapper.retainIf(null, StringUtil.MATCHER_ASCII_DIGIT));
     }
 
     @Test
     void retainIf_emptyString_returnsEmpty() {
-        assertEquals("", CharBasedFilteringTextMapper.retainIf("", DIGIT));
+        assertEquals("", CharBasedFilteringTextMapper.retainIf("", StringUtil.MATCHER_ASCII_DIGIT));
     }
 
     @Test
     void retainIf_noMatch_returnsEmpty() {
-        assertEquals("", CharBasedFilteringTextMapper.retainIf("abc", DIGIT));
+        assertEquals("", CharBasedFilteringTextMapper.retainIf("abc", StringUtil.MATCHER_ASCII_DIGIT));
     }
 
     @Test
     void retainIf_allMatch_returnsOriginal() {
-        assertEquals("123", CharBasedFilteringTextMapper.retainIf("123", DIGIT));
+        assertEquals("123", CharBasedFilteringTextMapper.retainIf("123", StringUtil.MATCHER_ASCII_DIGIT));
     }
 
     @Test
     void retainIf_someMatch_retainsMatches() {
-        assertEquals("12", CharBasedFilteringTextMapper.retainIf("a1b2c", DIGIT));
+        assertEquals("12", CharBasedFilteringTextMapper.retainIf("a1b2c", StringUtil.MATCHER_ASCII_DIGIT));
     }
 
     @Test
     void retainIf_toStringBuilder_appendsRetained() {
         StringBuilder sb = new StringBuilder();
-        CharBasedFilteringTextMapper.retainIf("a1b2c", sb, DIGIT);
+        CharBasedFilteringTextMapper.retainIf("a1b2c", sb, StringUtil.MATCHER_ASCII_DIGIT);
         assertEquals("12", sb.toString());
     }
 
@@ -127,7 +124,7 @@ class CharBasedFilteringTextMapperTest {
     void retainIf_toPrintWriter_writesRetained() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        CharBasedFilteringTextMapper.retainIf("a1b2c", pw, DIGIT);
+        CharBasedFilteringTextMapper.retainIf("a1b2c", pw, StringUtil.MATCHER_ASCII_DIGIT);
         pw.flush();
         assertEquals("12", sw.toString());
     }
@@ -135,7 +132,7 @@ class CharBasedFilteringTextMapperTest {
     @Test
     void retainIf_fromReader_writesRetained() throws IOException {
         StringWriter sw = new StringWriter();
-        CharBasedFilteringTextMapper.retainIf(new StringReader("a1b2c"), sw, DIGIT);
+        CharBasedFilteringTextMapper.retainIf(new StringReader("a1b2c"), sw, StringUtil.MATCHER_ASCII_DIGIT);
         assertEquals("12", sw.toString());
     }
 
@@ -145,7 +142,7 @@ class CharBasedFilteringTextMapperTest {
 
     @Test
     void replaceCharMapper_null_returnsNull() {
-        assertNull(CharBasedFilteringTextMapper.replace((CharSequence) null, (StringUtil.CharMapper) c -> c));
+        assertNull(CharBasedFilteringTextMapper.replace(null, (StringUtil.CharMapper) c -> c));
     }
 
     @Test
@@ -202,18 +199,18 @@ class CharBasedFilteringTextMapperTest {
 
     @Test
     void replaceCharToStringMapper_null_returnsNull() {
-        assertNull(CharBasedFilteringTextMapper.replace((CharSequence) null, (StringUtil.CharToStringMapper) c -> null));
+        assertNull(CharBasedFilteringTextMapper.replace(null, (StringUtil.CharToStringMapper) _ -> null));
     }
 
     @Test
     void replaceCharToStringMapper_emptyString_returnsEmpty() {
-        assertEquals("", CharBasedFilteringTextMapper.replace("", (StringUtil.CharToStringMapper) c -> null));
+        assertEquals("", CharBasedFilteringTextMapper.replace("", (StringUtil.CharToStringMapper) _ -> null));
     }
 
     @Test
     void replaceCharToStringMapper_nullMeansKeep() {
         // null return → keep original char
-        String result = CharBasedFilteringTextMapper.replace("abc", (StringUtil.CharToStringMapper) c -> null);
+        String result = CharBasedFilteringTextMapper.replace("abc", (StringUtil.CharToStringMapper) _ -> null);
         assertEquals("abc", result);
     }
 
@@ -265,14 +262,14 @@ class CharBasedFilteringTextMapperTest {
 
     @Test
     void createRemovingTransformer_removesMatchingChars() {
-        TextTransformer t = CharBasedFilteringTextMapper.createRemovingTransformer(DIGIT);
+        TextTransformer t = CharBasedFilteringTextMapper.createRemovingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
         CharSequence result = t.transform("a1b2c");
         assertEquals("abc", result.toString());
     }
 
     @Test
     void createRetainingTransformer_retainsMatchingChars() {
-        TextTransformer t = CharBasedFilteringTextMapper.createRetainingTransformer(DIGIT);
+        TextTransformer t = CharBasedFilteringTextMapper.createRetainingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
         CharSequence result = t.transform("a1b2c");
         assertEquals("12", result.toString());
     }

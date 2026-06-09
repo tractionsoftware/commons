@@ -24,6 +24,7 @@ import com.tractionsoftware.heif.HeicMetaReader;
 import com.tractionsoftware.heif.entity.ImageSimpleMeta;
 import com.tractionsoftware.commons.util.Dimensions;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -39,6 +40,11 @@ public final class HEIFUtil {
 
     public static final Dimensions<Integer> getDimensions(InputStream input) throws IOException {
         ImageSimpleMeta meta = HeicMetaReader.readMetadata(input);
+        return Dimensions.getInstanceInPixels(meta.getWidth(), meta.getHeight());
+    }
+
+    public static final Dimensions<Integer> getDimensions(File file) throws IOException {
+        ImageSimpleMeta meta = HeicMetaReader.readMetadata(file);
         return Dimensions.getInstanceInPixels(meta.getWidth(), meta.getHeight());
     }
 

@@ -89,6 +89,8 @@ public final class StringUtil {
 
     public static final Joiner JOINER_BACKSLASH = Joiner.on("\\").skipNulls();
 
+    public static final CharMatcher MATCHER_ASCII_DIGIT = CharMatcher.inRange('0', '9');
+
     private static final Random random = new SecureRandom();
 
     /**
@@ -875,18 +877,11 @@ public final class StringUtil {
         return new TruncatedToString(object, maxLength, ellipses);
     }
 
-    public static String findReplace(String str, String find, String replace) {
+    public static final String findReplace(String str, String find, String replace) {
         if (Objects.equals(find, replace)) {
             return str;
         }
         return Strings.CS.replace(str, find, replace);
-    }
-
-    public static boolean isAsciiDigit(char c) {
-        return switch (c) {
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> true;
-            default -> false;
-        };
     }
 
     public static boolean isNonNegativeNumber(String str) {
@@ -895,7 +890,7 @@ public final class StringUtil {
         }
         int len = str.length();
         for (int i = 0; i < len; i++) {
-            if (!isAsciiDigit(str.charAt(i))) {
+            if (!MATCHER_ASCII_DIGIT.matches(str.charAt(i))) {
                 return false;
             }
         }

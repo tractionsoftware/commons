@@ -29,6 +29,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Dave Shepperton
@@ -263,4 +267,180 @@ public final class MailUtilTest {
         );
     }
 
+
+    // =====================================================================
+    // createEmailHeadersFromRawLines
+    // =====================================================================
+
+    @Test
+    void createEmailHeadersFromRawLines_singleHeader() {
+        var headers = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Hello World"));
+        assertNotNull(headers);
+        var subjects = headers.getHeaders("Subject");
+        assertFalse(subjects.isEmpty(), "expected Subject header");
+        assertEquals("Hello World", subjects.getFirst().trim());
+    }
+
+    @Test
+    void createEmailHeadersFromRawLines_multipleHeaders() {
+        var lines = List.of("From: alice@example.com", "To: bob@example.com", "Subject: Test");
+        var headers = MailUtil.createEmailHeadersFromRawLines(lines);
+        assertNotNull(headers.getHeaders("From"));
+        assertNotNull(headers.getHeaders("To"));
+        assertNotNull(headers.getHeaders("Subject"));
+    }
+
+    @Test
+    void createEmailHeadersFromRawLines_emptyList_noHeaders() {
+        var headers = MailUtil.createEmailHeadersFromRawLines(List.of());
+        assertNotNull(headers);
+    }
+
+    // =====================================================================
+    // cvtHeaderLineFromRfc2047
+    // =====================================================================
+
+    @Test
+    void cvtHeaderLineFromRfc2047_plainText_unchanged() {
+        String plain = "Subject: Plain subject";
+        assertEquals(plain, MailUtil.cvtHeaderLineFromRfc2047(plain));
+    }
+
+    @Test
+    void cvtHeaderLineFromRfc2047_encodedSubjectHeader_decoded() {
+        // RFC 2047 encoded "Hello" in UTF-8 base64
+        String encoded = "Subject: =?UTF-8?B?SGVsbG8=?=";
+        String result = MailUtil.cvtHeaderLineFromRfc2047(encoded);
+        assertEquals("Subject: Hello", result);
+    }
+
+    @Test
+    void cvtHeaderLineFromRfc2047_encodedContentDescriptionHeader_decoded() {
+        // RFC 2047 encoded "Hello" in UTF-8 base64
+        String encoded = "Content-Description: =?UTF-8?B?SGVsbG8=?=";
+        String result = MailUtil.cvtHeaderLineFromRfc2047(encoded);
+        assertEquals("Content-Description: Hello", result);
+    }
+
+    @Test
+    void cvtHeaderLineFromRfc2047_encodedOtherHeader_notDecoded() {
+        String encoded = "X-Foo: Bar";
+        String result = MailUtil.cvtHeaderLineFromRfc2047(encoded);
+        assertEquals(encoded, result);
+    }
+
+    @Test
+    void cvtHeaderLineFromRfc2047_null_returnsNull() {
+        assertNull(MailUtil.cvtHeaderLineFromRfc2047(null));
+    }
+
+    // =====================================================================
+    // parseFromAddressWithOptionalFriendlyName
+    // =====================================================================
+
+    @Test
+    void parseFromAddress_addressOnly() {
+        var result = MailUtil.parseFromAddressWithOptionalFriendlyName("alice@example.com");
+        assertEquals("alice@example.com", result.getAddress());
+        assertNull(result.getFriendlyName());
+    }
+
+    @Test
+    void parseFromAddress_friendlyNameAndAddress() {
+        var result = MailUtil.parseFromAddressWithOptionalFriendlyName("\"Alice Smith\" <alice@example.com>");
+        assertEquals("alice@example.com", result.getAddress());
+        assertEquals("Alice Smith", result.getFriendlyName());
+    }
+
+    @Test
+    void parseFromAddress_unquotedFriendlyName() {
+        var result = MailUtil.parseFromAddressWithOptionalFriendlyName("Bob Jones <bob@example.com>");
+        assertEquals("bob@example.com", result.getAddress());
+        assertEquals("Bob Jones", result.getFriendlyName());
+    }
+
+    @Test
+    void parseFromAddress_null_emptyAddressNullFriendly() {
+        var result = MailUtil.parseFromAddressWithOptionalFriendlyName(null);
+        assertNotNull(result);
+        assertEquals("", result.getAddress());
+        assertNull(result.getFriendlyName());
+    }
+
+    // =====================================================================
+    // getRawAddressFromFriendlyEncoding / getFriendlyNameFromFriendlyEncoding
+    // =====================================================================
+
+    @Test
+    void getRawAddress_fromFriendlyEncoding_addressOnly() {
+        assertEquals("alice@example.com",
+            MailUtil.getRawAddressFromFriendlyEncoding("alice@example.com"));
+    }
+
+    @Test
+    void getRawAddress_fromFriendlyEncoding_withAngleBrackets() {
+        assertEquals("alice@example.com",
+            MailUtil.getRawAddressFromFriendlyEncoding("Alice <alice@example.com>"));
+    }
+
+    @Test
+    void getRawAddress_blank_returnsEmpty() {
+        assertEquals("", MailUtil.getRawAddressFromFriendlyEncoding(""));
+        assertEquals("", MailUtil.getRawAddressFromFriendlyEncoding(null));
+    }
+
+    @Test
+    void getFriendlyName_noDelimiter_returnsEmpty() {
+        assertEquals("", MailUtil.getFriendlyNameFromFriendlyEncoding("alice@example.com"));
+    }
+
+    @Test
+    void getFriendlyName_withAngleBracket_returnsName() {
+        String result = MailUtil.getFriendlyNameFromFriendlyEncoding("\"Bob\" <bob@example.com>");
+        assertEquals("Bob", result);
+    }
+
+    // =====================================================================
+    // makeFriendlyNameAddress
+    // =====================================================================
+
+    @Test
+    void makeFriendlyNameAddress_addressOnly_returnsAddress() {
+        assertEquals("alice@example.com",
+            MailUtil.makeFriendlyNameAddress("alice@example.com", null));
+    }
+
+    @Test
+    void makeFriendlyNameAddress_withName_formatsCorrectly() {
+        String result = MailUtil.makeFriendlyNameAddress("alice@example.com", "Alice Smith");
+        assertNotNull(result);
+        assertTrue(result.contains("Alice Smith"), result);
+        assertTrue(result.contains("alice@example.com"), result);
+        assertTrue(result.contains("<") && result.contains(">"), result);
+    }
+
+    @Test
+    void makeFriendlyNameAddress_blankAddress_returnsNull() {
+        assertNull(MailUtil.makeFriendlyNameAddress("   ", "Name"));
+    }
+
+    // =====================================================================
+    // headerLineToHeader / encodedHeaderLineToHeader
+    // =====================================================================
+
+    @Test
+    void headerLineToHeader_validLine() {
+        var header = MailUtil.headerLineToHeader("Content-Type: text/html; charset=utf-8");
+        assertNotNull(header);
+        assertEquals("Content-Type", header.getName());
+        assertTrue(header.getValue().contains("text/html"), header.getValue());
+    }
+
+    @Test
+    void headerLineToHeader_noDelimiter_returnsInvalidHeader() {
+        // No ':' → falls back to invalidHeaderLineToHeader
+        var header = MailUtil.headerLineToHeader("NoDelimiterHere");
+        assertNotNull(header);
+        assertEquals("", header.getName());
+    }
 }

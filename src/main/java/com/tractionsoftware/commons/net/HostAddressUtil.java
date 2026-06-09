@@ -23,7 +23,7 @@ package com.tractionsoftware.commons.net;
 import com.google.common.net.InetAddresses;
 import com.tractionsoftware.commons.lang.EnumUtil;
 import com.tractionsoftware.commons.util.CollectionsUtil;
-import com.tractionsoftware.commons.util.function.PredicatesUtil;
+import com.tractionsoftware.commons.util.function.PredicateUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
@@ -558,7 +558,7 @@ public final class HostAddressUtil {
         for (String filterSpec : filterSpecs) {
             CollectionsUtil.addIfNotNull(getIPAddressFilter(filterSpec), all);
         }
-        return PredicatesUtil.or(all);
+        return PredicateUtil.or(all);
     }
 
     /**

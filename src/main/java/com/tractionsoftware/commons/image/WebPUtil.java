@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
 
 /**
  * Helpers for the WebP format.
@@ -60,28 +59,35 @@ public final class WebPUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebPUtil.class);
 
+    private static final int LENGTH_UINT32 = 4;
+
+    private static final int HEADER_LENGTH_WEBP = 8;
+
+    private static final byte[] HEADER_RIFF = new byte[] { 'R', 'I', 'F', 'F' };
+
+    private static final byte[] HEADER_WEBP = new byte[] { 'W', 'E', 'B', 'P' };
+
+    private static final byte[] HEADER_VP8 = new byte[] { 'V', 'P', '8' };
+
+    private static final int HEADER_VP8_OFFSET = 4;
+
     public static final Dimensions<Integer> getDimensions(InputStream input) throws IOException {
 
         // "RIFF" block plus file size block
         byte[] data = input.readNBytes(8);
-        if (data[0] != 'R' || data[1] != 'I' || data[2] != 'F' || data[3] != 'F') {
-            throw new IOException("Missing RIFF header.");
-        }
+
+        checkSufficientBytesX("WebP header", HEADER_LENGTH_WEBP, data.length);
+        checkRequiredBytesX("RIFF header", HEADER_RIFF, data);
 
         // "WEBP" block plus "VP8*" block
         data = input.readNBytes(8);
-        if (data[0] != 'W' || data[1] != 'E' || data[2] != 'B' || data[3] != 'P') {
-            throw new IOException("Missing WEBP header.");
-        }
-
-        if (data[4] != 'V' || data[5] != 'P' || data[6] != '8') {
-            throw new IOException("Missing VP8 header.");
-        }
+        checkSufficientBytesX("WEBP/VP8 header", HEADER_LENGTH_WEBP, data.length);
+        checkRequiredBytesX("WEBP header", HEADER_WEBP, data);
+        checkRequiredBytesX("WEBP header", HEADER_VP8, data, HEADER_VP8_OFFSET);
 
         Format format = getFormat((char) data[7]);
 
-        int chunkSize = getUInt32(input.readNBytes(4), 0);
-
+        int chunkSize = getUInt32("Chunk size", input.readNBytes(LENGTH_UINT32), 0);
         Metadata metadata = format.readMetadata(input, chunkSize);
         Dimensions<Integer> result = metadata.getDimensions();
         if (LOGGER.isDebugEnabled()) {
@@ -91,15 +97,15 @@ public final class WebPUtil {
 
     }
 
-    static final class Metadata {
+    public static final class Metadata {
 
         private final Format format;
 
         private final Dimensions<Integer> dimensions;
 
-        private final Map<String,Object> otherAttributes;
+        private final ImmutableMap<String,Object> otherAttributes;
 
-        private Metadata(Format format, Dimensions<Integer> dimensions, Map<String,Object> otherAttributes) {
+        private Metadata(Format format, Dimensions<Integer> dimensions, ImmutableMap<String,Object> otherAttributes) {
             this.format = format;
             this.dimensions = dimensions;
             this.otherAttributes = otherAttributes;
@@ -111,6 +117,10 @@ public final class WebPUtil {
 
         public final Dimensions<Integer> getDimensions() {
             return dimensions;
+        }
+
+        public final ImmutableMap<String,Object> getOtherAttributes() {
+            return otherAttributes;
         }
 
     }
@@ -145,7 +155,7 @@ public final class WebPUtil {
      * {@link Format#readMetadata(InputStream, int)}, so implementations should assume that those 20 bytes have already
      * been read from the {@link InputStream}.
      */
-    static abstract class Format {
+    public static abstract class Format {
 
         public String toString() {
             return getName();
@@ -171,8 +181,23 @@ public final class WebPUtil {
          * @param input
          *     an {@link InputStream} that contains the data, which will have been advanced past the first 20 bytes, so
          *     that the next byte that will be read is byte 20 (0-indexed, or byte 21 1-indexed).
+         * @return the {@link Metadata} for the input interpreted according to this format's specification.
+         * @throws IOException
+         *     if there is a problem reading from the {@link InputStream} or if the data are not compatible with this
+         *     format.
+         */
+        public final Metadata readMetadata(InputStream input) throws IOException {
+            return readMetadata(input, -1);
+        }
+
+        /**
+         * Reads the metadata for a stream of data that is encoded in this format.
+         *
+         * @param input
+         *     an {@link InputStream} that contains the data, which will have been advanced past the first 20 bytes, so
+         *     that the next byte that will be read is byte 20 (0-indexed, or byte 21 1-indexed).
          * @param chunkSize
-         *     the chunk size read from the header.
+         *     the chunk size read from the header, if any; -1 otherwise.
          * @return the {@link Metadata} for the input interpreted according to this format's specification.
          * @throws IOException
          *     if there is a problem reading from the {@link InputStream} or if the data are not compatible with this
@@ -211,6 +236,10 @@ public final class WebPUtil {
      */
     static final Format LOSSY = new Format() {
 
+        private static final int HEADER_LENGTH = 10;
+
+        private static final byte[] START_CODE_BYTES = new byte[] { (byte) 0x9D, 0x01, 0x2A };
+
         private static final int getWebPWidthFieldVP8Lossy(byte[] data) {
             return getDimensionFieldVPC8KeyFrame(data, 6);
         }
@@ -220,7 +249,7 @@ public final class WebPUtil {
         }
 
         private static final int getDimensionFieldVPC8KeyFrame(byte[] data, int index) {
-            return data[index] & 0x3F | (data[index + 1] & 0xFF) << 8;
+            return (data[index + 1] & 0xFF) | ((data[index] & 0x3F) << 8);
         }
 
         @Override
@@ -236,17 +265,18 @@ public final class WebPUtil {
         @Override
         public final Metadata readMetadata(InputStream input, int chunkSize) throws IOException {
 
-            byte[] data = input.readNBytes(10);
-
-            if (getUInt8(data, 3) != 0x9D || getUInt8(data, 4) != 0x01 || getUInt8(data, 5) != 0x2A) {
-                throw new IOException("Missing WebP lossy format start code bytes.");
+            if (chunkSize >= 0) {
+                checkSufficientBytesX("WebP lossy format header", HEADER_LENGTH, chunkSize);
             }
+
+            byte[] data = input.readNBytes(HEADER_LENGTH);
+
+            checkSufficientBytesX("WebP lossy format header", HEADER_LENGTH, data.length);
+            checkRequiredBytesX("WebP lossy format start code bytes", START_CODE_BYTES, data, 3);
 
             int width = getWebPWidthFieldVP8Lossy(data);
             int height = getWebPHeightFieldVP8Lossy(data);
-            Dimensions<Integer> dimensions = Dimensions.getInstanceInPixels(
-                width, height
-            );
+            Dimensions<Integer> dimensions = Dimensions.getInstanceInPixels(width, height);
 
             return new Metadata(this, dimensions, ImmutableMap.of());
 
@@ -335,14 +365,16 @@ public final class WebPUtil {
      */
     static final Format EXTENDED = new Format() {
 
-        private static final int getWebPWidthFieldVP8Extended(byte[] data) {
+        private static final int CHUNK_SIZE_METADATA = 6;
+
+        private static final int getWebPWidthFieldVP8Extended(byte[] data) throws IOException {
             // byte 4 in the chunk is where the width field starts
-            return getUInt24(data, 4);
+            return getUInt24("WebP width field (VP8 extended)", data, 4);
         }
 
-        private static final int getWebPHeightFieldVP8Extended(byte[] data) {
+        private static final int getWebPHeightFieldVP8Extended(byte[] data) throws IOException {
             // byte 7 in the chunk is where the height field starts
-            return getUInt24(data, 7);
+            return getUInt24("WebP height field (VP8 extended)", data, 7);
         }
 
         @Override
@@ -357,10 +389,11 @@ public final class WebPUtil {
 
         @Override
         public final Metadata readMetadata(InputStream input, int chunkSize) throws IOException {
-            if (chunkSize < 6) {
-                throw new IOException("WebP extended format metadata chunk size " + chunkSize + " is too small.");
+            if (chunkSize >= 0) {
+                checkSufficientBytesX("WebP extended format metadata", CHUNK_SIZE_METADATA, chunkSize);
             }
             byte[] data = input.readNBytes(chunkSize);
+            checkSufficientBytesX("WebP extended format metadata", CHUNK_SIZE_METADATA, data.length);
             int width = 1 + getWebPWidthFieldVP8Extended(data);
             int height = 1 + getWebPHeightFieldVP8Extended(data);
             if (((long) width) * ((long) height) >= 0x100000000L) {
@@ -384,17 +417,26 @@ public final class WebPUtil {
         };
     }
 
-    private static final short getUInt8(byte[] data, int index) {
+    private static final short getUInt8(String desc, byte[] data, int index) throws IOException {
+        if (data.length < index) {
+            throw new IOException(String.format("Insufficient data for %s.", desc));
+        }
         return (short) (data[index] & 0xFF);
     }
 
-    private static final int getUInt24(byte[] data, int index) {
-        return (((int) data[index + 2]) << 16 & 0xFF0000) |
-               (((int) data[index + 1]) << 8 & 0xFF00) |
-               (((int) data[index]) & 0xFF);
+    private static final int getUInt24(String desc, byte[] data, int offset) throws IOException {
+        if (data.length < offset + 2) {
+            throw new IOException(String.format("Insufficient data for %s.", desc));
+        }
+        return (((int) data[offset + 2]) << 16 & 0xFF0000) |
+               (((int) data[offset + 1]) << 8 & 0xFF00) |
+               (((int) data[offset]) & 0xFF);
     }
 
-    private static final int getUInt32(byte[] data, int index) {
+    private static final int getUInt32(String desc, byte[] data, int index) throws IOException {
+        if (data.length < index + 3) {
+            throw new IOException(String.format("Insufficient data for %s.", desc));
+        }
         return (((int) data[index + 3]) << 24 & 0xFF000000) |
                (((int) data[index + 2]) << 16 & 0xFF0000) |
                (((int) data[index + 1]) << 8 & 0xFF00) |
@@ -410,6 +452,30 @@ public final class WebPUtil {
             return v << lShift;
         }
         return v >> -lShift;
+    }
+
+    private static final void checkSufficientBytesX(String desc, int requiredLength, int actualLength)
+        throws IOException {
+        if (actualLength < requiredLength) {
+            throw new IOException(
+                String.format("Insufficient bytes for %s (%d < %d).", desc, actualLength, requiredLength)
+            );
+        }
+    }
+
+    private static final void checkRequiredBytesX(String desc, byte[] requiredData, byte[] actualData)
+        throws IOException {
+        checkRequiredBytesX(desc, requiredData, actualData, 0);
+    }
+
+    private static final void checkRequiredBytesX(String desc, byte[] requiredData, byte[] actualData, int offset)
+        throws IOException {
+        int len = requiredData.length;
+        for (int i = 0; i < len; i++) {
+            if (requiredData[i] != actualData[i + offset]) {
+                throw new IOException(String.format("Missing/invalid %s.", desc));
+            }
+        }
     }
 
 }

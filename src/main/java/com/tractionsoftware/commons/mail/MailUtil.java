@@ -786,7 +786,6 @@ public final class MailUtil {
     public static final String cvtHeaderLineFromRfc2047(String headerLine) {
         try {
             if (headerLineRequiresRfc2047Decoding(headerLine)) {
-                // See akj1233 [rmf 06.Apr.2004]
                 return MimeUtility.decodeText(headerLine);
             }
         }
