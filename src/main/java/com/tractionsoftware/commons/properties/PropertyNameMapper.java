@@ -20,78 +20,65 @@
 
 package com.tractionsoftware.commons.properties;
 
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
+
 /**
- * PropertyNameTransformer represents a transformation applied to
- * property names on read or write in order to provide a mapping from
- * a requested property name to an "internal" property name, as well
- * as the inverse mapping.
+ * PropertyNameTransformer represents a transformation applied to property names on read or write in order to provide a
+ * mapping from a requested property name to an "internal" property name, as well as the inverse mapping.
  *
  * @author Dave Shepperton
  */
 public interface PropertyNameMapper {
 
     /**
-     * Returns the "internal" name to be used to read a property
-     * reading operation. {@link #getPublishedName(String)} is
-     * effectively the inverse.
+     * Returns the "actual" name for a given property name. This would be the name that would be used by a
+     * {@link GetProperty} or {@link PutProperty} implementation for retrieving and setting properties in the underlying
+     * store. {@link #getPublishedName(String)} is effectively the inverse of this method.
      *
      * @param requestedName
-     *            the name that was supplied from the client.
-     * @return the name to be used for a given property reading
-     *         operation corresponding to the given requested name, if
-     *         any; null otherwise.
+     *     the name that was supplied from the client.
+     * @return the "actual" name for a given property name to be used to for property reading and writing on the store.
      */
-    public String getPropertyName(String requestedName);
+    public String getActualPropertyName(String requestedName);
 
     /**
-     * Returns the name to be "published" for a given property name --
-     * i.e., the name that the client should supply. This effectively
-     * the inverse of {@link #getPropertyName(String)}.
+     * Returns the "published" name for a given property name. This would be the name that would be included in the
+     * names in {@link GetProperty#getPropertyNames()}, and which the client should supply as the name to methods such
+     * as {@link GetProperty#getProperty(String)} and {@link PutProperty#putProperty(String, String)} This effectively
+     * the inverse of {@link #getActualPropertyName(String)}.
      *
      * @param propertyName
-     *            the "internal" name of the property.
-     * @return the name to be "published" for a given property name --
-     *         i.e., the name that the client should supply.
+     *     the "internal" name of the property.
+     * @return the "published" name for a given property name.
      */
     public String getPublishedName(String propertyName);
 
     /**
-     * This method should return true only if this PropertyNameMapper
-     * is definitely the inverse of the other PropertyNameMapper.
-     * There's not always going to be a definite answer to this.
+     * Returns true if this PropertyNameMapper is definitely the inverse of the given other PropertyNameMapper.
      *
      * @param otherNameMapper
-     *            the other PropertyNameMapper.
-     * @return true if this PropertyNameMapper is definitely the
-     *         inverse of the other PropertyNameMapper; false
-     *         otherwise.
+     *     the other PropertyNameMapper.
+     * @return true if this PropertyNameMapper is definitely the inverse of the given other PropertyNameMapper; false
+     *     otherwise.
      */
     public boolean isInverseOf(PropertyNameMapper otherNameMapper);
 
     /**
-     * Returns a PropertyNameMapper that represents the combination
-     * this PropertyNameMapper and the other PropertyNameMapper.
+     * Returns a PropertyNameMapper that represents the composition of the this instance with the other instance. The
+     * effect is that this mapping will be applied before the other instance's mapping.
      *
      * <p>
-     * This implementation uses
-     * {@link SimpleCombinedPropertyNameMapper}. It also gracefully
-     * handles a null argument by returning this PropertyNameMapper
-     * instance itself. Subclasses that can more intelligently combine
-     * themselves with other instances (especially with other
-     * instances of the same class) should override it.
+     * This implementation uses {@link MultiPropertyNameMapper#getCombined(PropertyNameMapper...)}. Subclasses that can
+     * more intelligently wrap other instances (especially with other instances of the same class) should override it.
      *
      * @param otherNameMapper
-     *            the PropertyNameMapper with which to combine this
-     *            one.
-     * @return a PropertyNameMapper that represents the combination
-     *         this PropertyNameMapper and the other
-     *         PropertyNameMapper.
+     *     the PropertyNameMapper to be composed with this instance.
+     * @return a PropertyNameMapper that represents the composition of the this instance with the other instance.
      */
-    public default PropertyNameMapper combine(PropertyNameMapper otherNameMapper) {
-        if (otherNameMapper == null) {
-            return this;
-        }
-        return new SimpleCombinedPropertyNameMapper(this, otherNameMapper);
+    @Nonnull
+    public default PropertyNameMapper compose(@Nullable PropertyNameMapper otherNameMapper) {
+        return MultiPropertyNameMapper.getCombined(this, otherNameMapper);
     }
 
 }

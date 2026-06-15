@@ -24,7 +24,7 @@ import com.google.common.collect.*;
 import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.lang.JavaUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ObjectUtils;
@@ -101,7 +101,7 @@ public final class MediaTypeUtil {
         @Override
         public final SequencedSet<String> getFileExtensions(@Nullable MediaType contentType) {
             if (contentType == null) {
-                return CollectionsUtil.emptySequencedSet();
+                return CollectionUtil.emptySequencedSet();
             }
             SequencedSet<String> extensions = type2extensions.get(contentType);
             if (extensions == null) {
@@ -110,9 +110,9 @@ public final class MediaTypeUtil {
                 }
             }
             if (extensions == null) {
-                return CollectionsUtil.emptySequencedSet();
+                return CollectionUtil.emptySequencedSet();
             }
-            return CollectionsUtil.unmodifiableSequencedSet(extensions);
+            return CollectionUtil.unmodifiableSequencedSet(extensions);
         }
 
         @Nullable
@@ -122,17 +122,17 @@ public final class MediaTypeUtil {
             if (StringUtils.isBlank(extension)) {
                 return null;
             }
-            return CollectionsUtil.firstOrDefault(extension2types.get(extension.toLowerCase()), null);
+            return CollectionUtil.firstOrDefault(extension2types.get(extension.toLowerCase()), null);
         }
 
         @Nonnull
         @Override
         public final SequencedSet<MediaType> getContentTypes(@Nullable String extension) {
             if (extension == null) {
-                return CollectionsUtil.emptySequencedSet();
+                return CollectionUtil.emptySequencedSet();
             }
             return Objects.requireNonNullElseGet(
-                extension2types.get(extension.toLowerCase()), CollectionsUtil::emptySequencedSet
+                extension2types.get(extension.toLowerCase()), CollectionUtil::emptySequencedSet
             );
         }
 
@@ -278,7 +278,7 @@ public final class MediaTypeUtil {
             MediaType.MD_UTF_8, "md", type2extensions, extension2types
         );
         type2extensions.put(
-            MediaType.CSV_UTF_8.withoutParameters(), CollectionsUtil.singletonOrEmptySequencedSet("csv")
+            MediaType.CSV_UTF_8.withoutParameters(), CollectionUtil.singletonOrEmptySequencedSet("csv")
         );
         addFallbackContentTypeSingletonMapping(
             MediaType.GIF.withoutParameters(), "gif", type2extensions, extension2types
@@ -290,13 +290,13 @@ public final class MediaTypeUtil {
             MediaType.PDF.withoutParameters(), "pdf", type2extensions, extension2types
         );
         type2extensions.put(
-            MediaType.HEIF, CollectionsUtil.unmodifiableSequencedSet("heif", "heifs", "heic", "heics", "hif")
+            MediaType.HEIF, CollectionUtil.unmodifiableSequencedSet("heif", "heifs", "heic", "heics", "hif")
         );
 
         MediaType htmlType = MediaType.HTML_UTF_8.withoutParameters();
-        SequencedSet<MediaType> htmlTypeSet = CollectionsUtil.singletonSequencedSet(htmlType);
+        SequencedSet<MediaType> htmlTypeSet = CollectionUtil.singletonSequencedSet(htmlType);
 
-        type2extensions.put(htmlType, CollectionsUtil.unmodifiableSequencedSet("html", "htm"));
+        type2extensions.put(htmlType, CollectionUtil.unmodifiableSequencedSet("html", "htm"));
         extension2types.put("html", htmlTypeSet);
         extension2types.put("htm", htmlTypeSet);
 
@@ -307,22 +307,22 @@ public final class MediaTypeUtil {
         MediaType halJsonType = MediaType.HAL_JSON.withoutParameters();
         MediaType manJsonType = MediaType.MANIFEST_JSON_UTF_8.withoutParameters();
 
-        SequencedSet<String> jsonExt = CollectionsUtil.singletonSequencedSet("json");
+        SequencedSet<String> jsonExt = CollectionUtil.singletonSequencedSet("json");
         type2extensions.put(jsonType, jsonExt);
         type2extensions.put(joseJsonType, jsonExt);
         type2extensions.put(geoJsonType, jsonExt);
         type2extensions.put(halJsonType, jsonExt);
         type2extensions.put(manJsonType, jsonExt);
         extension2types.put(
-            "json", CollectionsUtil.unmodifiableSequencedSet(
+            "json", CollectionUtil.unmodifiableSequencedSet(
                 jsonType, joseJsonType, geoJsonType, halJsonType, manJsonType
             )
         );
 
         type2extensions.put(
-            MediaType.JPEG, CollectionsUtil.unmodifiableSequencedSet("jpg", "jpeg", "jpe", "jif", "jfif", "jfi")
+            MediaType.JPEG, CollectionUtil.unmodifiableSequencedSet("jpg", "jpeg", "jpe", "jif", "jfif", "jfi")
         );
-        SequencedSet<MediaType> jpegType = CollectionsUtil.singletonSequencedSet(MediaType.JPEG);
+        SequencedSet<MediaType> jpegType = CollectionUtil.singletonSequencedSet(MediaType.JPEG);
         extension2types.put("jpg", jpegType);
         extension2types.put("jpeg", jpegType);
         extension2types.put("jpe", jpegType);
@@ -332,10 +332,10 @@ public final class MediaTypeUtil {
 
         MediaType jsApp = MediaType.JAVASCRIPT_UTF_8.withoutParameters();
         MediaType jsTxt = MediaType.TEXT_JAVASCRIPT_UTF_8.withoutParameters();
-        SequencedSet<String> jsExtSet = CollectionsUtil.singletonSequencedSet("js");
+        SequencedSet<String> jsExtSet = CollectionUtil.singletonSequencedSet("js");
         type2extensions.put(jsApp, jsExtSet);
         type2extensions.put(jsTxt, jsExtSet);
-        extension2types.put("js", CollectionsUtil.unmodifiableSequencedSet(jsApp, jsTxt));
+        extension2types.put("js", CollectionUtil.unmodifiableSequencedSet(jsApp, jsTxt));
 
         return SimpleMultimapContentTypeFileExtensionMapper.createInstance(
             type2extensions.build(), extension2types.build()
@@ -345,8 +345,8 @@ public final class MediaTypeUtil {
 
     private static void addFallbackContentTypeSingletonMapping(@Nonnull MediaType type, @Nonnull String ext, @Nonnull ImmutableMap.Builder<MediaType,SequencedSet<String>> type2extensions, ImmutableMap.Builder<String,SequencedSet<MediaType>> extension2types) {
         type = type.withoutParameters();
-        type2extensions.put(type, CollectionsUtil.singletonSequencedSet(ext));
-        extension2types.put(ext, CollectionsUtil.singletonSequencedSet(type));
+        type2extensions.put(type, CollectionUtil.singletonSequencedSet(ext));
+        extension2types.put(ext, CollectionUtil.singletonSequencedSet(type));
     }
 
 }

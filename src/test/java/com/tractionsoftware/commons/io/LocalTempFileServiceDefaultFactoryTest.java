@@ -21,6 +21,7 @@
 package com.tractionsoftware.commons.io;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

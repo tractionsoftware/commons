@@ -45,7 +45,7 @@ public abstract class AbstractPropertyNameMappingPropertyCollection<P extends Pr
 
     @Override
     public final String fullyQualify(String name) {
-        return props.fullyQualify(nameMapper.getPropertyName(name));
+        return props.fullyQualify(nameMapper.getActualPropertyName(name));
     }
 
 }

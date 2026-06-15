@@ -24,7 +24,7 @@ import com.google.common.annotations.Beta;
 import com.tractionsoftware.commons.config.Configuration;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.TextTransformer;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -371,7 +371,7 @@ public interface GetProperty extends PropertyCollection {
         Map<String,String> ret = new LinkedHashMap<>();
         if (names != null) {
             for (String name : names) {
-                CollectionsUtil.putIfNotNull(name, getProperty(name), ret);
+                CollectionUtil.putIfNotNull(name, getProperty(name), ret);
             }
         }
         return ret;
@@ -408,7 +408,7 @@ public interface GetProperty extends PropertyCollection {
             return;
         }
         Stream<String> propNames = getPropertyNames().stream();
-        if (CollectionsUtil.isNotEmpty(exceptions)) {
+        if (CollectionUtil.isNotEmpty(exceptions)) {
             propNames = propNames.filter((propName) -> !exceptions.contains(propName));
         }
         propNames.forEach((propName) -> map.put(propName, getProperty(propName)));

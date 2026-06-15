@@ -24,9 +24,10 @@ import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.properties.GetProperties;
 import com.tractionsoftware.commons.properties.GetProperty;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import jakarta.mail.Header;
 import jakarta.mail.internet.InternetAddress;
 import java.util.*;
@@ -43,6 +44,33 @@ import java.util.*;
  * @see MailUtil#createEmailHeadersFromRawLines(Iterable)
  */
 public interface EmailHeaders extends Iterable<Header> {
+
+    public static final EmailHeaders NONE = new EmailHeaders() {
+
+        @Nonnull
+        @Override
+        public final List<String> getHeaders(String name) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public final boolean hasHeader(@Nullable String name) {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public final Iterable<String> getRawHeaderLines() {
+            return Collections.emptyList();
+        }
+
+        @Nonnull
+        @Override
+        public final Iterator<Header> iterator() {
+            return Collections.emptyIterator();
+        }
+
+    };
 
     /**
      * Per
@@ -208,7 +236,8 @@ public interface EmailHeaders extends Iterable<Header> {
      *
      * @return the email header value for the given name if at least one exists; null otherwise.
      */
-    public default String getHeader(String name) {
+    @Nullable
+    public default String getHeader(@Nullable String name) {
         List<String> valuesForName = getHeaders(name);
         if (valuesForName.isEmpty()) {
             return null;
@@ -221,7 +250,8 @@ public interface EmailHeaders extends Iterable<Header> {
      *
      * @return all email header values for the given name, if any exist; an empty List otherwise.
      */
-    public List<String> getHeaders(String name);
+    @Nonnull
+    public List<String> getHeaders(@Nullable String name);
 
     /**
      * Returns true if this EmailHeaders has at least one header corresponding to the requested name.
@@ -235,7 +265,7 @@ public interface EmailHeaders extends Iterable<Header> {
      *     the name of the header.
      * @return true if this EmailHeaders has at least one header corresponding to the requested name; false otherwise.
      */
-    public default boolean hasHeader(String name) {
+    public default boolean hasHeader(@Nullable String name) {
         if (getHeaders(name).isEmpty()) {
             return false;
         }
@@ -293,7 +323,7 @@ public interface EmailHeaders extends Iterable<Header> {
             @Override
             public final String getProperty(String propName) {
                 List<String> values = EmailHeaders.this.getHeaders(propName);
-                if (CollectionsUtil.isEmpty(values)) {
+                if (CollectionUtil.isEmpty(values)) {
                     return null;
                 }
                 return NativeTypeConversion.iterableToString(values);

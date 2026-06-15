@@ -22,7 +22,7 @@ package com.tractionsoftware.commons.lang;
 
 import com.google.common.annotations.Beta;
 import com.google.common.collect.ImmutableList;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -1230,7 +1230,7 @@ public abstract class EnhancedCharSequence implements CharSequence {
      *     if a null or empty collection is supplied.
      */
     public static final CharSequence getConcatenatedSequences(Collection<? extends CharSequence> sequences) {
-        if (CollectionsUtil.isEmpty(sequences)) {
+        if (CollectionUtil.isEmpty(sequences)) {
             return WrappedSequence.EMPTY;
         }
         return concatSequencesImpl(sequences.stream());

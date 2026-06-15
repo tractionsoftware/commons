@@ -38,7 +38,7 @@ public abstract class AbstractPropertyNameMappingGetProperty<G extends GetProper
 
     @Override
     public final String getProperty(String name) {
-        return props.getProperty(nameMapper.getPropertyName(name));
+        return props.getProperty(nameMapper.getActualPropertyName(name));
     }
 
     @Override
@@ -51,22 +51,22 @@ public abstract class AbstractPropertyNameMappingGetProperty<G extends GetProper
 
     @Override
     public final boolean hasProperty(String name) {
-        return props.hasProperty(nameMapper.getPropertyName(name));
+        return props.hasProperty(nameMapper.getActualPropertyName(name));
     }
 
     @Override
     public final boolean hasNonBlankProperty(String name) {
-        return props.hasNonBlankProperty(nameMapper.getPropertyName(name));
+        return props.hasNonBlankProperty(nameMapper.getActualPropertyName(name));
     }
 
     @Override
     public final <T> T getProperty(String name, PropertyLoader<? extends T> loader, boolean mayUseCache) {
-        return props.getProperty(nameMapper.getPropertyName(name), loader, mayUseCache);
+        return props.getProperty(nameMapper.getActualPropertyName(name), loader, mayUseCache);
     }
 
     @Override
     public final String getLocalProperty(String name) {
-        return props.getLocalProperty(nameMapper.getPropertyName(name));
+        return props.getLocalProperty(nameMapper.getActualPropertyName(name));
     }
 
     @Override

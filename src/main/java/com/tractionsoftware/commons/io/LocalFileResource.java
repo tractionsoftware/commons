@@ -59,6 +59,22 @@ public final class LocalFileResource extends FileMetadataBasedFileResource<FileM
     }
 
     @Override
+    public final boolean equals(Object other) {
+        if (!(other instanceof LocalFileResource otherFile)) {
+            return false;
+        }
+        if (file.equals(otherFile.file) && metadata.equals(otherFile.metadata)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public final int hashCode() {
+        return Objects.hash(file, metadata);
+    }
+
+    @Override
     public final boolean isValid() {
         return file.exists() && file.canRead();
     }

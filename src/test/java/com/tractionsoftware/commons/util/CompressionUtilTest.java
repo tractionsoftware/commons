@@ -27,6 +27,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -36,35 +37,47 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public final class CompressionUtilTest {
 
+    @TempDir
+    Path tempDir;
+
     // =====================================================================
     // gzipBytes
     // =====================================================================
 
     @Test
-    void gzipBytes_byteArray_roundTrip() throws IOException {
-        byte[] input = "Hello, GZIP world!".getBytes(StandardCharsets.UTF_8);
-        byte[] compressed = CompressionUtil.gzipBytes(input);
-        assertNotNull(compressed);
-        assertTrue(compressed.length > 0);
-        // Decompress and verify
-        byte[] decompressed = ungzip(compressed);
-        assertArrayEquals(input, decompressed);
+    void gzipBytes_byteArray_canBeDecompressed() throws IOException {
+        byte[] input = "Hello, world!".getBytes(StandardCharsets.UTF_8);
+        byte[] gzipped = CompressionUtil.gzipBytes(input);
+        assertNotNull(gzipped);
+        assertTrue(gzipped.length > 0);
+
+        // Decompress and verify round-trip
+        try (GZIPInputStream gzin = new GZIPInputStream(new ByteArrayInputStream(gzipped))) {
+            byte[] recovered = gzin.readAllBytes();
+            assertArrayEquals(input, recovered);
+        }
     }
 
     @Test
-    void gzipBytes_inputStream_roundTrip() throws IOException {
-        byte[] input = "Stream-based GZIP test content.".getBytes(StandardCharsets.UTF_8);
-        byte[] compressed = CompressionUtil.gzipBytes(new ByteArrayInputStream(input));
-        assertNotNull(compressed);
-        assertArrayEquals(input, ungzip(compressed));
+    void gzipBytes_inputStream_canBeDecompressed() throws IOException {
+        byte[] input = "Compressed stream test".getBytes(StandardCharsets.UTF_8);
+        byte[] gzipped = CompressionUtil.gzipBytes(new ByteArrayInputStream(input));
+        assertNotNull(gzipped);
+
+        try (GZIPInputStream gzin = new GZIPInputStream(new ByteArrayInputStream(gzipped))) {
+            assertArrayEquals(input, gzin.readAllBytes());
+        }
     }
 
     @Test
-    void gzipBytes_emptyInput_producesValidGzip() throws IOException {
-        byte[] compressed = CompressionUtil.gzipBytes(new byte[0]);
-        assertNotNull(compressed);
-        byte[] decompressed = ungzip(compressed);
-        assertEquals(0, decompressed.length);
+    void gzipBytes_largeInput_roundTrips() throws IOException {
+        byte[] input = new byte[65536];
+        Arrays.fill(input, (byte) 'X');
+        byte[] gzipped = CompressionUtil.gzipBytes(input);
+        assertNotNull(gzipped);
+        try (GZIPInputStream gzin = new GZIPInputStream(new ByteArrayInputStream(gzipped))) {
+            assertArrayEquals(input, gzin.readAllBytes());
+        }
     }
 
     // =====================================================================
@@ -72,63 +85,40 @@ public final class CompressionUtilTest {
     // =====================================================================
 
     @Test
-    void zip_singleFile_canBeUnzipped(@TempDir Path tmpDir) throws IOException {
-        // Create a test file
-        Path src = tmpDir.resolve("hello.txt");
-        Files.writeString(src, "Hello ZIP");
+    void zip_createAndUnzip_roundTrips() throws IOException {
+        // Create two source files
+        Path src1 = tempDir.resolve("file1.txt");
+        Path src2 = tempDir.resolve("file2.txt");
+        Files.writeString(src1, "content one");
+        Files.writeString(src2, "content two");
 
-        // Zip it
-        Path zipPath = tmpDir.resolve("output.zip");
-        CompressionUtil.zip(List.of(src.toFile()), zipPath.toFile());
+        Path zipFile = tempDir.resolve("archive.zip");
+        CompressionUtil.zip(List.of(src1.toFile(), src2.toFile()), zipFile.toFile());
 
-        assertTrue(Files.exists(zipPath));
-        assertTrue(Files.size(zipPath) > 0);
+        assertTrue(Files.exists(zipFile));
+        assertTrue(Files.size(zipFile) > 0);
 
-        // Verify the zip entry
-        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipPath))) {
-            ZipEntry entry = zis.getNextEntry();
+        // Unzip to a separate directory
+        Path unzipDir = tempDir.resolve("unzipped");
+        Files.createDirectories(unzipDir);
+        CompressionUtil.unzip(zipFile.toFile(), unzipDir.toFile());
+
+        assertEquals("content one", Files.readString(unzipDir.resolve("file1.txt")));
+        assertEquals("content two", Files.readString(unzipDir.resolve("file2.txt")));
+    }
+
+    @Test
+    void zip_entryNames_matchFileNames() throws IOException {
+        Path src = tempDir.resolve("hello.txt");
+        Files.writeString(src, "data");
+        Path zipFile = tempDir.resolve("test.zip");
+        CompressionUtil.zip(List.of(src.toFile()), zipFile.toFile());
+
+        try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(zipFile))) {
+            ZipEntry entry = zin.getNextEntry();
             assertNotNull(entry);
             assertEquals("hello.txt", entry.getName());
-            String content = new String(zis.readAllBytes(), StandardCharsets.UTF_8);
-            assertEquals("Hello ZIP", content);
         }
-    }
-
-    @Test
-    void zip_multipleFiles_allPresent(@TempDir Path tmpDir) throws IOException {
-        Path a = tmpDir.resolve("a.txt");
-        Path b = tmpDir.resolve("b.txt");
-        Files.writeString(a, "AAA");
-        Files.writeString(b, "BBB");
-
-        Path zipPath = tmpDir.resolve("multi.zip");
-        CompressionUtil.zip(List.of(a.toFile(), b.toFile()), zipPath.toFile());
-
-        int count = 0;
-        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipPath))) {
-            while (zis.getNextEntry() != null) {
-                count++;
-            }
-        }
-        assertEquals(2, count);
-    }
-
-    @Test
-    void unzip_extractsFiles(@TempDir Path tmpDir) throws IOException {
-        // First zip a file
-        Path src = tmpDir.resolve("original.txt");
-        Files.writeString(src, "unzip me");
-        Path zipPath = tmpDir.resolve("test.zip");
-        CompressionUtil.zip(List.of(src.toFile()), zipPath.toFile());
-
-        // Now unzip to a different dir
-        Path outDir = tmpDir.resolve("extracted");
-        Files.createDirectories(outDir);
-        CompressionUtil.unzip(zipPath.toFile(), outDir.toFile());
-
-        Path extracted = outDir.resolve("original.txt");
-        assertTrue(Files.exists(extracted));
-        assertEquals("unzip me", Files.readString(extracted));
     }
 
     // =====================================================================
@@ -136,35 +126,44 @@ public final class CompressionUtilTest {
     // =====================================================================
 
     @Test
+    void compress_nonZipFile_createsZip() throws IOException {
+        Path original = tempDir.resolve("data.txt");
+        Files.writeString(original, "some data to compress");
+
+        File result = CompressionUtil.compress(original.toFile());
+        assertNotNull(result);
+        assertTrue(result.getName().endsWith(".zip"), result.getName());
+        assertTrue(result.exists());
+        // original should be deleted
+        assertFalse(original.toFile().exists());
+    }
+
+    @Test
     void compress_null_returnsNull() {
         assertNull(CompressionUtil.compress(null));
     }
 
     @Test
-    void compress_nonExistentFile_returnsNull(@TempDir Path tmpDir) {
-        File f = tmpDir.resolve("does_not_exist.txt").toFile();
-        assertNull(CompressionUtil.compress(f));
+    void compress_nonExistentFile_returnsNull() {
+        File nonExistent = tempDir.resolve("does_not_exist.txt").toFile();
+        assertNull(CompressionUtil.compress(nonExistent));
     }
 
     @Test
-    void compress_alreadyZip_returnsOriginal(@TempDir Path tmpDir) throws IOException {
-        Path zipPath = tmpDir.resolve("already.zip");
-        Files.writeString(zipPath, "fake zip content");
-        File result = CompressionUtil.compress(zipPath.toFile());
-        assertSame(zipPath.toFile().getAbsolutePath(), result.getAbsolutePath());
-    }
-
-    @Test
-    void compress_normalFile_producesZipAndDeletesOriginal(@TempDir Path tmpDir) throws IOException {
-        Path src = tmpDir.resolve("compress_me.txt");
-        Files.writeString(src, "compress this content please");
-        File result = CompressionUtil.compress(src.toFile());
+    void compress_alreadyZipFile_returnsSame() throws IOException {
+        Path zipFile = tempDir.resolve("already.zip");
+        Files.writeString(zipFile, "fake zip content");
+        File result = CompressionUtil.compress(zipFile.toFile());
         assertNotNull(result);
-        assertTrue(result.getName().endsWith(".zip"));
-        assertTrue(result.exists());
-        assertTrue(result.length() > 0);
-        // Original should be deleted
-        assertFalse(src.toFile().exists());
+        assertEquals(zipFile.toFile(), result);
+    }
+
+    @Test
+    void decompress_nonZipFile_returnsSame() throws IOException {
+        Path textFile = tempDir.resolve("text.txt");
+        Files.writeString(textFile, "hello");
+        File result = CompressionUtil.decompress(textFile.toFile());
+        assertEquals(textFile.toFile(), result);
     }
 
     @Test
@@ -173,56 +172,37 @@ public final class CompressionUtilTest {
     }
 
     @Test
-    void decompress_nonExistentFile_returnsNull(@TempDir Path tmpDir) {
-        assertNull(CompressionUtil.decompress(tmpDir.resolve("no_such_file.zip").toFile()));
-    }
-
-    @Test
-    void decompress_nonZipFile_returnsOriginal(@TempDir Path tmpDir) throws IOException {
-        Path p = tmpDir.resolve("plain.txt");
-        Files.writeString(p, "not a zip");
-        File result = CompressionUtil.decompress(p.toFile());
-        assertEquals(p.toFile(), result);
+    void decompress_nonExistent_returnsNull() {
+        File nonExistent = tempDir.resolve("missing.zip").toFile();
+        assertNull(CompressionUtil.decompress(nonExistent));
     }
 
     // =====================================================================
-    // ZipEntryNameProvider constants
+    // getRelativePathZipEntryNamer
     // =====================================================================
 
     @Test
-    void fileNameZipEntryNamer_returnsFileName() {
-        File f = new File("/some/path/to/file.txt");
+    void getRelativePathZipEntryNamer_returnsRelativeName() {
+        File baseDir = tempDir.toFile();
+        File subFile = new File(baseDir, "subdir/file.txt");
+        CompressionUtil.ZipEntryNameProvider namer = CompressionUtil.getRelativePathZipEntryNamer(baseDir);
+        assertEquals("subdir/file.txt", namer.getName(subFile));
+    }
+
+    // =====================================================================
+    // FILE_NAME_ZIP_ENTRY_NAMER / FILE_PATH_ZIP_ENTRY_NAMER
+    // =====================================================================
+
+    @Test
+    void fileNameNamer_returnsFileName() {
+        File f = new File("/some/path/file.txt");
         assertEquals("file.txt", CompressionUtil.FILE_NAME_ZIP_ENTRY_NAMER.getName(f));
     }
 
     @Test
-    void filePathZipEntryNamer_returnsFilePath() {
-        File f = new File("/some/path/to/file.txt");
-        assertTrue(CompressionUtil.FILE_PATH_ZIP_ENTRY_NAMER.getName(f).contains("file.txt"));
-    }
-
-    @Test
-    void getRelativePathZipEntryNamer_returnsRelativePath(@TempDir Path tmpDir) throws IOException {
-        Path base = tmpDir;
-        Path child = base.resolve("sub").resolve("file.txt");
-        Files.createDirectories(child.getParent());
-        Files.writeString(child, "x");
-        var namer = CompressionUtil.getRelativePathZipEntryNamer(base.toFile());
-        String name = namer.getName(child.toFile());
-        assertTrue(name.contains("file.txt"), name);
-        assertFalse(name.startsWith("/"), name);
-    }
-
-    // =====================================================================
-    // Helpers
-    // =====================================================================
-
-    private static byte[] ungzip(byte[] compressed) throws IOException {
-        try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(compressed));
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            gis.transferTo(out);
-            return out.toByteArray();
-        }
+    void filePathNamer_returnsFilePath() {
+        File f = new File("/some/path/file.txt");
+        assertEquals(f.getPath(), CompressionUtil.FILE_PATH_ZIP_ENTRY_NAMER.getName(f));
     }
 
 }

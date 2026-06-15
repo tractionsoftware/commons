@@ -31,7 +31,7 @@ import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.CodePointBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.ArraysUtil;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -898,7 +898,7 @@ public final class StringUtil {
     }
 
     public static boolean containsIgnoreCase(Collection<String> coll, String searchVal) {
-        if (CollectionsUtil.isEmpty(coll)) {
+        if (CollectionUtil.isEmpty(coll)) {
             return false;
         }
         return coll.stream().anyMatch(str -> Strings.CI.equals(searchVal, str));
@@ -1954,7 +1954,7 @@ public final class StringUtil {
             );
         }
 
-        if (CollectionsUtil.isEmpty(caseInsensitiveSortedStrings)) {
+        if (CollectionUtil.isEmpty(caseInsensitiveSortedStrings)) {
             return -1;
         }
 
@@ -2319,7 +2319,7 @@ public final class StringUtil {
     }
 
     private static boolean matchesAnyCodePointAt(String str, SpecialPosition position, Set<Integer> codePoints) {
-        if (CollectionsUtil.isEmpty(codePoints)) {
+        if (CollectionUtil.isEmpty(codePoints)) {
             return false;
         }
         int len = StringUtils.length(str);

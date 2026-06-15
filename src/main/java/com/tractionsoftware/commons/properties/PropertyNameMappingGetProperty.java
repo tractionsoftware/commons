@@ -21,7 +21,6 @@
 package com.tractionsoftware.commons.properties;
 
 import jakarta.annotation.Nonnull;
-import org.jspecify.annotations.NonNull;
 
 public final class PropertyNameMappingGetProperty extends AbstractPropertyNameMappingGetProperty<GetProperty> {
 
@@ -50,7 +49,7 @@ public final class PropertyNameMappingGetProperty extends AbstractPropertyNameMa
             if (nameMappedProps.nameMapper.isInverseOf(nameMapper)) {
                 return nameMappedProps.props;
             }
-            return new PropertyNameMappingGetProperty(nameMappedProps.props, nameMappedProps.nameMapper.combine(nameMapper));
+            return new PropertyNameMappingGetProperty(nameMappedProps.props, nameMappedProps.nameMapper.compose(nameMapper));
         }
         return new PropertyNameMappingGetProperty(props, nameMapper);
     }

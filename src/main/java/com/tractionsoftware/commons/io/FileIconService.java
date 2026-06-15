@@ -40,7 +40,7 @@ public abstract class FileIconService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileIconService.class);
 
     public static final Icon NO_ICON = new SimpleIcon(
-        new IconFileResource.InvalidIconFile(CommonFileResourceType.ICON_FILE_TYPE)
+        new IconFileResource.InvalidIconFileResource(CommonFileResourceType.ICON_FILE_TYPE)
     );
 
     public static final FileIconService NONE = new FileIconService() {

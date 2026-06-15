@@ -137,22 +137,25 @@ public interface ConfiguredObject extends Comparable<ConfiguredObject> {
         @Override
         public String getDisplayName() {
             return Objects.requireNonNullElseGet(
-                SimpleProperties.loadString(this, PROP_NAME_DISPLAY_NAME), element::getName
+                SimpleProperties.loadString(element.getConfiguration(), PROP_NAME_DISPLAY_NAME), element::getName
             );
         }
 
         @Override
         public String getShortDisplayName() {
             return Objects.requireNonNullElseGet(
-                SimpleProperties.loadString(this, PROP_NAME_DISPLAY_NAME_SHORT), this::getDisplayName
+                SimpleProperties.loadString(element.getConfiguration(), PROP_NAME_DISPLAY_NAME_SHORT),
+                this::getDisplayName
             );
         }
 
         @Override
         public String getDescription() {
-            String description = SimpleProperties.loadString(this, PROP_NAME_DESCRIPTION);
+            String description = SimpleProperties.loadString(element.getConfiguration(), PROP_NAME_DESCRIPTION);
             if (description != null && hasProperty(DESCRIPTION_ARG + "0")) {
-                List<String> args = SimpleProperties.loadListSeparateProperties(this, DESCRIPTION_ARG);
+                List<String> args = SimpleProperties.loadListSeparateProperties(
+                    element.getConfiguration(), DESCRIPTION_ARG
+                );
                 return (new MessageFormat(description)).format(args.toArray());
             }
             return description;
@@ -161,7 +164,7 @@ public interface ConfiguredObject extends Comparable<ConfiguredObject> {
         @Nonnull
         @Override
         public SequencedSet<String> getAliases() {
-            return SimpleProperties.loadSetSingleProperty(this, PROP_NAME_ALIASES);
+            return SimpleProperties.loadSetSingleProperty(element.getConfiguration(), PROP_NAME_ALIASES);
         }
 
     }

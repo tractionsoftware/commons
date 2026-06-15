@@ -63,7 +63,7 @@ public final class PropertyNameMappingConfiguration extends AbstractPropertyName
             }
             return new PropertyNameMappingConfiguration(
                 nameMappedProps.props,
-                nameMappedProps.nameMapper.combine(nameMapper)
+                nameMappedProps.nameMapper.compose(nameMapper)
             );
         }
         return new PropertyNameMappingConfiguration(config, nameMapper);

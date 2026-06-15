@@ -51,9 +51,9 @@ import java.util.function.UnaryOperator;
  *
  * @author Dave Shepperton
  */
-public final class CollectionsUtil {
+public final class CollectionUtil {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CollectionsUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CollectionUtil.class);
 
     /**
      * A simpler variation of the {@link Map} interface that supports get and remove only.
@@ -63,9 +63,9 @@ public final class CollectionsUtil {
      * @param <V>
      *     the type of the map's values.
      * @author Dave Shepperton
-     * @see CollectionsUtil#mapValueIterator(MapIteratorAdapter, Iterable)
-     * @see CollectionsUtil#mapValueIterator(MapIteratorAdapter, Iterator)
-     * @see CollectionsUtil#mapValueKeyRangeIterator(MapIteratorAdapter, int, int)
+     * @see CollectionUtil#mapValueIterator(MapIteratorAdapter, Iterable)
+     * @see CollectionUtil#mapValueIterator(MapIteratorAdapter, Iterator)
+     * @see CollectionUtil#mapValueKeyRangeIterator(MapIteratorAdapter, int, int)
      */
     public static interface MapIteratorAdapter<K, V> {
 
@@ -480,7 +480,7 @@ public final class CollectionsUtil {
 
         @Override
         public final boolean containsAll(@Nonnull Collection<?> c) {
-            if (CollectionsUtil.isEmpty(c)) {
+            if (CollectionUtil.isEmpty(c)) {
                 return true;
             }
             for (Object o : c) {
@@ -493,7 +493,7 @@ public final class CollectionsUtil {
 
     }
 
-    private CollectionsUtil() {
+    private CollectionUtil() {
     }
 
     /**
@@ -560,6 +560,20 @@ public final class CollectionsUtil {
      * @return true if the given {@link Map} is either null or empty; false otherwise.
      */
     public static final boolean isEmpty(Map<?,?> map) {
+        if (map == null || map.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the given {@link Multimap} is either null or empty.
+     *
+     * @param map
+     *     the {@link Multimap} to test.
+     * @return true if the given {@link Multimap} is either null or empty; false otherwise.
+     */
+    public static final boolean isEmpty(Multimap<?,?> map) {
         if (map == null || map.isEmpty()) {
             return true;
         }
@@ -882,7 +896,7 @@ public final class CollectionsUtil {
      * @return the given Set if it is not null; an empty Set otherwise.
      */
     public static final <T> SequencedSet<T> emptySequencedSetInsteadOfNull(SequencedSet<T> original) {
-        return Objects.requireNonNullElseGet(original, CollectionsUtil::emptySequencedSet);
+        return Objects.requireNonNullElseGet(original, CollectionUtil::emptySequencedSet);
     }
 
     /**

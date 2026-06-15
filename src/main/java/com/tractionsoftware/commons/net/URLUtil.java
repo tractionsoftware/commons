@@ -33,7 +33,7 @@ import com.tractionsoftware.commons.io.*;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
@@ -896,7 +896,7 @@ public final class URLUtil {
 
         StringBuilder ret = new StringBuilder(SCHEME_PREFIX_MAILTO);
         ret.append(getUrlEncoding(address));
-        if (CollectionsUtil.isNotEmpty(params)) {
+        if (CollectionUtil.isNotEmpty(params)) {
             ret.append(QUERY_MARKER_CHAR);
             ret.append(getQueryString(params));
         }

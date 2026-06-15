@@ -72,6 +72,6 @@ public final class ArraysUtil {
      * @return a {@link String} representation of the given {@link Iterable}.
      */
     public static final String safeToString(Object[] array) {
-        return CollectionsUtil.safeToStringImpl(asList(array), "array");
+        return CollectionUtil.safeToStringImpl(asList(array), "array");
     }
 }

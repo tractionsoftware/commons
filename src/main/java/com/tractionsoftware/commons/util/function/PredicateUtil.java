@@ -23,7 +23,7 @@ package com.tractionsoftware.commons.util.function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -155,7 +155,7 @@ public final class PredicateUtil {
      *
      * <p>
      * This method could be helpful for use with a method such as
-     * {@link CollectionsUtil#filteredIterator(java.util.Iterator, Predicate)} .
+     * {@link CollectionUtil#filteredIterator(java.util.Iterator, Predicate)} .
      *
      * @param filters
      *     the {@link Collection} of {@link Predicates} which will be used to compose the Predicate returned by this
@@ -167,7 +167,7 @@ public final class PredicateUtil {
     public static final <E> Predicate<E> getFirstOrMultiFilter(Collection<? extends Predicate<? super E>> filters)
         throws IllegalArgumentException {
 
-        if (CollectionsUtil.isEmpty(filters)) {
+        if (CollectionUtil.isEmpty(filters)) {
             throw new IllegalArgumentException();
         }
 

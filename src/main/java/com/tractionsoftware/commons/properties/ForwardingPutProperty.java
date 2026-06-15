@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.properties;
 
 import com.google.common.collect.ForwardingObject;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collection;
@@ -124,12 +124,12 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
 
         @Override
         public final String fullyQualify(String name) {
-            return super.fullyQualify(nameMapper.getPropertyName(name));
+            return super.fullyQualify(nameMapper.getActualPropertyName(name));
         }
 
         @Override
         public final void putProperty(String name, String value) {
-            delegate().putProperty(nameMapper.getPropertyName(name), value);
+            delegate().putProperty(nameMapper.getActualPropertyName(name), value);
         }
 
         @Override
@@ -145,7 +145,7 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
             }
 
             Stream<String> propNames = source.getPropertyNames().stream();
-            if (CollectionsUtil.isNotEmpty(exceptions)) {
+            if (CollectionUtil.isNotEmpty(exceptions)) {
                 propNames = propNames.filter((propName) -> !exceptions.contains(propName));
             }
             propNames.forEach((propName) -> putProperty(propName, source.getProperty(propName)));
@@ -195,8 +195,7 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
 
     public static final PutProperty wrapInPrefix(PutProperty props, String space, char separator) {
         return applyPropertyNameMapper(
-            props,
-            SimplePropertyNameMapper.getPrefixInstanceWithSeparator(space, separator)
+            props, SimplePropertyNameMapper.getPrefixInstanceWithSeparator(space, separator)
         );
     }
 
@@ -211,7 +210,7 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
             if (put.nameMapper.isInverseOf(nameMapper)) {
                 return put.delegate();
             }
-            return new PropertyNameMappingPutProperty(props, put.nameMapper.combine(nameMapper));
+            return new PropertyNameMappingPutProperty(props, put.nameMapper.compose(nameMapper));
         }
         return new PropertyNameMappingPutProperty(props, nameMapper);
     }

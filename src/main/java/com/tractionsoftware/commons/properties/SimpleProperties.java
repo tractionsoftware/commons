@@ -58,7 +58,7 @@ public final class SimpleProperties {
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleProperties.class);
 
     private static final GetProperty EMPTY_GET_PROPERTY = new StaticMapGetProperty(
-        ImmutableMap.of(), "Empty GetProperty"
+        ImmutableMap.of(), "Empty"
     );
 
     private static final Configuration EMPTY_CONFIGURATION = new EmptyConfiguration("");

@@ -166,14 +166,14 @@ public final class ComparatorsUtil {
      *         Collection is null.
      */
     public static final <T> Comparator<T> createCompositeComparator(Collection<? extends Comparator<? super T>> comparators) {
-        if (CollectionsUtil.isEmpty(comparators)) {
+        if (CollectionUtil.isEmpty(comparators)) {
             return null;
         }
         return new CompositeComparator<>(comparators);
     }
 
     public static final <T> Comparator<T> createCompositeCaseInsensitiveStringComparator(Collection<? extends Function<T,String>> functions) {
-        if (CollectionsUtil.isEmpty(functions)) {
+        if (CollectionUtil.isEmpty(functions)) {
             return null;
         }
         List<Comparator<T>> list = new ArrayList<>(functions.size());

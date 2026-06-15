@@ -19,11 +19,11 @@ public abstract class ReloadingSupplier<T> implements Supplier<T> {
 
     private T obj;
 
-    private Date lastLoadTime;
+    private Date lastModified;
 
-    protected ReloadingSupplier(@Nullable T initialObj, @Nullable Date loadTime) {
+    protected ReloadingSupplier(@Nullable T initialObj, @Nullable Date lastModified) {
         this.obj = initialObj;
-        this.lastLoadTime = Objects.requireNonNullElseGet(loadTime, () -> new Date(0));
+        this.lastModified = Objects.requireNonNullElseGet(lastModified, () -> new Date(0));
     }
 
     @Nonnull
@@ -44,23 +44,16 @@ public abstract class ReloadingSupplier<T> implements Supplier<T> {
     }
 
     private final void reloadIfModified() {
-        if (hasChanged()) {
-            Date loadTime = new Date();
+        Date updatedLastModified = getResourceLastModifiedDate();
+        if (!updatedLastModified.equals(lastModified)) {
             T newObj = reload();
-            update(newObj, loadTime);
+            update(newObj, updatedLastModified);
         }
-    }
-
-    private final boolean hasChanged() {
-        if (getResourceLastModifiedDate().equals(lastLoadTime)) {
-            return false;
-        }
-        return true;
     }
 
     private synchronized final void update(T updated, Date newLoadTime) {
         obj = updated;
-        lastLoadTime = newLoadTime;
+        lastModified = newLoadTime;
     }
 
 }

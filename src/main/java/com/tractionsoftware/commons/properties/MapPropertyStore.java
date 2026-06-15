@@ -20,7 +20,7 @@
 
 package com.tractionsoftware.commons.properties;
 
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
 
 import java.util.HashMap;
@@ -142,7 +142,7 @@ public final class MapPropertyStore<R> extends AbstractMapGetProperty implements
     @Override
     public final void putProperty(String name, String value) {
         if (removeOnNullValuePut) {
-            CollectionsUtil.putOrRemove(map, name, value);
+            CollectionUtil.putOrRemove(map, name, value);
         }
         else {
             map.put(name, value);

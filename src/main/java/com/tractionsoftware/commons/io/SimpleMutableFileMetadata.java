@@ -20,7 +20,6 @@
 
 package com.tractionsoftware.commons.io;
 
-import com.google.common.annotations.Beta;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -175,13 +174,17 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
      *     the {@link FileResource} whose properties should be used to create a {@link SimpleMutableFileMetadata}.
      * @return a new FileData representing the properties of the given {@link FileResource}.
      */
-    public static final SimpleMutableFileMetadata createCopyFromFileInfo(FileResource fileResource) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createCopyFromFileInfo(@Nonnull FileResource fileResource) {
+        Objects.requireNonNull(fileResource, "file resource");
         SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
         fileResource.getMetadata().copyTo(metadata);
         return metadata;
     }
 
-    public static final SimpleMutableFileMetadata createForIconFileInfo(IconFileResource iconFile) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createForIconFileInfo(@Nonnull IconFileResource iconFile) {
+        Objects.requireNonNull(iconFile, "icon file");
         SimpleMutableFileMetadata ret = createCopyFromFileInfo(iconFile);
         ret.setDisplayName(iconFile.getDisplayName());
         GetPutProperty props = ret.asGetPutProperty(iconFile);
@@ -192,20 +195,24 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         return ret;
     }
 
-    public static final SimpleMutableFileMetadata createCopy(FileMetadata source) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createCopy(@Nonnull FileMetadata source) {
+        Objects.requireNonNull(source, "source");
         SimpleMutableFileMetadata copy = new SimpleMutableFileMetadata();
         source.copyTo(copy);
         return copy;
     }
 
-    public static final SimpleMutableFileMetadata createFromFileNameAndContentType(String fileName, String contentType) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createFromFileNameAndContentType(@Nullable String fileName, @Nullable String contentType) {
         SimpleMutableFileMetadata ret = new SimpleMutableFileMetadata();
         ret.setFilename(fileName);
         ret.setContentType(contentType);
         return ret;
     }
 
-    public static final SimpleMutableFileMetadata createFromFileName(String fileName) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createFromFileName(@Nullable String fileName) {
         SimpleMutableFileMetadata ret = new SimpleMutableFileMetadata();
         ret.setFilename(fileName);
         String ext = FileNameUtil.getExtension(fileName, null);
@@ -232,7 +239,8 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
      * @return a {@link SimpleMutableFileMetadata} carrying the file name and content-type based upon the given
      *     suggested name, content type and content.
      */
-    public static final SimpleMutableFileMetadata createInstanceForUnnamedResource(String suggestedFilename, String contentType, Supplier<? extends InputStream> inputSupplier) {
+    @Nonnull
+    public static final SimpleMutableFileMetadata createInstanceForUnnamedResource(@Nullable String suggestedFilename, @Nullable String contentType, @Nullable Supplier<? extends InputStream> inputSupplier) {
 
         String fileExtension = null;
         if (StringUtils.isNotBlank(contentType)) {
@@ -246,7 +254,9 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
                 fileExtension = "";
             }
             else {
-                contentType = MediaTypeUtil.getContentTypeFromExtension(fileExtension).toString();
+                contentType = Objects.toString(
+                    MediaTypeUtil.getContentTypeFromExtension(fileExtension), null
+                );
             }
         }
 
@@ -254,8 +264,24 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     }
 
-    @Beta
-    private static final String guessFileExtensionFromContents(Supplier<? extends InputStream> inputSupplier) {
+    @Nonnull
+    public static final String getDefaultFileName(@Nullable String suggestedFileName, @Nullable String fileExtension) {
+        StringBuilder ret = new StringBuilder();
+        if (StringUtils.isBlank(suggestedFileName)) {
+            ret.append("file");
+        }
+        else {
+            ret.append(suggestedFileName);
+        }
+        if (StringUtils.isNotBlank(fileExtension)) {
+            ret.append(".");
+            ret.append(fileExtension);
+        }
+        return ret.toString();
+    }
+
+    @Nullable
+    private static final String guessFileExtensionFromContents(@Nullable Supplier<? extends InputStream> inputSupplier) {
 
         if (inputSupplier == null) {
             return null;
@@ -274,38 +300,27 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     }
 
-    public static final String getDefaultFileName(String suggestedFileName, String fileExtension) {
-        StringBuilder ret = new StringBuilder();
-        if (StringUtils.isBlank(suggestedFileName)) {
-            ret.append("file");
-        }
-        else {
-            ret.append(suggestedFileName);
-        }
-        if (StringUtils.isNotBlank(fileExtension)) {
-            ret.append(".");
-            ret.append(fileExtension);
-        }
-        return ret.toString();
-    }
-
     private final class ReadOnlyView implements FileMetadata {
 
+        @Nullable
         @Override
         public String getFilename() {
             return SimpleMutableFileMetadata.this.getFilename();
         }
 
+        @Nullable
         @Override
         public URI getURI() {
             return SimpleMutableFileMetadata.this.getURI();
         }
 
+        @Nullable
         @Override
         public final String getDescription() {
             return SimpleMutableFileMetadata.this.getDescription();
         }
 
+        @Nullable
         @Override
         public final String getContentType() {
             return SimpleMutableFileMetadata.this.getContentType();
@@ -321,21 +336,25 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             return SimpleMutableFileMetadata.this.isReferenceToPersistedFile();
         }
 
+        @Nullable
         @Override
         public final String getContentId() {
             return SimpleMutableFileMetadata.this.getContentId();
         }
 
+        @Nullable
         @Override
         public final String getContentLocation() {
             return SimpleMutableFileMetadata.this.getContentLocation();
         }
 
+        @Nullable
         @Override
         public final String getContentBase() {
             return SimpleMutableFileMetadata.this.getContentBase();
         }
 
+        @Nullable
         @Override
         public final FileResourceType getResourceType() {
             return SimpleMutableFileMetadata.this.getResourceType();
@@ -767,24 +786,6 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         return StringUtil.join(getToStringProperties(), ", ");
     }
 
-    private final Iterator<String> getToStringProperties() {
-        return getToStringPropertyNames().stream()
-            .map(toStringProperty())
-            .iterator();
-    }
-
-    private final Function<String,String> toStringProperty() {
-        return toStringProperty(getBaseProperties().toReadOnly());
-    }
-
-    private final List<String> getToStringPropertyNames() {
-        return ImmutableList.of(
-            PROP_NAME_FILE_NAME, PROP_NAME_MIMETYPE, PROP_NAME_URI, PROP_NAME_NUMBER,
-            PROP_NAME_REFERENCE_TO_PERSISTED_FILE, PROP_NAME_ERROR, PROP_NAME_CID, PROP_NAME_CONTENT_LOCATION,
-            PROP_NAME_CONTENT_BASE
-        );
-    }
-
     @Override
     public final boolean equals(Object other) {
         if (!(other instanceof SimpleMutableFileMetadata)) {
@@ -821,25 +822,27 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         return false;
     }
 
+    @Nullable
     public final String getDisplayName() {
         return Objects.toString(displayName, getFilename());
     }
 
-    public final void setDisplayName(String displayName) {
+    public final void setDisplayName(@Nullable String displayName) {
         this.displayName = displayName;
     }
 
+    @Nullable
     @Override
     public final String getFilename() {
         return fileName;
     }
 
     @Override
-    public final void setFilename(String fileName) {
+    public final void setFilename(@Nullable String fileName) {
         this.fileName = fileName;
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public final URI getURI() {
         return uri;
@@ -850,6 +853,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         this.uri = uri;
     }
 
+    @Nullable
     @Override
     public final String getDescription() {
         return description;
@@ -860,6 +864,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         this.description = description;
     }
 
+    @Nullable
     @Override
     public final String getContentType() {
         return contentType;
@@ -953,10 +958,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         namespace.putAllProperties(getLoadSaveProperties());
     }
 
-    private final GetPutProperty getLoadSaveProperties() {
-        return new LoadSaveProperties();
-    }
-
+    @Nonnull
     @Override
     public final SimpleMutableFileMetadata mutableCopy() {
         SimpleMutableFileMetadata copy = createCopy(this);
@@ -1045,6 +1047,28 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             return false;
         }
         return true;
+    }
+
+    private final Iterator<String> getToStringProperties() {
+        return getToStringPropertyNames().stream()
+            .map(toStringProperty())
+            .iterator();
+    }
+
+    private final Function<String,String> toStringProperty() {
+        return toStringProperty(getBaseProperties().toReadOnly());
+    }
+
+    private final List<String> getToStringPropertyNames() {
+        return ImmutableList.of(
+            PROP_NAME_FILE_NAME, PROP_NAME_MIMETYPE, PROP_NAME_URI, PROP_NAME_NUMBER,
+            PROP_NAME_REFERENCE_TO_PERSISTED_FILE, PROP_NAME_ERROR, PROP_NAME_CID, PROP_NAME_CONTENT_LOCATION,
+            PROP_NAME_CONTENT_BASE
+        );
+    }
+
+    private final GetPutProperty getLoadSaveProperties() {
+        return new LoadSaveProperties();
     }
 
 }

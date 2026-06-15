@@ -21,7 +21,7 @@
 package com.tractionsoftware.commons.properties;
 
 import com.google.common.annotations.Beta;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import com.tractionsoftware.commons.text.TextTransformer;
 
 import java.util.Collection;
@@ -189,7 +189,7 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
         }
 
         Stream<String> propNames = source.getPropertyNames().stream();
-        if (CollectionsUtil.isNotEmpty(exceptions)) {
+        if (CollectionUtil.isNotEmpty(exceptions)) {
             propNames = propNames.filter((propName) -> !exceptions.contains(propName));
         }
         propNames.forEach((propName) -> putProperty(propName, source.getProperty(propName)));
@@ -227,7 +227,7 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
      */
     @Beta
     public default void copyFrom(Map<? super String,? super String> source, Collection<?> exceptions) {
-        if (CollectionsUtil.isEmpty(source)) {
+        if (CollectionUtil.isEmpty(source)) {
             return;
         }
         putProperties(SimpleProperties.asGetProperty(source), exceptions);

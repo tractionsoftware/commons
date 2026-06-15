@@ -24,7 +24,7 @@ import com.google.common.base.Joiner;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.text.StringSplitUtil;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import com.tractionsoftware.commons.util.function.CacheSupportingFunction;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -452,7 +452,7 @@ public final class NativeTypeConversion {
         if (!stringToList(value, nvPairs, options)) {
             return false;
         }
-        return CollectionsUtil.putMapEntryStrings(nvPairs, map);
+        return CollectionUtil.putMapEntryStrings(nvPairs, map);
     }
 
     public static final Map<String,String> stringToMap(String data) {

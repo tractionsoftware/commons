@@ -21,6 +21,7 @@
 package com.tractionsoftware.commons.properties;
 
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
@@ -360,19 +361,19 @@ public final class SimplePropertyNameMapper implements PropertyNameMapper {
         return false;
     }
 
-    private final Function<String,String> toPropertyName;
+    private final Function<String,String> toActualPropertyName;
 
     private final Function<String,String> toPublishedName;
 
-    private SimplePropertyNameMapper(Function<String,String> toPropertyName,
+    private SimplePropertyNameMapper(Function<String,String> toActualPropertyName,
                                      Function<String,String> toPublishedName) {
-        this.toPropertyName = toPropertyName;
+        this.toActualPropertyName = toActualPropertyName;
         this.toPublishedName = toPublishedName;
     }
 
     @Override
     public final String toString() {
-        return toPropertyName.toString();
+        return toActualPropertyName.toString();
     }
 
     @Override
@@ -380,7 +381,7 @@ public final class SimplePropertyNameMapper implements PropertyNameMapper {
         if (!(other instanceof SimplePropertyNameMapper otherNameMapper)) {
             return false;
         }
-        if (Objects.equals(toPropertyName, otherNameMapper.toPropertyName) &&
+        if (Objects.equals(toActualPropertyName, otherNameMapper.toActualPropertyName) &&
             Objects.equals(toPublishedName, otherNameMapper.toPublishedName)) {
             return true;
         }
@@ -389,12 +390,12 @@ public final class SimplePropertyNameMapper implements PropertyNameMapper {
 
     @Override
     public final int hashCode() {
-        return Objects.hash(toPropertyName, toPublishedName);
+        return Objects.hash(toActualPropertyName, toPublishedName);
     }
 
     @Override
-    public final String getPropertyName(String requestedName) {
-        return toPropertyName.apply(requestedName);
+    public final String getActualPropertyName(String requestedName) {
+        return toActualPropertyName.apply(requestedName);
     }
 
     @Override
@@ -407,44 +408,39 @@ public final class SimplePropertyNameMapper implements PropertyNameMapper {
         if (!(otherNameMapper instanceof SimplePropertyNameMapper otherSimpleNameMapper)) {
             return false;
         }
-        if (areInverses(toPropertyName, otherSimpleNameMapper.toPropertyName) &&
+        if (areInverses(toActualPropertyName, otherSimpleNameMapper.toActualPropertyName) &&
             areInverses(toPublishedName, otherSimpleNameMapper.toPublishedName)) {
             return true;
         }
         return false;
     }
 
+    @Nonnull
     @Override
-    public final PropertyNameMapper combine(PropertyNameMapper otherNameMapper) {
+    public final PropertyNameMapper compose(PropertyNameMapper otherNameMapper) {
         if (otherNameMapper == null) {
             return this;
         }
-        if (otherNameMapper instanceof SimplePropertyNameMapper) {
-            return getCombined((SimplePropertyNameMapper) otherNameMapper);
+        if (otherNameMapper instanceof SimplePropertyNameMapper simple) {
+            return composeImpl(simple);
         }
-        return new SimpleCombinedPropertyNameMapper(this, otherNameMapper);
+        return MultiPropertyNameMapper.createInstance(this, otherNameMapper);
     }
 
-    public final PropertyNameMapper getCombined(SimplePropertyNameMapper otherNameMapper) {
-        if (toPropertyName instanceof AddPrefixFunction &&
-            toPublishedName instanceof RemovePrefixFunction &&
-            otherNameMapper.toPropertyName instanceof AddPrefixFunction &&
-            otherNameMapper.toPublishedName instanceof RemovePrefixFunction) {
-            return new SimplePropertyNameMapper(
-                ((AddPrefixFunction) toPropertyName).combine((AddPrefixFunction) otherNameMapper.toPropertyName),
-                ((RemovePrefixFunction) toPublishedName).combine((RemovePrefixFunction) otherNameMapper.toPublishedName)
-            );
+    private final PropertyNameMapper composeImpl(SimplePropertyNameMapper otherNameMapper) {
+        if (toActualPropertyName instanceof AddPrefixFunction add &&
+            toPublishedName instanceof RemovePrefixFunction rem &&
+            otherNameMapper.toActualPropertyName instanceof AddPrefixFunction otherAdd &&
+            otherNameMapper.toPublishedName instanceof RemovePrefixFunction otherRem) {
+            return new SimplePropertyNameMapper(add.combine(otherAdd), rem.combine(otherRem));
         }
-        if (toPropertyName instanceof RemovePrefixFunction &&
-            toPublishedName instanceof AddPrefixFunction &&
-            otherNameMapper.toPropertyName instanceof RemovePrefixFunction &&
-            otherNameMapper.toPublishedName instanceof AddPrefixFunction) {
-            return new SimplePropertyNameMapper(
-                ((RemovePrefixFunction) toPropertyName).combine((RemovePrefixFunction) otherNameMapper.toPropertyName),
-                ((AddPrefixFunction) toPublishedName).combine((AddPrefixFunction) otherNameMapper.toPublishedName)
-            );
+        if (toActualPropertyName instanceof RemovePrefixFunction rem &&
+            toPublishedName instanceof AddPrefixFunction add &&
+            otherNameMapper.toActualPropertyName instanceof RemovePrefixFunction otherRem &&
+            otherNameMapper.toPublishedName instanceof AddPrefixFunction otherAdd) {
+            return new SimplePropertyNameMapper(rem.combine(otherRem), add.combine(otherAdd));
         }
-        return new SimpleCombinedPropertyNameMapper(this, otherNameMapper);
+        return MultiPropertyNameMapper.createInstance(this, otherNameMapper);
     }
 
 }

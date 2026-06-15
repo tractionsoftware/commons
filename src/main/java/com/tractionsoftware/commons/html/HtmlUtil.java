@@ -30,7 +30,7 @@ import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.text.SnippetUtil;
 import com.tractionsoftware.commons.text.TextWrapUtil;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
@@ -610,7 +610,7 @@ public final class HtmlUtil {
             if (value != null) {
                 useAttributes.put("value", value);
             }
-            if (CollectionsUtil.isNotEmpty(attributes)) {
+            if (CollectionUtil.isNotEmpty(attributes)) {
                 useAttributes.putAll(attributes);
             }
             if (selected) {
@@ -656,7 +656,7 @@ public final class HtmlUtil {
         Objects.requireNonNull(out, "output");
         out.print("<a ");
         printTagAttribute(out, "href", url);
-        if (CollectionsUtil.isNotEmpty(otherAttributes)) {
+        if (CollectionUtil.isNotEmpty(otherAttributes)) {
             for (Map.Entry<String,String> attr : otherAttributes.entrySet()) {
                 out.print(' ');
                 String attrName = attr.getKey();

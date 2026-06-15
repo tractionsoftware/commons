@@ -1,4 +1,23 @@
+/*
+ *
+ *    Copyright 1996-2026 Traction Software, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *
+ */
+
 // PLEASE DO NOT DELETE THIS LINE - make copyright depends on it.
+
 package com.tractionsoftware.commons.text;
 
 import org.junit.jupiter.api.Test;
@@ -8,151 +27,167 @@ import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class NumberFormatsTest {
+public final class NumberFormatsTest {
 
-    // Use ROOT locale-independent number formatting to avoid locale-sensitivity in assertions
-    // The production code uses NumberFormat.getInstance() which is locale-dependent, so we
-    // just verify shape/reasonableness rather than exact strings where locale matters.
-
-    // ---------------------------------------------------------------------------
+    // =====================================================================
     // getFormattedByteSize
-    // ---------------------------------------------------------------------------
+    // =====================================================================
 
     @Test
-    void getFormattedByteSize_bytes() {
-        String result = NumberFormats.getFormattedByteSize(512);
-        assertTrue(result.endsWith(" B"), "expected ' B' suffix: " + result);
-        assertTrue(result.startsWith("512"), "expected 512: " + result);
+    void getFormattedByteSize_bytes_showsB() {
+        String result = NumberFormats.getFormattedByteSize(500.0);
+        assertTrue(result.contains("B"), result);
+        assertFalse(result.contains("KB"), result);
     }
 
     @Test
-    void getFormattedByteSize_1KB() {
-        String result = NumberFormats.getFormattedByteSize(1024);
-        assertTrue(result.endsWith(" KB"), "expected KB: " + result);
-        assertTrue(result.startsWith("1"), "expected 1: " + result);
+    void getFormattedByteSize_kilobytes_showsKB() {
+        String result = NumberFormats.getFormattedByteSize(2048.0);
+        assertTrue(result.contains("KB"), result);
     }
 
     @Test
-    void getFormattedByteSize_1MB() {
-        String result = NumberFormats.getFormattedByteSize(1024 * 1024);
-        assertTrue(result.endsWith(" MB"), "expected MB: " + result);
+    void getFormattedByteSize_megabytes_showsMB() {
+        String result = NumberFormats.getFormattedByteSize(2 * 1024 * 1024.0);
+        assertTrue(result.contains("MB"), result);
     }
 
     @Test
-    void getFormattedByteSize_1GB() {
-        String result = NumberFormats.getFormattedByteSize(1024L * 1024 * 1024);
-        assertTrue(result.endsWith(" GB"), "expected GB: " + result);
+    void getFormattedByteSize_gigabytes_showsGB() {
+        String result = NumberFormats.getFormattedByteSize(2L * 1024 * 1024 * 1024);
+        assertTrue(result.contains("GB"), result);
     }
 
     @Test
-    void getFormattedByteSize_zero() {
-        String result = NumberFormats.getFormattedByteSize(0);
-        assertTrue(result.endsWith(" B"), "expected B: " + result);
+    void getFormattedByteSize_withUnitIndex_startsAtUnit() {
+        // starting at unitIndex=1 (KB), 1.0 → "1 KB" instead of "1,024 B"
+        String result = NumberFormats.getFormattedByteSize(1.0, 1);
+        assertTrue(result.contains("KB"), result);
     }
 
     @Test
-    void getFormattedByteSize_withUnitIndex_startsAtKB() {
-        // unitIndex=1 means start at KB
-        String result = NumberFormats.getFormattedByteSize(1.5, 1);
-        assertTrue(result.endsWith(" KB"), "expected KB with unitIndex=1: " + result);
+    void getFormattedByteSize_zero_showsBytes() {
+        String result = NumberFormats.getFormattedByteSize(0.0);
+        assertTrue(result.contains("B"), result);
     }
 
-    // ---------------------------------------------------------------------------
-    // getFormattedPercentage (numerator, divisor)
-    // ---------------------------------------------------------------------------
+    // =====================================================================
+    // getFormattedPercentage
+    // =====================================================================
 
     @Test
-    void getFormattedPercentage_half() {
-        String result = NumberFormats.getFormattedPercentage(50, 100);
+    void getFormattedPercentage_fraction_returnsPercent() {
+        String result = NumberFormats.getFormattedPercentage(0.5, 0);
         assertNotNull(result);
-        assertTrue(result.contains("50") || result.contains("5"), "expected 50% form: " + result);
+        assertTrue(result.contains("%"), result);
+    }
+
+    @Test
+    void getFormattedPercentage_numeratorDivisor_returnsPercent() {
+        String result = NumberFormats.getFormattedPercentage(1.0, 2.0);
+        assertNotNull(result);
+        assertTrue(result.contains("%"), result);
     }
 
     @Test
     void getFormattedPercentage_zeroDivisor_returnsNull() {
-        // divide by zero in double doesn't throw, produces Infinity which format may handle
-        // but the code swallows exceptions and returns null
-        // Infinity formatted as percent is unlikely to be null in most JVMs, but let's just
-        // assert it doesn't throw
-        assertDoesNotThrow(() -> NumberFormats.getFormattedPercentage(1, 0));
-    }
-
-    // ---------------------------------------------------------------------------
-    // getFormattedPercentage (fraction form)
-    // ---------------------------------------------------------------------------
-
-    @Test
-    void getFormattedPercentage_fraction_halfIs50Percent() {
-        String result = NumberFormats.getFormattedPercentage(0.5, 0);
-        assertNotNull(result);
-        // Most locales will produce "50%" in some form
-        assertTrue(result.length() > 0);
+        // Division by zero results in NaN/Infinity; implementation handles this
+        assertNull(NumberFormats.getFormattedPercentage(1.0, 0.0));
     }
 
     @Test
-    void getFormattedPercentage_fraction_withDecimalDigits() {
+    void getFormattedPercentage_withDecimalDigits_includesDecimals() {
         String result = NumberFormats.getFormattedPercentage(0.333, 2);
         assertNotNull(result);
-        assertTrue(result.length() > 0);
-    }
-
-    // ---------------------------------------------------------------------------
-    // getFormattedWholeNumber
-    // ---------------------------------------------------------------------------
-
-    @Test
-    void getFormattedWholeNumber_long() {
-        String result = NumberFormats.getFormattedWholeNumber(1000L);
-        assertNotNull(result);
-        assertTrue(result.contains("1") && result.contains("0"), "expected 1000 in some form: " + result);
+        assertTrue(result.contains("%"), result);
     }
 
     @Test
-    void getFormattedWholeNumber_double() {
-        String result = NumberFormats.getFormattedWholeNumber(42.7);
+    void getFormattedPercentage_100percent() {
+        String result = NumberFormats.getFormattedPercentage(1.0, 0);
         assertNotNull(result);
-        // Integer format rounds or truncates — just check non-null
-        assertTrue(result.length() > 0);
+        assertTrue(result.contains("%"), result);
+        // Should contain "100"
+        assertTrue(result.contains("100"), result);
     }
 
-    // ---------------------------------------------------------------------------
+    // =====================================================================
     // getDecimalFormat
-    // ---------------------------------------------------------------------------
+    // =====================================================================
 
     @Test
-    void getDecimalFormat_returnsNonNull() {
+    void getDecimalFormat_returnsNotNull() {
         NumberFormat fmt = NumberFormats.getDecimalFormat(2);
         assertNotNull(fmt);
+    }
+
+    @Test
+    void getDecimalFormat_respectsFractionDigits() {
+        NumberFormat fmt = NumberFormats.getDecimalFormat(2);
         assertEquals(2, fmt.getMaximumFractionDigits());
     }
 
-    // ---------------------------------------------------------------------------
-    // getWholeNumberFormat
-    // ---------------------------------------------------------------------------
+    // =====================================================================
+    // getFormattedWholeNumber
+    // =====================================================================
 
     @Test
-    void getWholeNumberFormat_returnsNonNull() {
+    void getFormattedWholeNumber_long_returnsFormatted() {
+        String result = NumberFormats.getFormattedWholeNumber(1000L);
+        assertNotNull(result);
+        assertTrue(result.contains("1"), result);
+        assertFalse(result.contains("."), result);
+    }
+
+    @Test
+    void getFormattedWholeNumber_double_returnsFormatted() {
+        String result = NumberFormats.getFormattedWholeNumber(42.7);
+        assertNotNull(result);
+        // integer format rounds, no decimal point
+        assertFalse(result.contains("."), result);
+    }
+
+    @Test
+    void getFormattedWholeNumber_zero() {
+        String result = NumberFormats.getFormattedWholeNumber(0L);
+        assertNotNull(result);
+        assertTrue(result.contains("0"), result);
+    }
+
+    // =====================================================================
+    // getWholeNumberFormat
+    // =====================================================================
+
+    @Test
+    void getWholeNumberFormat_returnsNotNull() {
         assertNotNull(NumberFormats.getWholeNumberFormat());
     }
 
-    // ---------------------------------------------------------------------------
-    // getFormattedSize (general)
-    // ---------------------------------------------------------------------------
+    @Test
+    void getWholeNumberFormat_maxFractionDigitsIsZero() {
+        assertEquals(0, NumberFormats.getWholeNumberFormat().getMaximumFractionDigits());
+    }
+
+    // =====================================================================
+    // getFormattedSize (generic)
+    // =====================================================================
 
     @Test
-    void getFormattedSize_belowDivisor_formatsWithFirstUnit() {
-        String[] units = {" X", " Y"};
+    void getFormattedSize_customUnits_formatsCorrectly() {
+        String[] units = { " apples", " bushels" };
         NumberFormat fmt = NumberFormat.getInstance(Locale.US);
-        String result = NumberFormats.getFormattedSize(units, 10, fmt, 5.0, 0);
-        assertTrue(result.endsWith(" X"), "expected first unit: " + result);
+        // 50 apples (< 100 divisor)
+        String result = NumberFormats.getFormattedSize(units, 100.0, fmt, 50.0, 0);
+        assertTrue(result.contains("apples"), result);
     }
 
     @Test
-    void getFormattedSize_aboveDivisor_escalatesUnit() {
-        String[] units = {" X", " Y"};
+    void getFormattedSize_exceedsDivisor_advancesUnit() {
+        String[] units = { " small", " large" };
         NumberFormat fmt = NumberFormat.getInstance(Locale.US);
-        String result = NumberFormats.getFormattedSize(units, 10, fmt, 50.0, 0);
-        assertTrue(result.endsWith(" Y"), "expected second unit: " + result);
+        // 200 > 100 divisor → becomes 2 large
+        String result = NumberFormats.getFormattedSize(units, 100.0, fmt, 200.0, 0);
+        assertTrue(result.contains("large"), result);
     }
 
 }

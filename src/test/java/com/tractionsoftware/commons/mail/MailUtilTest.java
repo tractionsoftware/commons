@@ -24,14 +24,20 @@ import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.StringUtils;
 
 import jakarta.mail.Header;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -443,4 +449,295 @@ public final class MailUtilTest {
         assertNotNull(header);
         assertEquals("", header.getName());
     }
+
+    // =====================================================================
+    // Additional MailUtil coverage
+    // =====================================================================
+
+    private static MimeMessage makeMimeMessage() throws Exception {
+        Properties props = new Properties();
+        Session session = Session.getDefaultInstance(props);
+        MimeMessage msg = new MimeMessage(session);
+        msg.setSubject("Test Subject");
+        msg.setFrom(new InternetAddress("from@example.com"));
+        msg.addRecipient(Message.RecipientType.TO, new InternetAddress("to@example.com"));
+        msg.setText("body");
+        msg.saveChanges();
+        return msg;
+    }
+
+    // --- createDynamicEmailHeaders ---
+
+    @Test
+    void createDynamicEmailHeaders_nullMessage_returnsNone() {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(null);
+        assertSame(EmailHeaders.NONE, h);
+    }
+
+    @Test
+    void createDynamicEmailHeaders_withMessage_returnsNonNull() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(msg);
+        assertNotNull(h);
+        assertTrue(h.hasHeader("Subject"));
+    }
+
+    @Test
+    void createDynamicEmailHeaders_subjectValue() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(msg);
+        assertEquals("Test Subject", h.getHeader("Subject"));
+    }
+
+    // --- getRawHeaderLines(MimeMessage) ---
+
+    @Test
+    void getRawHeaderLines_nullMessage_returnsEmpty() throws Exception {
+        List<String> lines = MailUtil.getRawHeaderLines(null);
+        assertTrue(lines.isEmpty());
+    }
+
+    @Test
+    void getRawHeaderLines_withMessage_containsSubjectLine() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        List<String> lines = MailUtil.getRawHeaderLines(msg);
+        assertFalse(lines.isEmpty());
+        assertTrue(lines.stream().anyMatch(l -> l.startsWith("Subject:")), lines.toString());
+    }
+
+    // --- createEmailHeaders(Iterable<Header>, boolean) ---
+
+    @Test
+    void createEmailHeaders_iterableHeaders_returnsParsed() {
+        List<Header> hdrs = List.of(
+            new Header("X-Foo", "bar"),
+            new Header("X-Baz", "qux")
+        );
+        EmailHeaders eh = MailUtil.createEmailHeaders(hdrs, false);
+        assertNotNull(eh);
+        assertEquals("bar", eh.getHeader("X-Foo"));
+        assertEquals("qux", eh.getHeader("X-Baz"));
+    }
+
+    // --- createEmailHeaders(MimeMessage) ---
+
+    @Test
+    void createEmailHeaders_mimeMessage_returnsSubject() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        EmailHeaders eh = MailUtil.createEmailHeaders(msg);
+        assertNotNull(eh);
+        assertEquals("Test Subject", eh.getHeader("Subject"));
+    }
+
+    // --- getRfc2047DecodedHeader ---
+
+    @Test
+    void getRfc2047DecodedHeader_null_returnsNull() {
+        assertNull(MailUtil.getRfc2047DecodedHeader(null));
+    }
+
+    @Test
+    void getRfc2047DecodedHeader_plainText_returnsSame() {
+        Header h = new Header("Subject", "Hello");
+        Header result = MailUtil.getRfc2047DecodedHeader(h);
+        assertNotNull(result);
+        assertEquals("Hello", result.getValue());
+    }
+
+    // --- getRfc2047DecodedText ---
+
+    @Test
+    void getRfc2047DecodedText_blank_returnsNull() {
+        assertNull(MailUtil.getRfc2047DecodedText(""));
+        assertNull(MailUtil.getRfc2047DecodedText("  "));
+    }
+
+    @Test
+    void getRfc2047DecodedText_plainText_returnsSame() {
+        assertEquals("Hello", MailUtil.getRfc2047DecodedText("Hello"));
+    }
+
+    @Test
+    void getRfc2047DecodedText_null_returnsNull() {
+        assertNull(MailUtil.getRfc2047DecodedText(null));
+    }
+
+    // --- headerToString ---
+
+    @Test
+    void headerToString_returnsNameColonValue() {
+        Header h = new Header("X-Foo", "bar");
+        String s = MailUtil.headerToString(h);
+        assertNotNull(s);
+        assertTrue(s.contains("X-Foo"), s);
+        assertTrue(s.contains("bar"), s);
+    }
+
+    @Test
+    void headerToString_null_returnsNull() {
+        assertNull(MailUtil.headerToString(null));
+    }
+
+    // --- headersToHeaderMap ---
+
+    @Test
+    void headersToHeaderMap_returnsMultimap() {
+        List<Header> hdrs = List.of(
+            new Header("A", "1"),
+            new Header("A", "2"),
+            new Header("B", "3")
+        );
+        var map = MailUtil.headersToHeaderMap(hdrs);
+        assertNotNull(map);
+        assertEquals(2, map.get("A").size());
+        assertEquals(1, map.get("B").size());
+    }
+
+    // --- headerLinesToHeaderMap ---
+
+    @Test
+    void headerLinesToHeaderMap_parsesLines() {
+        var map = MailUtil.headerLinesToHeaderMap(List.of(
+            "Subject: Hello",
+            "From: user@example.com"
+        ));
+        assertNotNull(map);
+        assertFalse(map.get(EmailHeaders.NAME_SUBJECT).isEmpty());
+        assertFalse(map.get(EmailHeaders.NAME_FROM).isEmpty());
+    }
+
+    // --- getDomain ---
+
+    @Test
+    void getDomain_validAddress_returnsDomain() {
+        assertEquals("example.com", MailUtil.getDomain("user@example.com"));
+    }
+
+    @Test
+    void getDomain_noAtSign_returnsEmpty() {
+        assertEquals("", MailUtil.getDomain("notanaddress"));
+    }
+
+    @Test
+    void getDomain_null_returnsNull() {
+        assertNull(MailUtil.getDomain(null));
+    }
+
+    // --- getSafelyEncodedToken ---
+
+    @Test
+    void getSafelyEncodedToken_plainText_returnsEncoded() {
+        String result = MailUtil.getSafelyEncodedToken("hello world");
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+    }
+
+    @Test
+    void getSafelyEncodedToken_withCharset_returnsEncoded() {
+        String result = MailUtil.getSafelyEncodedToken("hello", "UTF-8");
+        assertNotNull(result);
+    }
+
+    // --- safeParseAddresses ---
+
+    @Test
+    void safeParseAddresses_validList_returnsList() {
+        var addresses = MailUtil.safeParseAddresses("a@example.com, b@example.com");
+        assertNotNull(addresses);
+        assertEquals(2, addresses.size());
+    }
+
+    @Test
+    void safeParseAddresses_null_returnsNull() {
+        assertNull(MailUtil.safeParseAddresses(null));
+    }
+
+    @Test
+    void safeParseAddresses_blank_returnsNull() {
+        assertNull(MailUtil.safeParseAddresses("  "));
+    }
+
+    // --- shouldSuppressAutomaticResponse ---
+
+    @Test
+    void shouldSuppressAutomaticResponse_noAutoSubmittedHeader_false() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Test"));
+        assertFalse(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    @Test
+    void shouldSuppressAutomaticResponse_autoGenerated_true() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of(
+            "Auto-Submitted: auto-generated"
+        ));
+        assertTrue(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    @Test
+    void shouldSuppressAutomaticResponse_autoReplied_true() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of(
+            "Auto-Submitted: auto-replied"
+        ));
+        assertTrue(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    // --- dumpNamedHeaders ---
+
+    @Test
+    void dumpNamedHeaders_presentHeader_appendsToBuffer() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Hello"));
+        StringBuilder sb = new StringBuilder();
+        MailUtil.dumpNamedHeaders(sb, eh, "Subject");
+        assertTrue(sb.toString().contains("Subject"), sb.toString());
+    }
+
+    @Test
+    void dumpNamedHeaders_absentHeader_writesNoHeadersMessage() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Hello"));
+        StringBuilder sb = new StringBuilder();
+        MailUtil.dumpNamedHeaders(sb, eh, "X-NoSuchHeader");
+        assertTrue(sb.toString().contains("X-NoSuchHeader"), sb.toString());
+        assertTrue(sb.toString().contains("no headers"), sb.toString());
+    }
+
+    // --- parseHeaderLine ---
+
+    @Test
+    void parseHeaderLine_validLine_returnsHeader() {
+        Header h = MailUtil.parseHeaderLine("X-Test: value", false, null);
+        assertNotNull(h);
+        assertEquals("X-Test", h.getName());
+        assertEquals("value", h.getValue().trim());
+    }
+
+    @Test
+    void parseHeaderLine_null_withDefault_usesDefault() {
+        Header h = MailUtil.parseHeaderLine(null, false, line -> new Header("default", ""));
+        assertNotNull(h);
+        assertEquals("default", h.getName());
+    }
+
+    @Test
+    void parseHeaderLine_null_noDefault_returnsNull() {
+        assertNull(MailUtil.parseHeaderLine(null, false, null));
+    }
+
+    // --- encodedHeaderLineToHeader ---
+
+    @Test
+    void encodedHeaderLineToHeader_plainLine_returnsHeader() {
+        Header h = MailUtil.encodedHeaderLineToHeader("X-Foo: bar");
+        assertNotNull(h);
+        assertEquals("X-Foo", h.getName());
+    }
+
+    // --- invalidHeaderLineToHeader ---
+
+    @Test
+    void invalidHeaderLineToHeader_noDelimiter_returnsEmptyNameHeader() {
+        Header h = MailUtil.invalidHeaderLineToHeader("NoDelimiter");
+        assertNotNull(h);
+        assertEquals("", h.getName());
+    }
+
 }

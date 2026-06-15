@@ -21,18 +21,17 @@
 package com.tractionsoftware.commons.mail;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.io.ByteBufferInputStream;
 import com.tractionsoftware.commons.io.FileResource;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.StringEscapeUtil;
 import com.tractionsoftware.commons.util.AbstractLazyLoadingIterator;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import com.tractionsoftware.commons.lang.ObjectUtil;
+import com.tractionsoftware.commons.util.function.StreamUtil;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
@@ -58,6 +57,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Utility methods for dealing with data related to email messages.
@@ -65,6 +65,47 @@ import java.util.stream.Collectors;
  * @author Chris Nuzum, Andy Keller, Dave Shepperton
  */
 public final class MailUtil {
+
+    private static final class LowerCaseHeaderMap extends ForwardingMultimap<String,Header> {
+
+        private final ImmutableListMultimap<String,Header> headers;
+
+        private LowerCaseHeaderMap(ImmutableListMultimap<String,Header> headers) {
+            this.headers = headers;
+        }
+
+        @Nonnull
+        @Override
+        protected final Multimap<String,Header> delegate() {
+            return headers;
+        }
+
+        @Nullable
+        @Override
+        public final Collection<Header> get(@Nullable String key) {
+            if (key != null) {
+                return delegate().get(key.toLowerCase());
+            }
+            return delegate().get(key);
+        }
+
+        @Override
+        public final boolean containsEntry(@Nullable Object key, @Nullable Object value) {
+            if (key instanceof String strKey) {
+                return delegate().containsEntry(strKey.toLowerCase(), value);
+            }
+            return delegate().containsEntry(key, value);
+        }
+
+        @Override
+        public final boolean containsKey(@Nullable Object key) {
+            if (key instanceof String strKey) {
+                return delegate().containsKey(strKey.toLowerCase());
+            }
+            return delegate().containsKey(key);
+        }
+
+    }
 
     private MailUtil() {
     }
@@ -98,11 +139,13 @@ public final class MailUtil {
             this.rawHeaderLines = rawHeaderLines;
         }
 
+        @Nonnull
         @Override
         public final String toString() {
             return getClass().getSimpleName();
         }
 
+        @Nonnull
         @Override
         public final List<String> getHeaders(String name) {
             if (name == null) {
@@ -128,17 +171,39 @@ public final class MailUtil {
 
         private final MimeMessage message;
 
-        private DynamicMessageEmailHeaders(MimeMessage message) {
+        private DynamicMessageEmailHeaders(@Nonnull MimeMessage message) {
+            Objects.requireNonNull(message, "message");
             this.message = message;
         }
 
+        @Nonnull
         @Override
         public final String toString() {
             return getClass().getSimpleName() + ":" + message;
         }
 
         @Override
+        public final boolean hasHeader(@Nullable String name) {
+            if (name == null) {
+                return false;
+            }
+            try {
+                if (message.getHeader(name) != null) {
+                    return true;
+                }
+            }
+            catch (MessagingException e) {
+                LOGGER.warn("Failed to retrieve mail message headers {}", name, e);
+            }
+            return false;
+        }
+
+        @Nonnull
+        @Override
         public final List<String> getHeaders(String name) {
+            if (name == null) {
+                return ImmutableList.of();
+            }
             try {
                 String[] headers = message.getHeader(name);
                 if (headers != null) {
@@ -151,6 +216,7 @@ public final class MailUtil {
             return ImmutableList.of();
         }
 
+        @Nonnull
         @Override
         public final List<String> getRawHeaderLines() {
             try {
@@ -518,11 +584,19 @@ public final class MailUtil {
         return createEmailHeadersFromRawLines(getRawHeaderLines(message));
     }
 
-    public static final EmailHeaders createDynamicEmailHeaders(MimeMessage message) {
+    @Nonnull
+    public static final EmailHeaders createDynamicEmailHeaders(@Nullable MimeMessage message) {
+        if (message == null) {
+            return EmailHeaders.NONE;
+        }
         return new DynamicMessageEmailHeaders(message);
     }
 
-    public static final List<String> getRawHeaderLines(MimeMessage message) throws MessagingException {
+    @Nonnull
+    public static final List<String> getRawHeaderLines(@Nullable MimeMessage message) throws MessagingException {
+        if (message == null) {
+            return ImmutableList.of();
+        }
         Enumeration<?> headerLinesEncoded = message.getAllHeaderLines();
         ImmutableList.Builder<String> listBuilder = ImmutableList.builder();
         while (headerLinesEncoded.hasMoreElements()) {
@@ -531,7 +605,8 @@ public final class MailUtil {
         return listBuilder.build();
     }
 
-    public static final Header getRfc2047DecodedHeader(Header header) {
+    @Nullable
+    public static final Header getRfc2047DecodedHeader(@Nullable Header header) {
         if (header == null) {
             return null;
         }
@@ -545,7 +620,8 @@ public final class MailUtil {
         return header;
     }
 
-    public static final String getRfc2047DecodedText(String text) {
+    @Nullable
+    public static final String getRfc2047DecodedText(@Nullable String text) {
         if (StringUtils.isBlank(text)) {
             return null;
         }
@@ -570,7 +646,7 @@ public final class MailUtil {
      * @return a {@link Header} from a header line, if it contains the ":" delimiter; the default supplier Header
      *     otherwise.
      */
-    public static final Header parseHeaderLine(String headerLine, boolean tryToDecode, Function<String,Header> defaultHeader) {
+    public static final Header parseHeaderLine(@Nullable String headerLine, boolean tryToDecode, @Nullable Function<String,Header> defaultHeader) {
 
         if (headerLine == null) {
             if (defaultHeader == null) {
@@ -580,7 +656,7 @@ public final class MailUtil {
         }
 
         if (tryToDecode) {
-            headerLine = cvtHeaderLineFromRfc2047(headerLine);
+            headerLine = cvtHeaderLineFromRfc2047Impl(headerLine);
         }
 
         int delimiterIdx = headerLine.indexOf(HEADER_DELIMITER_CHAR);
@@ -613,11 +689,13 @@ public final class MailUtil {
      * @return a {@link Header} from the given header line, without applying RFC 2047 decoding, if a Header can be
      *     parsed successfully; {@link #invalidHeaderLineToHeader(String) a suitable default Header otherwise}.
      */
-    public static final Header headerLineToHeader(String headerLine) {
+    @Nonnull
+    public static final Header headerLineToHeader(@Nullable String headerLine) {
         return headerLineToHeader(headerLine, false);
     }
 
-    public static final Header encodedHeaderLineToHeader(String headerLine) {
+    @Nonnull
+    public static final Header encodedHeaderLineToHeader(@Nullable String headerLine) {
         return headerLineToHeader(headerLine, true);
     }
 
@@ -633,7 +711,8 @@ public final class MailUtil {
      * @return a {@link Header} from the given header line, applying RFC 2047 decoding if requested, if a Header can be
      *     parsed successfully; {@link #invalidHeaderLineToHeader(String) a suitable default Header otherwise}.
      */
-    public static final Header headerLineToHeader(String headerLine, boolean tryToDecode) {
+    @Nonnull
+    public static final Header headerLineToHeader(@Nullable String headerLine, boolean tryToDecode) {
         return parseHeaderLine(headerLine, false, MailUtil::invalidHeaderLineToHeader);
     }
 
@@ -645,7 +724,8 @@ public final class MailUtil {
      *     the (presumably invalid) header line.
      * @return a {@link Header} with the empty String for its name and the given invalid header line text as its value.
      */
-    public static final Header invalidHeaderLineToHeader(String invalidHeaderLine) {
+    @Nonnull
+    public static final Header invalidHeaderLineToHeader(@Nullable String invalidHeaderLine) {
         return new Header("", StringUtils.trimToEmpty(invalidHeaderLine));
     }
 
@@ -654,7 +734,8 @@ public final class MailUtil {
      * backslash and double quote characters escaped, because they have to be, even though most mail readers do not seem
      * to correctly interpret escaped backslashes and double quotation marks.
      */
-    public static final String makeFriendlyNameAddress(String address, String name) {
+    @Nullable
+    public static final String makeFriendlyNameAddress(@Nullable String address, @Nullable String name) {
         address = StringUtils.trimToNull(address);
         if (address == null) {
             return null;
@@ -666,7 +747,8 @@ public final class MailUtil {
         return "\"" + StringEscapeUtil.escapeMultipleCharacters(name, "\\\"") + "\" <" + address + ">";
     }
 
-    public static final String makeFriendlyNameAddress(InternetAddress address) {
+    @Nullable
+    public static final String makeFriendlyNameAddress(@Nullable InternetAddress address) {
         if (address == null) {
             return null;
         }
@@ -683,7 +765,8 @@ public final class MailUtil {
      *     off from the friendly name by the usual &lt; &gt;; if no friendly name is contained, just the address,
      *     without any extra whitespace or the &lt; &gt; delimiters.
      */
-    public static final String encodeFriendlyNameInAddress(String address) {
+    @Nonnull
+    public static final String encodeFriendlyNameInAddress(@Nullable String address) {
         address = StringUtils.trimToNull(address);
         if (address == null) {
             return "";
@@ -716,7 +799,8 @@ public final class MailUtil {
      * @return if the address is null or whitespace, the empty string; otherwise, the trimmed email address portion of
      *     the address string, namely, the part between the &lt; and &gt; delimiters.
      */
-    public static final String getRawAddressFromFriendlyEncoding(String addressEncoding) {
+    @Nonnull
+    public static final String getRawAddressFromFriendlyEncoding(@Nullable String addressEncoding) {
 
         if (StringUtils.isBlank(addressEncoding)) {
             return "";
@@ -763,7 +847,8 @@ public final class MailUtil {
      *
      * @return the string identified as described.
      */
-    public static final String getFriendlyNameFromFriendlyEncoding(String addressEncoding) {
+    @Nonnull
+    public static final String getFriendlyNameFromFriendlyEncoding(@Nullable String addressEncoding) {
 
         if (StringUtils.isBlank(addressEncoding)) {
             return "";
@@ -783,16 +868,12 @@ public final class MailUtil {
      * Uses {@link MimeUtility#decodeText(String)} to decode a header line from RFC 2047 if
      * {@link #headerLineRequiresRfc2047Decoding(String) we deem that it is required}.
      */
-    public static final String cvtHeaderLineFromRfc2047(String headerLine) {
-        try {
-            if (headerLineRequiresRfc2047Decoding(headerLine)) {
-                return MimeUtility.decodeText(headerLine);
-            }
+    @Nullable
+    public static final String cvtHeaderLineFromRfc2047(@Nullable String headerLine) {
+        if (headerLine == null) {
+            return null;
         }
-        catch (UnsupportedEncodingException e) {
-            LOGGER.error("Failed to encode header", e);
-        }
-        return headerLine;
+        return cvtHeaderLineFromRfc2047Impl(headerLine);
     }
 
     /**
@@ -803,6 +884,7 @@ public final class MailUtil {
      *     the address encoding to parse.
      * @return the {@link EmailAddress} with the address and the friendly name parsed from the encoding.
      */
+    @Nonnull
     public static final EmailAddress parseFromAddressWithOptionalFriendlyName(String addressMaybeWithFriendlyName) {
         return new EmailAddress(
             getRawAddressFromFriendlyEncoding(addressMaybeWithFriendlyName),
@@ -817,7 +899,8 @@ public final class MailUtil {
      *     the email addresses to parse.
      * @return a List with the resulting EmailAddress objects.
      */
-    public static final List<EmailAddress> getEmailAddresses(String emailAddressesSpec) {
+    @Nonnull
+    public static final List<EmailAddress> getEmailAddresses(@Nullable String emailAddressesSpec) {
 
         if (StringUtils.isEmpty(emailAddressesSpec)) {
             return ImmutableList.of();
@@ -901,7 +984,7 @@ public final class MailUtil {
      * @throws MessagingException
      *     if there is a problem setting the headers.
      */
-    public static final void setHeadersForAutomaticallyGeneratedMessage(Message message, boolean shouldSetNullReturnPath)
+    public static final void setHeadersForAutomaticallyGeneratedMessage(@Nonnull Message message, boolean shouldSetNullReturnPath)
         throws MessagingException {
         if (shouldSetNullReturnPath) {
             setNullReturnPath(message);
@@ -954,7 +1037,7 @@ public final class MailUtil {
      * @throws MessagingException
      *     if there is a problem setting the headers.
      */
-    public static final void setHeadersForAutomaticallyGeneratedReplyMessage(Message message, boolean shouldSetNullReturnPath)
+    public static final void setHeadersForAutomaticallyGeneratedReplyMessage(@Nonnull Message message, boolean shouldSetNullReturnPath)
         throws MessagingException {
         if (shouldSetNullReturnPath) {
             setNullReturnPath(message);
@@ -975,7 +1058,7 @@ public final class MailUtil {
      * @throws MessagingException
      *     if there is a problem setting the header.
      */
-    public static final void setHeadersForAutomaticallyGeneratedMessageExchange(Message message)
+    public static final void setHeadersForAutomaticallyGeneratedMessageExchange(@Nonnull Message message)
         throws MessagingException {
         message.setHeader(
             EmailHeaders.NAME_X_AUTO_RESPONSE_SUPPRESS,
@@ -1008,7 +1091,7 @@ public final class MailUtil {
      * @throws MessagingException
      *     if the header cannot be set.
      */
-    public static final void setNullReturnPath(Message message) throws MessagingException {
+    public static final void setNullReturnPath(@Nonnull Message message) throws MessagingException {
         message.setHeader(EmailHeaders.NAME_RETURN_PATH, "<>");
     }
 
@@ -1023,7 +1106,10 @@ public final class MailUtil {
      *     recipients. If there was an error, diagnostic information will be added to the traction.log and/or debug.log
      *     files.
      */
-    public static final List<Address> getRecipients(Message message, Message.RecipientType type) {
+    public static final List<Address> getRecipients(@Nullable Message message, @Nullable Message.RecipientType type) {
+        if (message == null || type == null) {
+            return null;
+        }
         try {
             Address[] ret = message.getRecipients(type);
             if (ret == null) {
@@ -1048,31 +1134,33 @@ public final class MailUtil {
      *     the EmailHeaders from the received message.
      * @return the Address objects that were parsed from the auxiliary headers, if any; null otherwise.
      */
-    public static final SequencedSet<Address> getOtherRecipients(EmailHeaders headers) {
+    public static final SequencedSet<Address> getOtherRecipients(@Nonnull EmailHeaders headers) {
 
         SequencedSet<Address> toAndCc = new LinkedHashSet<>();
-        CollectionsUtil.copy(headers.getAddresses(EmailHeaders.NAME_TO), toAndCc);
-        CollectionsUtil.copy(headers.getAddresses(EmailHeaders.NAME_CC), toAndCc);
+        CollectionUtil.copy(headers.getAddresses(EmailHeaders.NAME_TO), toAndCc);
+        CollectionUtil.copy(headers.getAddresses(EmailHeaders.NAME_CC), toAndCc);
 
         SequencedSet<Address> ret = new LinkedHashSet<>();
         addIfNotInToOrCc(headers.getAddresses(EmailHeaders.NAME_DELIVERED_TO), toAndCc, ret);
         addIfNotInToOrCc(headers.getAddresses(EmailHeaders.NAME_X_ORIGINAL_TO), toAndCc, ret);
-        return CollectionsUtil.unmodifiableSequencedSet(ret);
+        return CollectionUtil.unmodifiableSequencedSet(ret);
 
     }
 
+    @Nonnull
     public static final Address getDummyEmailAddress() throws AddressException {
         return new InternetAddress("badaddress@unrecognized.domain");
     }
 
-    public static final List<InternetAddress> parseAddresses(String addressListSpec) throws AddressException {
+    @Nullable
+    public static final List<InternetAddress> parseAddresses(@Nullable String addressListSpec) throws AddressException {
         if (StringUtils.isBlank(addressListSpec)) {
             return null;
         }
         return Arrays.asList(InternetAddress.parse(addressListSpec));
     }
 
-    public static final List<InternetAddress> safeParseAddresses(String addressListSpec) {
+    public static final List<InternetAddress> safeParseAddresses(@Nullable String addressListSpec) {
         try {
             return parseAddresses(addressListSpec);
         }
@@ -1094,7 +1182,7 @@ public final class MailUtil {
      * @return true true if an automatic response to a message with the given headers would not be advisable; false if
      *     an automatic response would be okay.
      */
-    public static final boolean shouldSuppressAutomaticResponse(EmailHeaders headers) {
+    public static final boolean shouldSuppressAutomaticResponse(@Nonnull EmailHeaders headers) {
         String autoSubmitted = headers.getHeader(EmailHeaders.NAME_AUTO_SUBMITTED);
         if (autoSubmitted != null && !autoSubmitted.equals("no")) {
             return true;
@@ -1110,10 +1198,10 @@ public final class MailUtil {
         return false;
     }
 
-    public static final void dumpNamedHeaders(StringBuilder buffer, EmailHeaders headers, String headerName) {
+    public static final void dumpNamedHeaders(@Nonnull StringBuilder buffer, @Nonnull EmailHeaders headers, @Nullable String headerName) {
         buffer.append(headerName);
         List<String> values = headers.getHeaders(headerName);
-        if (CollectionsUtil.isEmpty(values)) {
+        if (CollectionUtil.isEmpty(values)) {
             buffer.append(": [no headers with this name]");
             return;
         }
@@ -1121,7 +1209,8 @@ public final class MailUtil {
         StringUtil.getNullSkippingJoiner(" | ").appendTo(buffer, values);
     }
 
-    public static final String getDomain(String address) {
+    @Nullable
+    public static final String getDomain(@Nullable String address) {
         if (address == null) {
             return null;
         }
@@ -1145,7 +1234,8 @@ public final class MailUtil {
      *
      * @return the safely encoded text token.
      */
-    public static final String getSafelyEncodedToken(String text) {
+    @Nullable
+    public static final String getSafelyEncodedToken(@Nullable String text) {
         return getSafelyEncodedToken(text, StandardCharsets.UTF_8.name());
     }
 
@@ -1160,7 +1250,8 @@ public final class MailUtil {
      *
      * @return the safely encoded text token, if possible; the original text otherwise.
      */
-    public static final String getSafelyEncodedToken(String text, String charsetName) {
+    @Nullable
+    public static final String getSafelyEncodedToken(@Nullable String text, @Nullable String charsetName) {
         if (StringUtils.isBlank(text)) {
             return text;
         }
@@ -1178,97 +1269,61 @@ public final class MailUtil {
         return null;
     }
 
-    public static final String getFriendlyNameWithSafelyEncodedDisplayName(String address, String displayName) {
+    @Nullable
+    public static final String getFriendlyNameWithSafelyEncodedDisplayName(@Nullable String address, @Nullable String displayName) {
         if (StringUtils.isBlank(displayName)) {
             return address;
         }
-        return MailUtil.makeFriendlyNameAddress(address, getSafelyEncodedToken(displayName));
+        return makeFriendlyNameAddress(address, getSafelyEncodedToken(displayName));
     }
 
-    public static final void closeFolder(Folder folder, boolean expunge) {
-
-        if (folder == null || !folder.isOpen()) {
-            return;
-        }
-
-        Object debugFolder = ObjectUtil.safeToStringObject(folder);
-        LOGGER.debug("Closing the folder {}", debugFolder);
-        try {
-            folder.close(expunge);
-            if (expunge) {
-                LOGGER.debug("Successfully closed the folder {}, expunging deleted messages.", debugFolder);
-            }
-            else {
-                LOGGER.debug("Successfully closed the folder {}, leaving deleted messages.", debugFolder);
-            }
-        }
-        catch (Exception e) {
-            LOGGER.warn("Failed to close the folder {}", debugFolder, e);
-        }
-
-    }
-
-    public static final void closeStore(Store store) {
-
-        if (store == null || !store.isConnected()) {
-            return;
-        }
-
-        Object debugStore = ObjectUtil.safeToStringObject(store);
-        LOGGER.debug("Closing the store {}", debugStore);
-        try {
-            store.close();
-            LOGGER.debug("Successfully closed the store {}", debugStore);
-        }
-        catch (Exception e) {
-            LOGGER.warn("Failed to close the store {}", debugStore, e);
-        }
-
-    }
-
-    public static final void closeTransport(Transport transport) {
-
-        if (transport == null || !transport.isConnected()) {
-            return;
-        }
-
-        Object debugTransport = ObjectUtil.safeToStringObject(transport);
-        LOGGER.debug("Closing the transport {}", debugTransport);
-        try {
-            transport.close();
-            LOGGER.debug("Successfully closed the transport {}", debugTransport);
-        }
-        catch (Exception e) {
-            LOGGER.warn("Failed to close the transport {}", debugTransport, e);
-        }
-
-    }
-
-    public static final String headerToString(Header header) {
+    @Nullable
+    public static final String headerToString(@Nullable Header header) {
         if (header == null) {
             return null;
         }
         return header.getName() + ": " + header.getValue();
     }
 
-    public static final Multimap<String,Header> headerLinesToDecodedHeaderMap(Iterable<String> rawHeaderLines) {
-        return headersToHeaderMap(Iterables.transform(rawHeaderLines, MailUtil::encodedHeaderLineToHeader));
+    @Nonnull
+    public static final Multimap<String,Header> headerLinesToDecodedHeaderMap(@Nullable Iterable<String> rawHeaderLines) {
+        return headersToHeaderMap(StreamUtil.stream(rawHeaderLines).map(MailUtil::encodedHeaderLineToHeader));
     }
 
-    public static final Multimap<String,Header> headerLinesToHeaderMap(Iterable<String> headerLines) {
-        return headersToHeaderMap(Iterables.transform(headerLines, MailUtil::headerLineToHeader));
+    @Nonnull
+    public static final Multimap<String,Header> headerLinesToHeaderMap(@Nullable Iterable<String> headerLines) {
+        return headersToHeaderMap(StreamUtil.stream(headerLines).map(MailUtil::headerLineToHeader));
     }
 
-    public static final Multimap<String,Header> headersToHeaderMap(Iterable<Header> headers) {
-        ImmutableListMultimap.Builder<String,Header> builder = ImmutableListMultimap.builder();
-        for (Header header : headers) {
-            builder.put(header.getName().toLowerCase(), header);
+    @Nonnull
+    public static final Multimap<String,Header> headersToHeaderMap(@Nullable Iterable<Header> headers) {
+        return headersToHeaderMap(StreamUtil.stream(headers));
+    }
+
+    @Nonnull
+    public static final Multimap<String,Header> headerLinesToHeaderMap(@Nullable Stream<String> headerLines) {
+        return headersToHeaderMap(StreamUtil.streamOrElseEmpty(headerLines).map(MailUtil::headerLineToHeader));
+    }
+
+    @Nonnull
+    public static final Multimap<String,Header> headersToHeaderMap(@Nullable Stream<Header> headers) {
+        return new LowerCaseHeaderMap(
+            StreamUtil.streamOrElseEmpty(headers).filter(Objects::nonNull)
+                .collect(
+                    ImmutableListMultimap.toImmutableListMultimap(
+                        header -> header.getName().toLowerCase(),
+                        header -> header
+                    )
+                )
+        );
+    }
+
+    @Nonnull
+    public static final Multimap<String,Header> getRfc2047DecodedHeaders(@Nullable Multimap<String,Header> headersEncoded) {
+        if (CollectionUtil.isEmpty(headersEncoded)) {
+            return ImmutableListMultimap.of();
         }
-        return builder.build();
-    }
-
-    public static final Multimap<String,Header> getRfc2047DecodedHeaders(Multimap<String,Header> headersEncoded) {
-        return headersToHeaderMap(Iterables.transform(headersEncoded.values(), MailUtil::getRfc2047DecodedHeader));
+        return headersToHeaderMap(StreamUtil.stream(headersEncoded.values()).map(MailUtil::getRfc2047DecodedHeader));
     }
 
     /**
@@ -1360,6 +1415,19 @@ public final class MailUtil {
             }
             addTo.add(address);
         }
+    }
+
+    @Nonnull
+    private static final String cvtHeaderLineFromRfc2047Impl(@Nonnull String headerLine) {
+        try {
+            if (headerLineRequiresRfc2047Decoding(headerLine)) {
+                return MimeUtility.decodeText(headerLine);
+            }
+        }
+        catch (UnsupportedEncodingException e) {
+            LOGGER.error("Failed to encode header", e);
+        }
+        return headerLine;
     }
 
 }

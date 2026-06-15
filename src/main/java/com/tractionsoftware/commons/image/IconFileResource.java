@@ -45,11 +45,11 @@ public interface IconFileResource extends FileResource {
     /**
      * A simple type of IconFile representing an invalid instance, suitable for use as a placeholder.
      */
-    public static final class InvalidIconFile extends AbstractIconFile {
+    public static final class InvalidIconFileResource extends AbstractIconFile {
 
         private final FileResourceType resourceType;
 
-        public InvalidIconFile(FileResourceType resourceType) {
+        public InvalidIconFileResource(FileResourceType resourceType) {
             super();
             this.resourceType = resourceType;
         }

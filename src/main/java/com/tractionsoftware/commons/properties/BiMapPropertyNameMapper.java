@@ -33,7 +33,7 @@ public final class BiMapPropertyNameMapper implements PropertyNameMapper {
     }
 
     @Override
-    public final String getPropertyName(String requestedName) {
+    public final String getActualPropertyName(String requestedName) {
         return Objects.toString(internalName2ExternalName.inverse().get(requestedName), null);
     }
 

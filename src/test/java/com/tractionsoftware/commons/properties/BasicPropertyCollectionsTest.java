@@ -22,7 +22,7 @@ package com.tractionsoftware.commons.properties;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -59,7 +59,7 @@ public final class BasicPropertyCollectionsTest {
 
     private static final PutProperty simplePutProperty() {
         final Map<String,String> map = new LinkedHashMap<>();
-        return (name, value) -> CollectionsUtil.putOrRemove(map, name, value);
+        return (name, value) -> CollectionUtil.putOrRemove(map, name, value);
     }
 
     private static final GetPutProperty simpleGetPutProperty() {
@@ -80,7 +80,7 @@ public final class BasicPropertyCollectionsTest {
 
             @Override
             public final void putProperty(String name, String value) {
-                CollectionsUtil.putOrRemove(map, name, value);
+                CollectionUtil.putOrRemove(map, name, value);
             }
 
         };

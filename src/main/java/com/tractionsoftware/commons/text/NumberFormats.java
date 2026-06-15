@@ -81,6 +81,9 @@ public final class NumberFormats {
      */
     public static final String getFormattedPercentage(double percentageAsFraction, int decimalDigits) {
         try {
+            if (Double.isInfinite(percentageAsFraction) || Double.isNaN(percentageAsFraction)) {
+                return null;
+            }
             NumberFormat format = NumberFormat.getPercentInstance();
             if (decimalDigits >= 0) {
                 format.setMaximumFractionDigits(decimalDigits);

@@ -49,7 +49,7 @@ public final class PropertyNameMappingPropStore<R> extends AbstractPropertyNameM
                 return nameMappedProps.props;
             }
             return new PropertyNameMappingPropStore<>(
-                nameMappedProps.props, nameMappedProps.nameMapper.combine(nameMapper)
+                nameMappedProps.props, nameMappedProps.nameMapper.compose(nameMapper)
             );
         }
         return new PropertyNameMappingPropStore<>(props, nameMapper);

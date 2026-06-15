@@ -31,7 +31,7 @@ public abstract class AbstractPropertyNameMappingGetPutProperty<G extends GetPut
 
     @Override
     public final void putProperty(String name, String value) {
-        props.putProperty(nameMapper.getPropertyName(name), value);
+        props.putProperty(nameMapper.getActualPropertyName(name), value);
     }
 
 }

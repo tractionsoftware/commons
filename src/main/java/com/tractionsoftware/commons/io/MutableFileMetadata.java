@@ -41,7 +41,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws UnsupportedOperationException
      *     if the file name is considered a read-only property for this FileMetadata.
      */
-    public void setFilename(String fileName);
+    public void setFilename(@Nullable String fileName);
 
     /**
      * Sets the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or

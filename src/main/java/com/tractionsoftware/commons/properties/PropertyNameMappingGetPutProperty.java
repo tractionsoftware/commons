@@ -49,7 +49,7 @@ public final class PropertyNameMappingGetPutProperty extends AbstractPropertyNam
             if (nameMappedProps.nameMapper.isInverseOf(nameMapper)) {
                 return nameMappedProps.props;
             }
-            return new PropertyNameMappingGetPutProperty(nameMappedProps.props, nameMappedProps.nameMapper.combine(nameMapper));
+            return new PropertyNameMappingGetPutProperty(nameMappedProps.props, nameMappedProps.nameMapper.compose(nameMapper));
         }
         return new PropertyNameMappingGetPutProperty(props, nameMapper);
     }

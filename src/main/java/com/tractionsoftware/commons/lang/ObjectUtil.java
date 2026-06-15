@@ -20,7 +20,7 @@
 
 package com.tractionsoftware.commons.lang;
 
-import com.tractionsoftware.commons.util.CollectionsUtil;
+import com.tractionsoftware.commons.util.CollectionUtil;
 import com.tractionsoftware.commons.util.function.SupplierUtil;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -195,7 +195,7 @@ public final class ObjectUtil {
 
     public static String[] toStringArray(Collection<?> coll, Function<Object,String> converter) {
 
-        if (CollectionsUtil.isEmpty(coll)) {
+        if (CollectionUtil.isEmpty(coll)) {
             return new String[0];
         }
 

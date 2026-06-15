@@ -50,6 +50,7 @@ public interface FileMetadata {
      *
      * @return the public name for the file resource.
      */
+    @Nullable
     public String getFilename();
 
     /**
@@ -59,6 +60,7 @@ public interface FileMetadata {
      * @return the {@link URI} that defines the location of the file in a store of some sort. This may be a file: URI or
      *     something else.
      */
+    @Nullable
     public URI getURI();
 
     /**
@@ -68,6 +70,7 @@ public interface FileMetadata {
      * @return the specification {@link URI} that defines the location of the file in a store of some sort. This may be
      *     a file: URI or something else.
      */
+    @Nullable
     public default String getURISpec() {
         return Objects.toString(getURI(), null);
     }
@@ -77,6 +80,7 @@ public interface FileMetadata {
      *
      * @return a text description of the file, if one is available; null otherwise.
      */
+    @Nullable
     public String getDescription();
 
     /**
@@ -95,6 +99,7 @@ public interface FileMetadata {
      * @return the "Content-Type" for the file if one is known or can be determined for this FileMetadata; null
      *     otherwise.
      */
+    @Nullable
     public String getContentType();
 
     /**
@@ -134,6 +139,7 @@ public interface FileMetadata {
      * @return the value of the "Content-Id" header associated with this file, if one has been specified; null
      *     otherwise.
      */
+    @Nullable
     public String getContentId();
 
     /**
@@ -143,6 +149,7 @@ public interface FileMetadata {
      * @return the value of the "Content-Location" header associated with this file, if one has been specified; null
      *     otherwise.
      */
+    @Nullable
     public String getContentLocation();
 
     /**
@@ -154,6 +161,7 @@ public interface FileMetadata {
      * @return the "Content-Base" header that was associated with this file as it was originally created from a MIME
      *     message part (i.e., an email attachment).
      */
+    @Nullable
     public String getContentBase();
 
     /**
@@ -203,6 +211,7 @@ public interface FileMetadata {
      *
      * @return a new {@link MutableFileMetadata} populated by copying all properties from this FileMetadata.
      */
+    @Nonnull
     public default MutableFileMetadata mutableCopy() {
         return SimpleMutableFileMetadata.createCopy(this);
     }
@@ -213,7 +222,7 @@ public interface FileMetadata {
      * @param destination
      *     a {@link MutableFileMetadata} to which the metadata from this FileMetadata will be copied.
      */
-    public default void copyTo(MutableFileMetadata destination) {
+    public default void copyTo(@Nullable MutableFileMetadata destination) {
 
         if (destination == null) {
             return;
