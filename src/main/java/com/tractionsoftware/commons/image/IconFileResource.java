@@ -32,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Date;
+import java.util.Objects;
 
 /**
  * A special {@link FileResource} that is used to back {@link Icon} implementations. Since instances will frequently be
@@ -49,8 +50,9 @@ public interface IconFileResource extends FileResource {
 
         private final FileResourceType resourceType;
 
-        public InvalidIconFileResource(FileResourceType resourceType) {
+        public InvalidIconFileResource(@Nonnull FileResourceType resourceType) {
             super();
+            Objects.requireNonNull(resourceType, "resource type");
             this.resourceType = resourceType;
         }
 
@@ -155,6 +157,29 @@ public interface IconFileResource extends FileResource {
         return false;
     }
 
+    /**
+     * Returns an unscaled {@link Icon} representing an interpretation of this file as an image.
+     *
+     * <p>
+     * This may require a request to the file system or a file repository service, which could be relatively slow
+     * compared with other methods in this class. Naturally, this method will not make sense for files that are not
+     * images, and it is very likely that if {@link #isImage()} returns true that this method will return an Icon that
+     * is not {@link Icon#isValid() valid}.
+     *
+     * <p>
+     * This default implementation defers to {@link #getImage(Dimensions)}, passing null for the maximum
+     * {@link Dimensions}. It should be suitable for all IconFile implementations.
+     *
+     * @return an unscaled {@link Icon} representing an interpretation of this file as an image, if possible; null
+     *     otherwise.
+     * @see #isImage()
+     */
+    @Nonnull
+    public default Icon getImage() {
+        return getImage(null);
+    }
+
+    @Nonnull
     @Override
     public default Icon getImage(Dimensions<Integer> maxDimensions) {
         return new SimpleIcon(this, maxDimensions);
@@ -165,6 +190,7 @@ public interface IconFileResource extends FileResource {
      *
      * @return a display name for this IconFile.
      */
+    @Nullable
     public String getDisplayName();
 
     /**

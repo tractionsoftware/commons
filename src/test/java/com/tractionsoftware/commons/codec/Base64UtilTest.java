@@ -51,9 +51,7 @@ class Base64UtilTest {
 
     @Test
     void getDecodedBytes_invalidEncoding_returnsEmpty() {
-        byte[] result = Base64Util.getDecodedBytes("!!!not-base64!!!");
-        assertNotNull(result);
-        assertEquals(0, result.length);
+        assertNull(Base64Util.getDecodedBytes("!!!not-base64!!!"));
     }
 
     // ---------------------------------------------------------------------------

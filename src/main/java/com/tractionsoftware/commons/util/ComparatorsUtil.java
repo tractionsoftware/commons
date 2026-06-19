@@ -20,6 +20,7 @@
 
 package com.tractionsoftware.commons.util;
 
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,7 +166,8 @@ public final class ComparatorsUtil {
      *         {@link Collection} of Comparators; or null if the given
      *         Collection is null.
      */
-    public static final <T> Comparator<T> createCompositeComparator(Collection<? extends Comparator<? super T>> comparators) {
+    @Nullable
+    public static final <T> Comparator<T> createCompositeComparator(@Nullable Collection<? extends Comparator<? super T>> comparators) {
         if (CollectionUtil.isEmpty(comparators)) {
             return null;
         }
@@ -199,8 +201,11 @@ public final class ComparatorsUtil {
      *         raised.
      */
     public static final <T> Comparator<T> safeComparator(Comparator<T> comparator) {
-        if (comparator == null || comparator instanceof SafeComparator<?>) {
-            return comparator;
+        if (comparator == null) {
+            return null;
+        }
+        if (comparator instanceof SafeComparator<T> safe) {
+            return safe;
         }
         return new SafeComparator<>(comparator);
     }

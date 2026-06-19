@@ -24,8 +24,10 @@ import com.google.common.collect.ForwardingObject;
 import com.tractionsoftware.commons.image.Icon;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Date;
 
 /**
@@ -43,6 +45,12 @@ public abstract class ForwardingFileResource extends ForwardingObject implements
     @Override
     public boolean isValid() {
         return delegate().isValid();
+    }
+
+    @Nonnull
+    @Override
+    public URI getURI() {
+        return delegate().getURI();
     }
 
     @Nonnull
@@ -100,6 +108,7 @@ public abstract class ForwardingFileResource extends ForwardingObject implements
         return delegate().isPersistent();
     }
 
+    @Nullable
     @Override
     public Icon getImage(Dimensions<Integer> maxDimensions) {
         return delegate().getImage(maxDimensions);

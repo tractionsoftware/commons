@@ -595,6 +595,7 @@ public interface FileResource {
      *     otherwise.
      * @see #isImage()
      */
+    @Nullable
     public default Icon getImage() {
         return getImage(null);
     }

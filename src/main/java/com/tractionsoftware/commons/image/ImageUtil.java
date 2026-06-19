@@ -126,9 +126,9 @@ public final class ImageUtil {
          */
         public default boolean hadFailure() {
             if (getStatus() == ImageCreationResultStatus.FAILURE) {
-                return false;
+                return true;
             }
-            return true;
+            return false;
         }
 
         /**

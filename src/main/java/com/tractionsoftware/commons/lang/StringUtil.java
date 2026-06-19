@@ -33,6 +33,7 @@ import com.tractionsoftware.commons.text.StringSplitUtil;
 import com.tractionsoftware.commons.util.ArraysUtil;
 import com.tractionsoftware.commons.util.CollectionUtil;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -142,7 +143,7 @@ public final class StringUtil {
     public static final Comparator<String> SAFE_CASE_INSENSITIVE_ORDER =
         Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER);
 
-    public interface TextEnclosureScheme {
+    public static interface TextEnclosureScheme {
 
         char start();
 
@@ -220,27 +221,27 @@ public final class StringUtil {
     }
 
     @FunctionalInterface
-    public interface CodePointMapper {
+    public static interface CodePointMapper {
 
         int getReplacement(int codePoint);
 
     }
 
     @FunctionalInterface
-    public interface CharToStringMapper {
+    public static interface CharToStringMapper {
 
         CharSequence getReplacement(char c);
 
     }
 
     @FunctionalInterface
-    public interface CharMapper {
+    public static interface CharMapper {
 
         char getReplacement(char c);
 
     }
 
-    public interface IndexRange {
+    public static interface IndexRange {
 
         int start();
 
@@ -266,7 +267,7 @@ public final class StringUtil {
             return (length() == 0);
         }
 
-        default CharSequence apply(CharSequence sequence) {
+        default CharSequence apply(@Nonnull CharSequence sequence) {
             if (isEmpty()) {
                 return StringUtils.EMPTY;
             }
@@ -276,7 +277,7 @@ public final class StringUtil {
             return sequence.subSequence(start(), end()).toString();
         }
 
-        default String applyAsString(CharSequence sequence) {
+        default String applyAsString(@Nonnull CharSequence sequence) {
             return apply(sequence).toString();
         }
 
@@ -321,7 +322,7 @@ public final class StringUtil {
 
     }
 
-    public interface AnalyzableIndexRange extends IndexRange {
+    public static interface AnalyzableIndexRange extends IndexRange {
 
         boolean containsNonBmpCodePoints();
 
@@ -331,7 +332,7 @@ public final class StringUtil {
 
         public static final SimpleImmutableIndexRange EMPTY = new SimpleImmutableIndexRange(0, 0);
 
-        public static SimpleImmutableIndexRange getInstance(int start, int end) {
+        public static final SimpleImmutableIndexRange getInstance(int start, int end) {
             if (start < 0) {
                 throw new IndexOutOfBoundsException("start " + start + " < 0");
             }
@@ -354,22 +355,22 @@ public final class StringUtil {
         }
 
         @Override
-        public int start() {
+        public final int start() {
             return start;
         }
 
         @Override
-        public int end() {
+        public final int end() {
             return end;
         }
 
         @Override
-        public int length() {
+        public final int length() {
             return end - start;
         }
 
         @Override
-        public CharSequence apply(CharSequence sequence) {
+        public final CharSequence apply(@Nonnull CharSequence sequence) {
             if (start == end) {
                 return StringUtils.EMPTY;
             }
@@ -380,7 +381,7 @@ public final class StringUtil {
         }
 
         @Override
-        public void append(StringBuilder buff, CharSequence sequence) {
+        public final void append(@Nonnull StringBuilder buff, @Nonnull CharSequence sequence) {
             if (isEmpty()) {
                 return;
             }
@@ -392,7 +393,7 @@ public final class StringUtil {
         }
 
         @Override
-        public void print(PrintWriter out, CharSequence sequence) {
+        public final void print(PrintWriter out, CharSequence sequence) {
             if (isEmpty()) {
                 return;
             }
@@ -410,7 +411,7 @@ public final class StringUtil {
         }
 
         @Override
-        public void append(Appendable out, CharSequence sequence) throws IOException {
+        public final void append(Appendable out, CharSequence sequence) throws IOException {
             if (isEmpty()) {
                 return;
             }
@@ -533,27 +534,27 @@ public final class StringUtil {
     }
 
     @FunctionalInterface
-    private interface KnownLengthCharSequenceCharExtractor {
+    private static interface KnownLengthCharSequenceCharExtractor {
 
-        char getChar(CharSequence str, int len);
-
-    }
-
-    @FunctionalInterface
-    private interface KnownLengthStringCodePointExtractor {
-
-        int getCodePoint(String str, int len);
+        char getChar(@Nonnull CharSequence str, int len);
 
     }
 
     @FunctionalInterface
-    private interface CharIndexFinder {
+    private static interface KnownLengthStringCodePointExtractor {
 
-        int indexOf(String str, char c, int startIndex);
+        int getCodePoint(@Nonnull String str, int len);
 
     }
 
-    private enum SpecialPosition {
+    @FunctionalInterface
+    private static interface CharIndexFinder {
+
+        int indexOf(@Nonnull String str, char c, int startIndex);
+
+    }
+
+    private static enum SpecialPosition {
 
         FIRST(
             (str, _) -> str.charAt(0),
@@ -594,7 +595,7 @@ public final class StringUtil {
 
     }
 
-    public static Joiner getNullSkippingJoiner(char separator) {
+    public static final Joiner getNullSkippingJoiner(char separator) {
         return switch (separator) {
             case ',' -> JOINER_COMMA;
             case ' ' -> JOINER_SPACE;
@@ -605,7 +606,7 @@ public final class StringUtil {
         };
     }
 
-    public static Joiner getNullSkippingJoiner(String separator) {
+    public static final Joiner getNullSkippingJoiner(@Nullable String separator) {
         return switch (separator) {
             case "," -> JOINER_COMMA;
             case ", " -> JOINER_COMMA_WITH_SPACE;
@@ -624,7 +625,7 @@ public final class StringUtil {
     /**
      * Join the elements of a {@link Stream} using the given separator character. null values are skipped.
      */
-    public static final String join(Stream<?> elements, char separator) {
+    public static final String join(@Nullable Stream<?> elements, char separator) {
         if (elements == null) {
             return "";
         }
@@ -635,7 +636,7 @@ public final class StringUtil {
      * Join the elements of a {@link Stream} using the given separator {@link String}. null values are skipped, and if
      * the join separator is null, the empty String will be used instead.
      */
-    public static final String join(Stream<?> elements, String separator) {
+    public static final String join(@Nullable Stream<?> elements, @Nullable String separator) {
         if (elements == null) {
             return "";
         }
@@ -645,7 +646,7 @@ public final class StringUtil {
     /**
      * Join the elements of a {@link Iterator} using the given separator character. null values are skipped.
      */
-    public static String join(Iterator<?> coll, char separator) {
+    public static final String join(@Nullable Iterator<?> coll, char separator) {
         if (coll == null) {
             return "";
         }
@@ -656,7 +657,7 @@ public final class StringUtil {
      * Join the elements of a {@link Iterator} using the given separator {@link String}. null values are skipped, and if
      * the join separator is null, the empty String will be used instead.
      */
-    public static String join(Iterator<?> coll, String separator) {
+    public static final String join(@Nullable Iterator<?> coll, @Nullable String separator) {
         if (coll == null) {
             return "";
         }
@@ -666,7 +667,7 @@ public final class StringUtil {
     /**
      * Join the elements of a {@link Iterable} using the given separator character. null values are skipped.
      */
-    public static String join(Iterable<?> coll, char separator) {
+    public static final String join(Iterable<?> coll, char separator) {
         if (coll == null) {
             return "";
         }
@@ -677,7 +678,7 @@ public final class StringUtil {
      * Join the elements of a {@link Iterable} using the given separator {@link String}. null values are skipped, and if
      * the join separator is null, the empty String will be used instead.
      */
-    public static String join(Iterable<?> coll, String separator) {
+    public static final String join(@Nullable Iterable<?> coll, @Nullable String separator) {
         if (coll == null) {
             return "";
         }
@@ -687,7 +688,7 @@ public final class StringUtil {
     /**
      * Join the elements of an array using the given separator.
      */
-    public static String join(String[] arr, char separator) {
+    public static final String join(@Nullable String[] arr, char separator) {
         if (arr == null) {
             return "";
         }
@@ -697,7 +698,7 @@ public final class StringUtil {
     /**
      * Join the elements of an array using the given separator {@link String}.
      */
-    public static String join(String[] arr, String separator) {
+    public static final String join(@Nullable String[] arr, String separator) {
         if (arr == null) {
             return "";
         }
@@ -884,7 +885,7 @@ public final class StringUtil {
         return Strings.CS.replace(str, find, replace);
     }
 
-    public static boolean isNonNegativeNumber(String str) {
+    public static final boolean isNonNegativeNumber(String str) {
         if (StringUtils.isBlank(str)) {
             return false;
         }
@@ -897,7 +898,7 @@ public final class StringUtil {
         return true;
     }
 
-    public static boolean containsIgnoreCase(Collection<String> coll, String searchVal) {
+    public static final boolean containsIgnoreCase(Collection<String> coll, String searchVal) {
         if (CollectionUtil.isEmpty(coll)) {
             return false;
         }
@@ -918,7 +919,7 @@ public final class StringUtil {
      * @return true if the given sequence contains any of the given search characters, starting at the given index;
      *     false otherwise.
      */
-    public static boolean containsAny(CharSequence str, CharSequence searchChars, int fromIndex) {
+    public static final boolean containsAny(CharSequence str, CharSequence searchChars, int fromIndex) {
         if (indexOfAny(str, searchChars, fromIndex) == StringUtils.INDEX_NOT_FOUND) {
             return false;
         }
@@ -939,7 +940,7 @@ public final class StringUtil {
      * @return the first index of any of the specified characters, starting at the given index, if any of them are
      *     present; -1 otherwise.
      */
-    public static int indexOfAny(CharSequence str, CharSequence searchChars, int fromIndex) {
+    public static final int indexOfAny(CharSequence str, CharSequence searchChars, int fromIndex) {
 
         if (StringUtils.isEmpty(str) || StringUtils.isEmpty(searchChars)) {
             return StringUtils.INDEX_NOT_FOUND;
@@ -985,7 +986,7 @@ public final class StringUtil {
      *
      * @author [ajm 16.Jun.2010]
      */
-    public static int indexOfAny(String str, String[] find, int fromIndex) {
+    public static final int indexOfAny(String str, String[] find, int fromIndex) {
 
         if (fromIndex < 0) {
             fromIndex = 0;
@@ -1015,7 +1016,7 @@ public final class StringUtil {
      * @return true if the given string contains any non-BMP code points; false otherwise.
      * @see #isNotBmpCodePoint(int)
      */
-    public static boolean hasNonBmpCodePoints(CharSequence str) {
+    public static final boolean hasNonBmpCodePoints(CharSequence str) {
         if (StringUtils.isEmpty(str)) {
             return false;
         }
@@ -1072,7 +1073,7 @@ public final class StringUtil {
      * @return a string representing the given string with all occurrences of the characters in the given remove string
      *     from the subject string.
      */
-    public static String removeAll(CharSequence str, CharSequence remove) {
+    public static final String removeAll(CharSequence str, CharSequence remove) {
         if (StringUtils.isEmpty(str) || StringUtils.isEmpty(remove)) {
             return Objects.toString(str, null);
         }
@@ -1092,7 +1093,7 @@ public final class StringUtil {
      * @return true if the given integer is not a BMP code point; false otherwise.
      * @see Character#isBmpCodePoint(int)
      */
-    public static boolean isNotBmpCodePoint(int codePoint) {
+    public static final boolean isNotBmpCodePoint(int codePoint) {
         return !Character.isBmpCodePoint(codePoint);
     }
 
@@ -1104,25 +1105,25 @@ public final class StringUtil {
      *     the string to have its line breaks removed.
      * @return a string representing the given string with all occurrences of line breaks removed.
      */
-    public static String removeLineBreaks(CharSequence str) {
+    public static final String removeLineBreaks(CharSequence str) {
         return removeAll(str, "\n\r");
     }
 
-    public static String getTrimmedNonEmptyLinesJoinedWithSpaces(String str) {
+    public static final String getTrimmedNonEmptyLinesJoinedWithSpaces(String str) {
         if (StringUtils.isEmpty(str)) {
             return str;
         }
         return join(getTrimmedNonEmptyLines(str).iterator(), ' ');
     }
 
-    public static String lineBreaksToNewlines(String str) {
+    public static final String lineBreaksToNewlines(String str) {
         if (StringUtils.isEmpty(str)) {
             return str;
         }
         return join(getLines(str).iterator(), '\n');
     }
 
-    public static void randomize(CharBuffer buffer) {
+    public static final void randomize(CharBuffer buffer) {
         char c;
         int n;
         for (int i = buffer.position(); i < buffer.limit(); i++) {
@@ -1133,18 +1134,18 @@ public final class StringUtil {
         }
     }
 
-    public static String randomize(String str) {
+    public static final String randomize(String str) {
         char[] ret = str.toCharArray();
         CharBuffer buffer = CharBuffer.wrap(ret);
         randomize(buffer);
         return String.valueOf(ret);
     }
 
-    public static char getRandomCharacter(CharSequence palette) {
+    public static final char getRandomCharacter(CharSequence palette) {
         return palette.charAt(random.nextInt(palette.length()));
     }
 
-    public static String getRandomSequence(int length, CharSequence palette) {
+    public static final String getRandomSequence(int length, CharSequence palette) {
         char[] ret = new char[length];
         CharBuffer buffer = CharBuffer.wrap(ret);
         fillRandom(palette, buffer);
@@ -1153,25 +1154,25 @@ public final class StringUtil {
         return String.valueOf(ret);
     }
 
-    public static String getRandomAlphaNumericSequence(int length) {
+    public static final String getRandomAlphaNumericSequence(int length) {
         return getRandomSequence(length, PALETTE_ALPHA_NUMERIC);
     }
 
-    public static void fillRandom(CharSequence palette, CharBuffer destination) {
+    public static final void fillRandom(CharSequence palette, CharBuffer destination) {
         fillRandom(palette, destination, destination.length());
     }
 
-    public static void fillRandom(CharSequence palette, Appendable destination, int count) {
+    public static final void fillRandom(CharSequence palette, Appendable destination, int count) {
         for (int i = 0; i < count; i++) {
             StringWriteUtil.safeAppend(destination, StringUtil.getRandomCharacter(palette));
         }
     }
 
-    public static int indexOfNotEscaped(String str, char ch) {
+    public static final int indexOfNotEscaped(String str, char ch) {
         return indexOfNotEscaped(str, ch, 0);
     }
 
-    public static int indexOfNotEscaped(String str, char ch, int start) {
+    public static final int indexOfNotEscaped(String str, char ch, int start) {
         for (int i = start; i < str.length(); i++) {
             if (str.charAt(i) == ch) {
                 if (i == 0 || str.charAt(i - 1) != '\\') {
@@ -1182,11 +1183,11 @@ public final class StringUtil {
         return StringUtils.INDEX_NOT_FOUND;
     }
 
-    public static int indexOfIgnoreCase(String str, char c) {
+    public static final int indexOfIgnoreCase(String str, char c) {
         return indexOfIgnoreCase(str, c, 0);
     }
 
-    public static int indexOfIgnoreCase(String str, char c, int fromIndex) {
+    public static final int indexOfIgnoreCase(String str, char c, int fromIndex) {
         int len = StringUtils.length(str);
         if (len == 0 || fromIndex >= len) {
             return StringUtils.INDEX_NOT_FOUND;
@@ -1194,11 +1195,11 @@ public final class StringUtil {
         return indexOfIgnoreCaseImpl(str, c, fromIndex);
     }
 
-    public static boolean containsCharactersInOrder(String str, String search) {
+    public static final boolean containsCharactersInOrder(String str, String search) {
         return containsCharactersInOrderImpl(str, search, String::indexOf);
     }
 
-    public static boolean containsCharactersInOrderIgnoreCase(String str, String search) {
+    public static final boolean containsCharactersInOrderIgnoreCase(String str, String search) {
         return containsCharactersInOrderImpl(str, search, StringUtil::indexOfIgnoreCaseImpl);
     }
 
@@ -1211,7 +1212,7 @@ public final class StringUtil {
      * @return a sequential {@link Stream} covering the lines in the input String; or an empty Stream if the input
      *     String is null or empty.
      */
-    public static Stream<String> getLines(CharSequence str) {
+    public static final Stream<String> getLines(CharSequence str) {
         return split(str, LINE_SPLITTER);
     }
 
@@ -1226,11 +1227,11 @@ public final class StringUtil {
      *     if the input String is null or empty.
      * @see #getLines(CharSequence)
      */
-    public static Stream<String> getTrimmedNonEmptyLines(CharSequence str) {
+    public static final Stream<String> getTrimmedNonEmptyLines(CharSequence str) {
         return split(str, TRIMMED_NON_EMPTY_LINE_SPLITTER);
     }
 
-    public static Stream<String> getTrimmedNonEmptyListElements(CharSequence str) {
+    public static final Stream<String> getTrimmedNonEmptyListElements(CharSequence str) {
         return split(str, TRIMMED_NON_EMPTY_LIST_SPLITTER);
     }
 
@@ -1245,7 +1246,7 @@ public final class StringUtil {
      *     an empty Stream if the input String is null or empty.
      * @see #getLines(CharSequence)
      */
-    public static Stream<String> getTrimmedNonEmptyParts(CharSequence str) {
+    public static final Stream<String> getTrimmedNonEmptyParts(CharSequence str) {
         return split(str, TRIMMED_NON_EMPTY_PART_SPLITTER);
     }
 
@@ -1260,7 +1261,7 @@ public final class StringUtil {
      * @return a sequential {@link Stream} covering the results produced by the given {@link Splitter} as applied to the
      *     given sequence; or an empty Stream if the sequence is null or empty.
      */
-    public static Stream<String> split(CharSequence str, Splitter splitter) {
+    public static final Stream<String> split(CharSequence str, Splitter splitter) {
         if (StringUtils.isEmpty(str)) {
             return Stream.empty();
         }
@@ -1280,7 +1281,7 @@ public final class StringUtil {
      * @return true if the input text has any runs of one or more consecutive whitespace characters, if any appear and
      *     if the input text is not null; false otherwise.
      */
-    public static boolean hasCollapsableOrNormalizableWhitespace(String text, boolean alternativeWhitespace) {
+    public static final boolean hasCollapsableOrNormalizableWhitespace(String text, boolean alternativeWhitespace) {
         if (StringUtils.isEmpty(text)) {
             return false;
         }
@@ -1327,7 +1328,7 @@ public final class StringUtil {
      *     any objects or perform otherwise possibly unnecessary work until it identifies a run of whitespace characters
      *     in the input text that need to be collapsed or normalized.
      */
-    public static String collapseAndNormalizeWhitespace(String text, boolean alternativeWhitespace) {
+    public static final String collapseAndNormalizeWhitespace(@Nullable String text, boolean alternativeWhitespace) {
 
         if (StringUtils.isEmpty(text)) {
             return text;
@@ -1362,7 +1363,7 @@ public final class StringUtil {
 
     }
 
-    public static String collapseConsecutiveCharacters(String str, char c) {
+    public static final String collapseConsecutiveCharacters(String str, char c) {
 
         int len = StringUtils.length(str);
         if (len <= 1) {
@@ -1416,7 +1417,7 @@ public final class StringUtil {
      * @return the input text with any "alternative whitespace" characters replaced by a normal space, if any appear and
      *     if the input text is not null; otherwise, the input text as-is.
      */
-    public static String normalizeAlternativeWhitespace(String text) {
+    public static final String normalizeAlternativeWhitespace(String text) {
 
         if (StringUtils.isEmpty(text)) {
             return text;
@@ -1461,7 +1462,7 @@ public final class StringUtil {
      *     {@link #isAlternativeWhitespaceChar(char)} method, are to be considered whitespace.
      * @return returns true if the given char is considered whitespace; false otherwise.
      */
-    public static boolean isWhitespaceChar(char c, boolean alternativeSpaces) {
+    public static final boolean isWhitespaceChar(char c, boolean alternativeSpaces) {
         if (Character.isWhitespace(c)) {
             return true;
         }
@@ -1482,7 +1483,7 @@ public final class StringUtil {
      *     the char to be examined.
      * @return true if the given char is considered an "alternative whitespace" character; false otherwise.
      */
-    public static boolean isAlternativeWhitespaceChar(char c) {
+    public static final boolean isAlternativeWhitespaceChar(char c) {
         return switch (c) {
             case CHAR_NON_BREAKING_SPACE, CHAR_ZERO_WIDTH_SPACE -> true;
             default -> false;
@@ -1493,8 +1494,8 @@ public final class StringUtil {
      * Returns true if the given code point is considered whitespace.
      *
      * <p>
-     * This method simply returns true if {@link Character#isWhitespace(int)} returns true for the input char; or if
-     * the client indicated that "alternative whitespace" characters are to be considered whitespace, returns true if
+     * This method simply returns true if {@link Character#isWhitespace(int)} returns true for the input char; or if the
+     * client indicated that "alternative whitespace" characters are to be considered whitespace, returns true if
      * {@link #isAlternativeWhitespaceChar(char)} returns true for the input char; and returns false otherwise.
      *
      * @param c
@@ -1525,7 +1526,7 @@ public final class StringUtil {
      *     the char to be examined, expressed as an int.
      * @return true if the given char is considered an "alternative whitespace" character; false otherwise.
      */
-    public static boolean isAlternativeWhitespaceCodePoint(int c) {
+    public static final boolean isAlternativeWhitespaceCodePoint(int c) {
         return switch (c) {
             case CHAR_NON_BREAKING_SPACE, CHAR_ZERO_WIDTH_SPACE -> true;
             default -> false;
@@ -1543,11 +1544,11 @@ public final class StringUtil {
      *     the CharSequence to be examined.
      * @return true if the given char is considered an "alternative whitespace" character; false otherwise.
      */
-    public static boolean hasAlternativeWhitespaceChar(CharSequence str) {
+    public static final boolean hasAlternativeWhitespaceChar(CharSequence str) {
         return str.chars().anyMatch(StringUtil::isAlternativeWhitespaceCodePoint);
     }
 
-    public static boolean isEnclosed(String str, TextEnclosureScheme... possibleSchemes) {
+    public static final boolean isEnclosed(String str, TextEnclosureScheme... possibleSchemes) {
 
         if (str == null) {
             return false;
@@ -1593,7 +1594,7 @@ public final class StringUtil {
 
     }
 
-    public static String extractEnclosed(String str, TextEnclosureScheme... possibleSchemes) {
+    public static final String extractEnclosed(String str, TextEnclosureScheme... possibleSchemes) {
 
         if (str == null) {
             return null;
@@ -1639,33 +1640,33 @@ public final class StringUtil {
 
     }
 
-    public static boolean isSingleOrDoubleQuoted(String str) {
+    public static final boolean isSingleOrDoubleQuoted(String str) {
         return isEnclosed(
             str, StandardTextEnclosureScheme.SINGLE_QUOTATION_MARKS, StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS
         );
     }
 
-    public static boolean isDoubleQuoted(String str) {
+    public static final boolean isDoubleQuoted(String str) {
         return isEnclosed(str, StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS);
     }
 
-    public static String extractDoubleQuoted(String str) {
+    public static final String extractDoubleQuoted(String str) {
         return extractEnclosed(str, StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS);
     }
 
-    public static String extractSingleQuoted(String str) {
+    public static final String extractSingleQuoted(String str) {
         return extractEnclosed(
             str, StandardTextEnclosureScheme.SINGLE_QUOTATION_MARKS, StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS
         );
     }
 
-    public static String extractQuotation(String str) {
+    public static final String extractQuotation(String str) {
         return extractEnclosed(
             str, StandardTextEnclosureScheme.SINGLE_QUOTATION_MARKS, StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS
         );
     }
 
-    public static Set<String> getPrefixIntersection(Set<String> some, Set<String> others) {
+    public static final Set<String> getPrefixIntersection(Set<String> some, Set<String> others) {
 
         ImmutableSet.Builder<String> intersection = ImmutableSet.builder();
 
@@ -1682,7 +1683,7 @@ public final class StringUtil {
 
     }
 
-    public static Set<String> getPrefixSpanningSet(Iterable<String> prefixes) {
+    public static final Set<String> getPrefixSpanningSet(Iterable<String> prefixes) {
 
         Set<String> spanning = new HashSet<>();
 
@@ -1709,13 +1710,38 @@ public final class StringUtil {
 
     }
 
-    public static void checkNotBlankX(String str, String desc) {
+    /**
+     * Checks whether the given string is blank.
+     *
+     * @param str
+     *     the text to check.
+     * @param desc
+     *     the description of the string to include in the exception message.
+     * @throws NullPointerException
+     *     if the input string is null.
+     * @throws IllegalArgumentException
+     *     if the input string is blank.
+     */
+    public static final void checkNotBlankX(String str, String desc) {
         Objects.requireNonNull(str, desc);
-        if (StringUtils.isBlank(str)) {
+        if (str.isBlank()) {
             throw new IllegalArgumentException(desc + " cannot be blank.");
         }
     }
 
+    /**
+     * Trims the given string, throwing an appropriate exception if the string is already null or blank.
+     *
+     * @param str
+     *     the text to trim.
+     * @param desc
+     *     the description of the string to include in the exception message.
+     * @return the trimmed string value.
+     * @throws NullPointerException
+     *     if the input string is null.
+     * @throws IllegalArgumentException
+     *     if the input string is blank.
+     */
     public static final String trimNotBlankX(String str, String desc) {
         Objects.requireNonNull(str, desc);
         str = str.trim();
@@ -1725,11 +1751,11 @@ public final class StringUtil {
         return str;
     }
 
-    public static String toStringOrNull(Object obj) {
+    public static final String toStringOrNull(Object obj) {
         return Objects.toString(obj, null);
     }
 
-    public static boolean equalsIgnoreCaseAndWhitespace(String s1, String s2) {
+    public static final boolean equalsIgnoreCaseAndWhitespace(String s1, String s2) {
 
         if (s1 == null) {
             if (s2 == null) {
@@ -1774,7 +1800,7 @@ public final class StringUtil {
      * @return a trimmed version of a String containing the characters from the requested region; or the empty string if
      *     the char[] is null or the offset and count refer to an undefined region or a region outside the data.
      */
-    public static String getTrimmedString(char[] data, int offset, int count) {
+    public static final String getTrimmedString(char[] data, int offset, int count) {
         if (ArrayUtils.isEmpty(data)) {
             return StringUtils.EMPTY;
         }
@@ -1792,7 +1818,7 @@ public final class StringUtil {
      * @return trimmed version of a String containing the characters from the requested region; or the empty string if
      *     the CharSequence is null or the start index starts in a region outside the sequence.
      */
-    public static String getTrimmedSubstring(CharSequence sequence, int startIndex) {
+    public static final String getTrimmedSubstring(CharSequence sequence, int startIndex) {
         return getTrimmedSubstring(sequence, startIndex, Integer.MAX_VALUE);
     }
 
@@ -1814,12 +1840,12 @@ public final class StringUtil {
      * @return trimmed version of a String containing the characters from the requested region; or the empty string if
      *     the sequence is null or the start index and end index refer to a region outside the sequence.
      */
-    public static String getTrimmedSubstring(CharSequence sequence, int startIndex, int endIndex) {
+    public static final String getTrimmedSubstring(CharSequence sequence, int startIndex, int endIndex) {
         return getMatchingRange(sequence, startIndex, endIndex, CharMatcher.whitespace().negate())
             .applyAsString(sequence);
     }
 
-    public static IndexRange getMatchingRange(CharSequence sequence, CharMatcher matcher) {
+    public static final IndexRange getMatchingRange(CharSequence sequence, CharMatcher matcher) {
         Objects.requireNonNull(matcher, "matcher");
         int len = StringUtils.length(sequence);
         if (len == 0) {
@@ -1828,23 +1854,13 @@ public final class StringUtil {
         return getMatchingRangeImpl(sequence, 0, len, matcher);
     }
 
-    public static IndexRange getMatchingRange(CharSequence sequence, int startIndex, int endIndex, CharMatcher matcher) {
+    public static final IndexRange getMatchingRange(CharSequence sequence, int startIndex, int endIndex, CharMatcher matcher) {
 
         Objects.requireNonNull(matcher, "matcher");
 
         int len = StringUtils.length(sequence);
-        if (len == 0) {
-            // CharSequence is null or empty.
-            return SimpleImmutableIndexRange.EMPTY;
-        }
-
-        if (startIndex >= endIndex) {
-            // Requested region is empty.
-            return SimpleImmutableIndexRange.EMPTY;
-        }
-
-        if (startIndex >= len || endIndex <= 0) {
-            // Requested region is entirely outside the sequence.
+        if (len == 0 || startIndex >= endIndex || startIndex >= len || endIndex <= 0) {
+            // Requested region is either empty, or is entirely outside the sequence.
             return SimpleImmutableIndexRange.EMPTY;
         }
 
@@ -1859,51 +1875,51 @@ public final class StringUtil {
 
     }
 
-    public static boolean startsWith(CharSequence sequence, char c) {
+    public static final boolean startsWith(CharSequence sequence, char c) {
         return matchCharAt(sequence, SpecialPosition.FIRST, c);
     }
 
-    public static boolean startsWithAny(CharSequence sequence, char... chars) {
+    public static final boolean startsWithAny(CharSequence sequence, char... chars) {
         return matchAnyCharAt(sequence, SpecialPosition.FIRST, chars);
     }
 
-    public static boolean startsWithAny(CharSequence sequence, Set<Character> chars) {
+    public static final boolean startsWithAny(CharSequence sequence, Set<Character> chars) {
         return matchAnyCharAt(sequence, SpecialPosition.FIRST, chars);
     }
 
-    public static boolean endsWith(CharSequence sequence, char c) {
+    public static final boolean endsWith(CharSequence sequence, char c) {
         return matchCharAt(sequence, SpecialPosition.LAST, c);
     }
 
-    public static boolean endsWithAny(CharSequence sequence, char... chars) {
+    public static final boolean endsWithAny(CharSequence sequence, char... chars) {
         return matchAnyCharAt(sequence, SpecialPosition.LAST, chars);
     }
 
-    public static boolean endsWithAny(CharSequence sequence, Set<Character> chars) {
+    public static final boolean endsWithAny(CharSequence sequence, Set<Character> chars) {
         return matchAnyCharAt(sequence, SpecialPosition.LAST, chars);
     }
 
-    public static boolean startsWithCodePoint(String str, int codePoint) {
+    public static final boolean startsWithCodePoint(String str, int codePoint) {
         return matchCodePointAt(str, SpecialPosition.FIRST, codePoint);
     }
 
-    public static boolean startsWithAnyCodePoint(String str, int... codePoints) {
+    public static final boolean startsWithAnyCodePoint(String str, int... codePoints) {
         return matchesAnyCodePointAt(str, SpecialPosition.FIRST, codePoints);
     }
 
-    public static boolean startsWithAnyCodePoint(String str, Set<Integer> codePoints) {
+    public static final boolean startsWithAnyCodePoint(String str, Set<Integer> codePoints) {
         return matchesAnyCodePointAt(str, SpecialPosition.FIRST, codePoints);
     }
 
-    public static boolean endsWithCodePoint(String str, int codePoint) {
+    public static final boolean endsWithCodePoint(String str, int codePoint) {
         return matchCodePointAt(str, SpecialPosition.LAST, codePoint);
     }
 
-    public static boolean endsWithAnyCodePoint(String str, int... codePoints) {
+    public static final boolean endsWithAnyCodePoint(String str, int... codePoints) {
         return matchesAnyCodePointAt(str, SpecialPosition.LAST, codePoints);
     }
 
-    public static boolean endsWithAnyCodePoint(String str, Set<Integer> codePoints) {
+    public static final boolean endsWithAnyCodePoint(String str, Set<Integer> codePoints) {
         return matchesAnyCodePointAt(str, SpecialPosition.LAST, codePoints);
     }
 
@@ -2046,7 +2062,7 @@ public final class StringUtil {
         return endsWithIgnoringLeadingWhitespaceImpl(str, search, true);
     }
 
-    private static IndexRange getMatchingRangeImpl(CharSequence sequence, final int startSearchIndex, final int endSearchIndex, CharMatcher matcher) {
+    private static final IndexRange getMatchingRangeImpl(CharSequence sequence, final int startSearchIndex, final int endSearchIndex, CharMatcher matcher) {
 
         int startRangeIndex = startSearchIndex;
         while (!matcher.matches(sequence.charAt(startRangeIndex))) {
@@ -2067,7 +2083,7 @@ public final class StringUtil {
 
     }
 
-    private static int indexOfIgnoreCaseImpl(String str, char c, int fromIndex) {
+    private static final int indexOfIgnoreCaseImpl(@Nonnull String str, char c, int fromIndex) {
         if (Character.isLowerCase(c)) {
             return indexOfEitherImpl(str, c, Character.toUpperCase(c), fromIndex);
         }
@@ -2077,7 +2093,7 @@ public final class StringUtil {
         return str.indexOf(c, fromIndex);
     }
 
-    private static int indexOfEitherImpl(String str, char c1, char c2, int fromIndex) {
+    private static final int indexOfEitherImpl(@Nonnull String str, char c1, char c2, int fromIndex) {
         int len = str.length();
         for (int index = Math.max(0, fromIndex); index < len; index++) {
             char charAt = str.charAt(index);
@@ -2088,10 +2104,11 @@ public final class StringUtil {
         return StringUtils.INDEX_NOT_FOUND;
     }
 
-    private static boolean containsCharactersInOrderImpl(String str, String search, CharIndexFinder finder) {
+    private static final boolean containsCharactersInOrderImpl(@Nullable String str, @Nullable String search, @Nonnull CharIndexFinder finder) {
         if (StringUtils.isEmpty(str) || StringUtils.isEmpty(search)) {
             return false;
         }
+        Objects.requireNonNull(finder, "finder");
         int next = -1;
         for (int i = 0; i < search.length(); i++) {
             next = finder.indexOf(str, search.charAt(i), next + 1);
@@ -2102,7 +2119,7 @@ public final class StringUtil {
         return true;
     }
 
-    private static int[] findNextCollapsibleOrNormalizableWhitespaceBoundaries(String input, boolean alternativeWhitespace, int fromIndex) {
+    private static final int[] findNextCollapsibleOrNormalizableWhitespaceBoundaries(@Nonnull String input, boolean alternativeWhitespace, int fromIndex) {
 
         CollapsibleOrNormalizableWhitespaceScanningState state =
             CollapsibleOrNormalizableWhitespaceScanningState.NO_WHITESPACE;
@@ -2150,7 +2167,7 @@ public final class StringUtil {
 
     }
 
-    private static int[] findNextNormalizableWhitespaceBoundaries(String input, int fromIndex) {
+    private static final int[] findNextNormalizableWhitespaceBoundaries(@Nonnull String input, int fromIndex) {
 
         int runStartIndex = -1;
         int sz = input.length();
@@ -2177,7 +2194,7 @@ public final class StringUtil {
 
     }
 
-    private static boolean matchCharAt(CharSequence sequence, SpecialPosition position, char c) {
+    private static final boolean matchCharAt(@Nullable CharSequence sequence, @Nonnull SpecialPosition position, char c) {
         int len = StringUtils.length(sequence);
         if (len > 0 && position.getChar(sequence, len) == c) {
             return true;
@@ -2185,7 +2202,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static boolean matchAnyCharAt(CharSequence sequence, SpecialPosition position, char... chars) {
+    private static final boolean matchAnyCharAt(@Nullable CharSequence sequence, @Nonnull SpecialPosition position, char... chars) {
         if (chars == null) {
             return false;
         }
@@ -2201,7 +2218,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static boolean matchAnyCharAt(CharSequence sequence, SpecialPosition position, Set<Character> chars) {
+    private static final boolean matchAnyCharAt(@Nullable CharSequence sequence, @Nonnull SpecialPosition position, @Nullable Set<Character> chars) {
         if (chars == null) {
             return false;
         }
@@ -2212,7 +2229,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static boolean matchCodePointAt(String str, SpecialPosition position, int codePoint) {
+    private static final boolean matchCodePointAt(@Nullable String str, @Nonnull SpecialPosition position, int codePoint) {
         int len = StringUtils.length(str);
         if (len > 0 && position.getCodePoint(str, len) == codePoint) {
             return true;
@@ -2220,7 +2237,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static boolean matchesAnyCodePointAt(String str, SpecialPosition position, int... codePoints) {
+    private static final boolean matchesAnyCodePointAt(@Nullable String str, @Nonnull SpecialPosition position, int... codePoints) {
         int len = StringUtils.length(str);
         if (len > 0) {
             int codePointAt = position.getCodePoint(str, len);
@@ -2233,7 +2250,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static final int indexOfLeadingWhitespaceImpl(CharSequence str, int lastEligibleIndex) {
+    private static final int indexOfLeadingWhitespaceImpl(@Nonnull CharSequence str, int lastEligibleIndex) {
         for (int i = 0; i <= lastEligibleIndex; i++) {
             if (!Character.isWhitespace(str.charAt(i))) {
                 return i;
@@ -2242,7 +2259,7 @@ public final class StringUtil {
         return StringUtils.INDEX_NOT_FOUND;
     }
 
-    private static final int lastIndexOfIgnoringTrailingWhitespaceImpl(CharSequence str, int firstEligibleIndex) {
+    private static final int lastIndexOfIgnoringTrailingWhitespaceImpl(@Nonnull CharSequence str, int firstEligibleIndex) {
         for (int i = str.length() - 1; i >= firstEligibleIndex; i--) {
             if (!Character.isWhitespace(str.charAt(i))) {
                 return i;
@@ -2251,7 +2268,7 @@ public final class StringUtil {
         return StringUtils.INDEX_NOT_FOUND;
     }
 
-    private static final boolean startsWithIgnoringLeadingWhitespaceImpl(String str, String search, boolean ignoreCase) {
+    private static final boolean startsWithIgnoringLeadingWhitespaceImpl(@Nullable String str, @Nullable String search, boolean ignoreCase) {
 
         if (str == null || search == null) {
             return false;
@@ -2281,7 +2298,7 @@ public final class StringUtil {
 
     }
 
-    private static final boolean endsWithIgnoringLeadingWhitespaceImpl(String str, String search, boolean ignoreCase) {
+    private static final boolean endsWithIgnoringLeadingWhitespaceImpl(@Nullable String str, @Nullable String search, boolean ignoreCase) {
 
         if (str == null || search == null) {
             return false;
@@ -2318,7 +2335,7 @@ public final class StringUtil {
 
     }
 
-    private static boolean matchesAnyCodePointAt(String str, SpecialPosition position, Set<Integer> codePoints) {
+    private static final boolean matchesAnyCodePointAt(@Nullable String str, @Nonnull SpecialPosition position, @Nullable Set<Integer> codePoints) {
         if (CollectionUtil.isEmpty(codePoints)) {
             return false;
         }
@@ -2329,7 +2346,7 @@ public final class StringUtil {
         return false;
     }
 
-    private static final String removeImpl(String str, int remove) {
+    private static final String removeImpl(@Nonnull String str, int remove) {
 
         int nextIndex = str.indexOf(remove);
         if (nextIndex == StringUtils.INDEX_NOT_FOUND) {
@@ -2350,7 +2367,7 @@ public final class StringUtil {
 
     }
 
-    private static final String removeImpl(String str, char remove) {
+    private static final String removeImpl(@Nonnull String str, char remove) {
         int nextIndex = str.indexOf(remove);
         if (nextIndex == StringUtils.INDEX_NOT_FOUND) {
             return str;

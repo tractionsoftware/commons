@@ -210,7 +210,7 @@ public final class ResourceUtil {
 
     }
 
-    public static AutoCloseable createAutoCloseableAdapater(Runnable onClose) {
+    public static AutoCloseable createAutoCloseableAdapter(Runnable onClose) {
         return new RunnableAutoCloseableAdapter(onClose);
     }
 

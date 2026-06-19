@@ -65,7 +65,7 @@ public interface Icon {
      *
      * <p>
      * This method will always be implemented to be the same as invoking {@link Dimensions#getWidth()} on the result of
-     * {@link #getDimensions()}.
+     * {@link #getDimensions()}. This default implementation should not generally be overridden.
      *
      * @return the value representing the pixel width that should be used to display this icon image, if the dimensions
      *     are known or can be determined; -1 otherwise.
@@ -81,7 +81,7 @@ public interface Icon {
      *
      * <p>
      * This method will always be implemented to be the same as invoking {@link Dimensions#getHeight()} on the result of
-     * {@link #getDimensions()}.
+     * {@link #getDimensions()}. This default implementation should not generally be overridden.
      *
      * @return the value representing the pixel height that should be used to display this icon image, if the dimensions
      *     are known or can be determined; -1 otherwise.

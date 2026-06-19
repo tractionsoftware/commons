@@ -682,6 +682,15 @@ public final class CollectionUtilTest {
         assertTrue(result.contains("v"), "Expected value in result: " + result);
     }
 
+    @Test
+    public void safeToString_nonEmptyMap2_containsKeyAndValue() {
+        String result = CollectionUtil.safeToString(Map.of("k", "v", "kay", "vee"));
+        assertTrue(result.contains("k"), "Expected key in result: " + result);
+        assertTrue(result.contains("kay"), "Expected key in result: " + result);
+        assertTrue(result.contains("v"), "Expected value in result: " + result);
+        assertTrue(result.contains("vee"), "Expected value in result: " + result);
+   }
+
     // -------------------------------------------------------------------------
     // safeToString (Iterable)
     // -------------------------------------------------------------------------
@@ -953,4 +962,492 @@ public final class CollectionUtilTest {
         assertEquals(1, result.size());
         assertTrue(result.contains("second"));
     }
+
+    // -------------------------------------------------------------------------
+    // mapValueIterator (Iterable overload)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void mapValueIterator_iterable_returnsValuesInKeyOrder() {
+        Map<String,String> map = new LinkedHashMap<>();
+        map.put("a", "apple");
+        map.put("b", "banana");
+        CollectionUtil.MapIteratorAdapter<String,String> adapter =
+            CollectionUtil.function2mapIteratorAdapter(map::get);
+        List<String> keys = List.of("b", "a");
+        Iterator<String> it = CollectionUtil.mapValueIterator(adapter, (Iterable<String>) keys);
+        assertEquals("banana", it.next());
+        assertEquals("apple", it.next());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void mapValueIterator_iterator_returnsMappedValues() {
+        CollectionUtil.MapIteratorAdapter<Integer,String> adapter =
+            CollectionUtil.function2mapIteratorAdapter(i -> "v" + i);
+        Iterator<String> it = CollectionUtil.mapValueIterator(adapter, List.of(1, 2, 3).iterator());
+        assertEquals("v1", it.next());
+        assertEquals("v2", it.next());
+        assertEquals("v3", it.next());
+        assertFalse(it.hasNext());
+    }
+
+    // -------------------------------------------------------------------------
+    // mapValueKeyRangeIterator
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void mapValueKeyRangeIterator_rangeProducesValues() {
+        CollectionUtil.MapIteratorAdapter<Integer,String> adapter =
+            CollectionUtil.function2mapIteratorAdapter(i -> "item" + i);
+        Iterator<String> it = CollectionUtil.mapValueKeyRangeIterator(adapter, 3, 5);
+        assertEquals("item3", it.next());
+        assertEquals("item4", it.next());
+        assertEquals("item5", it.next());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void mapValueKeyRangeIterator_singleKey_returnsOneValue() {
+        CollectionUtil.MapIteratorAdapter<Integer,String> adapter =
+            CollectionUtil.function2mapIteratorAdapter(i -> "x");
+        Iterator<String> it = CollectionUtil.mapValueKeyRangeIterator(adapter, 7, 7);
+        assertEquals("x", it.next());
+        assertFalse(it.hasNext());
+    }
+
+    // -------------------------------------------------------------------------
+    // infiniteSingleValueIterable / infiniteSingleValueIterator
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void infiniteSingleValueIterable_alwaysReturnsSameValue() {
+        Iterable<String> inf = CollectionUtil.infiniteSingleValueIterable("hello");
+        Iterator<String> it = inf.iterator();
+        for (int i = 0; i < 100; i++) {
+            assertTrue(it.hasNext());
+            assertEquals("hello", it.next());
+        }
+    }
+
+    @Test
+    public void infiniteSingleValueIterator_removeThrows() {
+        Iterator<String> it = CollectionUtil.infiniteSingleValueIterator("x");
+        it.next();
+        assertThrows(UnsupportedOperationException.class, it::remove);
+    }
+
+    @Test
+    public void infiniteSingleValueIterator_nullValue_returnsNull() {
+        Iterator<String> it = CollectionUtil.infiniteSingleValueIterator(null);
+        assertNull(it.next());
+        assertNull(it.next());
+    }
+
+    // -------------------------------------------------------------------------
+    // transform — null guards
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void transform_nullList_doesNotThrow() {
+        assertDoesNotThrow(() -> CollectionUtil.transform(null, s -> s + "!"));
+    }
+
+    @Test
+    public void transform_nullTransformer_doesNotThrow() {
+        List<String> list = new ArrayList<>(List.of("a", "b"));
+        assertDoesNotThrow(() -> CollectionUtil.transform(list, null));
+        // list unchanged
+        assertEquals(List.of("a", "b"), list);
+    }
+
+    @Test
+    public void transform_appliesTransformerToEachElement() {
+        List<String> list = new ArrayList<>(List.of("a", "b", "c"));
+        CollectionUtil.transform(list, String::toUpperCase);
+        assertEquals(List.of("A", "B", "C"), list);
+    }
+
+    // -------------------------------------------------------------------------
+    // unique — null guards
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void unique_nullResult_doesNothing() {
+        assertDoesNotThrow(() ->
+            CollectionUtil.unique(List.of("a"), List.of("b"), null));
+    }
+
+    @Test
+    public void unique_nullA_addsAllOfB() {
+        List<String> result = new ArrayList<>();
+        CollectionUtil.unique(null, List.of("x", "y"), result);
+        assertEquals(List.of("x", "y"), result);
+    }
+
+    @Test
+    public void unique_nullB_addsAllOfA() {
+        List<String> result = new ArrayList<>();
+        CollectionUtil.unique(List.of("p", "q"), null, result);
+        assertEquals(List.of("p", "q"), result);
+    }
+
+    @Test
+    public void unique_bothNull_resultStaysEmpty() {
+        List<String> result = new ArrayList<>();
+        CollectionUtil.unique(null, null, result);
+        assertTrue(result.isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // safeToString(Map) — additional cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void safeToString_mapSingleEntry_formatsCorrectly() {
+        Map<String,String> m = new LinkedHashMap<>();
+        m.put("k", "v");
+        assertEquals("{k=v}", CollectionUtil.safeToString(m));
+    }
+
+    @Test
+    public void safeToString_mapMultiEntry_formatsWithCommas() {
+        Map<String,String> m = new LinkedHashMap<>();
+        m.put("a", "1");
+        m.put("b", "2");
+        String s = CollectionUtil.safeToString(m);
+        assertTrue(s.startsWith("{"));
+        assertTrue(s.endsWith("}"));
+        assertTrue(s.contains("a=1"));
+        assertTrue(s.contains("b=2"));
+    }
+
+    // -------------------------------------------------------------------------
+    // safeToString(Iterable) — additional cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void safeToString_iterableSingleElement_formatsCorrectly() {
+        assertEquals("[hello]", CollectionUtil.safeToString(List.of("hello")));
+    }
+
+    @Test
+    public void safeToString_iterableMultipleElements_formatsCorrectly() {
+        String s = CollectionUtil.safeToString(List.of("a", "b", "c"));
+        assertEquals("[a, b, c]", s);
+    }
+
+    @Test
+    public void safeToString_selfContainingList_doesNotRecurseInfinitely() {
+        // A list that contains itself as an element
+        @SuppressWarnings("unchecked")
+        List<Object> selfRef = new ArrayList<>();
+        selfRef.add("first");
+        selfRef.add(selfRef);
+        selfRef.add("last");
+        // Must not throw a StackOverflowError; self-reference replaced with "this Iterable"
+        String result = CollectionUtil.safeToString((Iterable<Object>) selfRef);
+        assertNotNull(result);
+        assertTrue(result.contains("this Iterable"), result);
+    }
+
+    // -------------------------------------------------------------------------
+    // function2mapIteratorAdapter
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void function2mapIteratorAdapter_get_delegatesToFunction() {
+        CollectionUtil.MapIteratorAdapter<String,Integer> adapter =
+            CollectionUtil.function2mapIteratorAdapter(String::length);
+        assertEquals(5, adapter.get("hello"));
+        assertEquals(0, adapter.get(""));
+    }
+
+    @Test
+    public void function2mapIteratorAdapter_remove_throwsUnsupported() {
+        CollectionUtil.MapIteratorAdapter<String,Integer> adapter =
+            CollectionUtil.function2mapIteratorAdapter(String::length);
+        assertThrows(UnsupportedOperationException.class, () -> adapter.remove("key"));
+    }
+
+    @Test
+    public void function2mapIteratorAdapter_nullFunction_throwsNPE() {
+        assertThrows(NullPointerException.class,
+            () -> CollectionUtil.function2mapIteratorAdapter(null));
+    }
+
+    // -------------------------------------------------------------------------
+    // unmodifiableCollection / unmodifiableList / unmodifiableSet / unmodifiableMap
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void unmodifiableCollection_null_returnsEmptyList() {
+        Collection<String> c = CollectionUtil.unmodifiableCollection(null);
+        assertNotNull(c);
+        assertTrue(c.isEmpty());
+        assertThrows(UnsupportedOperationException.class, () -> c.add("x"));
+    }
+
+    @Test
+    public void unmodifiableCollection_mutableCollection_isUnmodifiable() {
+        Collection<String> c = CollectionUtil.unmodifiableCollection(new ArrayList<>(List.of("a")));
+        assertThrows(UnsupportedOperationException.class, () -> c.add("b"));
+    }
+
+    @Test
+    public void unmodifiableCollection_immutableCollection_returnsSame() {
+        var immutable = com.google.common.collect.ImmutableList.of("a", "b");
+        assertSame(immutable, CollectionUtil.unmodifiableCollection(immutable));
+    }
+
+    @Test
+    public void unmodifiableList_null_returnsEmptyList() {
+        List<String> l = CollectionUtil.unmodifiableList(null);
+        assertNotNull(l);
+        assertTrue(l.isEmpty());
+        assertThrows(UnsupportedOperationException.class, () -> l.add("x"));
+    }
+
+    @Test
+    public void unmodifiableList_mutableList_isUnmodifiable() {
+        List<String> l = CollectionUtil.unmodifiableList(new ArrayList<>(List.of("a")));
+        assertThrows(UnsupportedOperationException.class, () -> l.add("b"));
+    }
+
+    @Test
+    public void unmodifiableList_immutableList_returnsSame() {
+        var immutable = com.google.common.collect.ImmutableList.of("x");
+        assertSame(immutable, CollectionUtil.unmodifiableList(immutable));
+    }
+
+    @Test
+    public void unmodifiableSet_null_returnsEmptySet() {
+        Set<String> s = CollectionUtil.unmodifiableSet(null);
+        assertNotNull(s);
+        assertTrue(s.isEmpty());
+        assertThrows(UnsupportedOperationException.class, () -> s.add("x"));
+    }
+
+    @Test
+    public void unmodifiableSet_mutableSet_isUnmodifiable() {
+        Set<String> s = CollectionUtil.unmodifiableSet(new HashSet<>(Set.of("a")));
+        assertThrows(UnsupportedOperationException.class, () -> s.add("b"));
+    }
+
+    @Test
+    public void unmodifiableSet_immutableSet_returnsSame() {
+        var immutable = com.google.common.collect.ImmutableSet.of("a");
+        assertSame(immutable, CollectionUtil.unmodifiableSet(immutable));
+    }
+
+    @Test
+    public void unmodifiableMap_null_returnsEmptyMap() {
+        Map<String,String> m = CollectionUtil.unmodifiableMap(null);
+        assertNotNull(m);
+        assertTrue(m.isEmpty());
+        assertThrows(UnsupportedOperationException.class, () -> m.put("k", "v"));
+    }
+
+    @Test
+    public void unmodifiableMap_mutableMap_isUnmodifiable() {
+        Map<String,String> m = CollectionUtil.unmodifiableMap(new HashMap<>(Map.of("k", "v")));
+        assertThrows(UnsupportedOperationException.class, () -> m.put("x", "y"));
+    }
+
+    @Test
+    public void unmodifiableMap_immutableMap_returnsSame() {
+        var immutable = com.google.common.collect.ImmutableMap.of("k", "v");
+        assertSame(immutable, CollectionUtil.unmodifiableMap(immutable));
+    }
+
+    // -------------------------------------------------------------------------
+    // emptySequencedSet — additional cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void emptySequencedSet_isUnmodifiable() {
+        SequencedSet<String> s = CollectionUtil.emptySequencedSet();
+        assertThrows(UnsupportedOperationException.class, () -> s.add("x"));
+    }
+
+    @Test
+    public void emptySequencedSet_sameInstanceEachCall() {
+        assertSame(CollectionUtil.emptySequencedSet(), CollectionUtil.emptySequencedSet());
+    }
+
+    // -------------------------------------------------------------------------
+    // singletonSequencedSet — additional cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void singletonSequencedSet_isUnmodifiable() {
+        SequencedSet<String> s = CollectionUtil.singletonSequencedSet("one");
+        assertThrows(UnsupportedOperationException.class, () -> s.add("two"));
+    }
+
+    @Test
+    public void singletonSequencedSet_getFirst_returnsElement() {
+        SequencedSet<String> s = CollectionUtil.singletonSequencedSet("elem");
+        assertEquals("elem", s.getFirst());
+        assertEquals("elem", s.getLast());
+    }
+
+    // -------------------------------------------------------------------------
+    // firstNonNullElementSingletonOrEmptySequencedSet (additional cases)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void firstNonNullElement_null_collection_returnsEmpty() {
+        assertTrue(CollectionUtil.firstNonNullElementSingletonOrEmptySequencedSet(null).isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // unmodifiableSequencedSet(SequencedSet)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void unmodifiableSequencedSet_set_null_returnsEmpty() {
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet((SequencedSet<String>) null);
+        assertTrue(s.isEmpty());
+    }
+
+    @Test
+    public void unmodifiableSequencedSet_set_mutableSet_isUnmodifiable() {
+        LinkedHashSet<String> base = new LinkedHashSet<>(List.of("a", "b"));
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet(base);
+        assertThrows(UnsupportedOperationException.class, () -> s.add("c"));
+    }
+
+    @Test
+    public void unmodifiableSequencedSet_set_alreadyUnmodifiable_returnsSame() {
+        SequencedSet<String> singleton = CollectionUtil.singletonSequencedSet("x");
+        assertSame(singleton, CollectionUtil.unmodifiableSequencedSet(singleton));
+    }
+
+    // -------------------------------------------------------------------------
+    // unmodifiableSequencedSet(T... varargs)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void unmodifiableSequencedSet_varargs_containsAllElements() {
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet("a", "b", "c");
+        assertEquals(3, s.size());
+        assertTrue(s.contains("a"));
+        assertTrue(s.contains("b"));
+        assertTrue(s.contains("c"));
+    }
+
+    @Test
+    public void unmodifiableSequencedSet_varargs_deduplicates() {
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet("x", "x", "y");
+        assertEquals(2, s.size());
+    }
+
+    @Test
+    public void unmodifiableSequencedSet_varargs_isUnmodifiable() {
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet("a");
+        assertThrows(UnsupportedOperationException.class, () -> s.add("b"));
+    }
+
+    @Test
+    public void unmodifiableSequencedSet_varargs_empty_returnsEmpty() {
+        SequencedSet<String> s = CollectionUtil.unmodifiableSequencedSet(new String[0]);
+        assertTrue(s.isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // putMapEntryStrings
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void putMapEntryStrings_keyEqualsValue_addsEntry() {
+        Map<String,String> map = new LinkedHashMap<>();
+        CollectionUtil.putMapEntryStrings(List.of("key=value"), map);
+        assertEquals("value", map.get("key"));
+    }
+
+    @Test
+    public void putMapEntryStrings_noEquals_addsEmptyStringValue() {
+        Map<String,String> map = new LinkedHashMap<>();
+        CollectionUtil.putMapEntryStrings(List.of("flagOnly"), map);
+        assertEquals("", map.get("flagOnly"));
+    }
+
+    @Test
+    public void putMapEntryStrings_blankEntry_isSkipped() {
+        Map<String,String> map = new LinkedHashMap<>();
+        CollectionUtil.putMapEntryStrings(List.of("  ", "k=v"), map);
+        assertFalse(map.containsKey("  "));
+        assertEquals("v", map.get("k"));
+    }
+
+    @Test
+    public void putMapEntryStrings_multipleEntries_allAdded() {
+        Map<String,String> map = new LinkedHashMap<>();
+        CollectionUtil.putMapEntryStrings(List.of("a=1", "b=2", "c=3"), map);
+        assertEquals("1", map.get("a"));
+        assertEquals("2", map.get("b"));
+        assertEquals("3", map.get("c"));
+    }
+
+    @Test
+    public void putMapEntryStrings_valueContainsEquals_splitsOnFirstEquals() {
+        Map<String,String> map = new LinkedHashMap<>();
+        CollectionUtil.putMapEntryStrings(List.of("url=http://x.com?a=1"), map);
+        assertEquals("http://x.com?a=1", map.get("url"));
+    }
+
+    @Test
+    public void putMapEntryStrings_returnsTrue() {
+        Map<String,String> map = new LinkedHashMap<>();
+        assertTrue(CollectionUtil.putMapEntryStrings(List.of("k=v"), map));
+    }
+
+    // -------------------------------------------------------------------------
+    // emptySequencedSetInsteadOfNull
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void emptySequencedSetInsteadOfNull_null_returnsEmptySequencedSet() {
+        SequencedSet<String> result = CollectionUtil.emptySequencedSetInsteadOfNull(null);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void emptySequencedSetInsteadOfNull_nonNull_returnsSameInstance() {
+        LinkedHashSet<String> base = new LinkedHashSet<>(List.of("a", "b"));
+        SequencedSet<String> result = CollectionUtil.emptySequencedSetInsteadOfNull(base);
+        assertSame(base, result);
+    }
+
+    // -------------------------------------------------------------------------
+    // putIfNotNull — null key on a map that rejects null keys
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void putIfNotNull_nullKeyOnNullRejectingMap_returnsFalse() {
+        // TreeMap with natural ordering throws NullPointerException for null keys
+        Map<String,String> treeMap = new TreeMap<>();
+        assertFalse(CollectionUtil.putIfNotNull(null, "value", treeMap));
+        assertTrue(treeMap.isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // sortIfList — non-list collection and null comparator
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void sortIfList_comparator_notAList_returnsFalse() {
+        Set<String> set = new HashSet<>(Set.of("b", "a", "c"));
+        assertFalse(CollectionUtil.sortIfList(set, Comparator.naturalOrder()));
+    }
+
+    @Test
+    public void sortIfList_comparator_nullComparator_throwsNPE() {
+        List<String> list = new ArrayList<>(List.of("b", "a"));
+        assertThrows(NullPointerException.class,
+            () -> CollectionUtil.sortIfList(list, null));
+    }
+
 }

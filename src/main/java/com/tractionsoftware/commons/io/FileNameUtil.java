@@ -26,6 +26,7 @@ import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -208,7 +209,7 @@ public final class FileNameUtil {
      *     the full path of the file.
      * @return the file name from the full path.
      */
-    public static String stripPath(String fullPath) {
+    public static final String stripPath(String fullPath) {
         if (fullPath == null) {
             return null;
         }
@@ -231,7 +232,7 @@ public final class FileNameUtil {
      *     the full path of the file.
      * @return the path component, if any.
      */
-    public static String stripFile(String fullPath) {
+    public static final String stripFile(String fullPath) {
         if (fullPath == null) {
             return null;
         }
@@ -265,11 +266,11 @@ public final class FileNameUtil {
      * Joins a name with a folder to create a complete path using the separator. If the folder name already ends in
      * separator, another separator will not be added.
      */
-    public static String joinPath(String folder, String name, String sep) {
+    public static final String joinPath(String folder, String name, String sep) {
         return folder.endsWith(sep) ? folder + name : folder + sep + name;
     }
 
-    public static String getExtension(String fileNameOrPath) {
+    public static final String getExtension(String fileNameOrPath) {
         return getExtension(fileNameOrPath, null);
     }
 
@@ -299,7 +300,7 @@ public final class FileNameUtil {
      *     path ending in "."; the given default value otherwise.
      * @see #stripExtension(String)
      */
-    public static String getExtension(String fileNameOrPath, String defaultValue) {
+    public static final String getExtension(String fileNameOrPath, String defaultValue) {
 
         if (fileNameOrPath == null) {
             return defaultValue;
@@ -335,7 +336,7 @@ public final class FileNameUtil {
      *     as-is otherwise.
      * @see #getExtension(String, String)
      */
-    public static String stripExtension(String fileNameOrPath) {
+    public static final String stripExtension(String fileNameOrPath) {
 
         if (fileNameOrPath == null) {
             return null;
@@ -364,7 +365,7 @@ public final class FileNameUtil {
      *     the path to transform.
      * @return the given path with a leading separator removed if it's present; otherwise, the given path as-is.
      */
-    public static String removeLeadingSeparator(String path) {
+    public static final String removeLeadingSeparator(String path) {
         int len = StringUtils.length(path);
         if (len == 0) {
             return path;
@@ -383,7 +384,7 @@ public final class FileNameUtil {
      *     the path to transform.
      * @return the given path with a trailing separator removed if it's present; otherwise, the given path as-is.
      */
-    public static String removeTrailingSeparator(String path) {
+    public static final String removeTrailingSeparator(String path) {
         int len = StringUtils.length(path);
         if (len == 0) {
             return path;
@@ -404,7 +405,7 @@ public final class FileNameUtil {
      * @return the given path with any leading and trailing separators removed if they're present; otherwise, the given
      *     path as-is.
      */
-    public static String removeLeadingAndTrailingSeparators(String path) {
+    public static final String removeLeadingAndTrailingSeparators(String path) {
 
         int len = StringUtils.length(path);
         if (len == 0) {
@@ -427,7 +428,7 @@ public final class FileNameUtil {
 
     }
 
-    public static String platformSpecificPath(String path) {
+    public static final String platformSpecificPath(String path) {
         if (GENERIC_PATH_SEPARATOR_CHAR == File.separatorChar) {
             return path;
         }
@@ -443,15 +444,15 @@ public final class FileNameUtil {
         }
     }
 
-    public static String filePathToUrlPath(String path) {
+    public static final String filePathToUrlPath(String path) {
         return platformIndependentPath(path);
     }
 
-    public static String urlPathToFilePath(String url) {
+    public static final String urlPathToFilePath(String url) {
         return platformSpecificPath(url);
     }
 
-    public static String platformIndependentPath(String fileNameOrPath) {
+    public static final String platformIndependentPath(String fileNameOrPath) {
 
         if (fileNameOrPath == null) {
             return null;
@@ -508,7 +509,7 @@ public final class FileNameUtil {
     /**
      * @return null if the current url is /
      */
-    public static String getParentUri(String uri) {
+    public static final String getParentUri(String uri) {
 
         if (uri == null) {
             return null;
@@ -611,7 +612,7 @@ public final class FileNameUtil {
      *     sort of server side repository, and which has been otherwise normalized as applicable.
      * @see #getValidNormalizedFileName(String, Supplier, String, boolean)
      */
-    public static String getMinimallyValidFileName(String fileNameOrPath, Supplier<String> getDefaultBaseName, String contentType) {
+    public static final String getMinimallyValidFileName(@Nullable String fileNameOrPath, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
         String validFileName = getMinimallyValidFileNameFromCurrentName(fileNameOrPath);
         if (validFileName == null) {
             return getDefaultValidFileName(getDefaultBaseName, contentType);
@@ -637,7 +638,7 @@ public final class FileNameUtil {
      *     already be present. This will be ignored for "dot files" (i.e., those whose names start with '.').
      * @return a valid and normalized file name extracted from the given file name or path.
      */
-    public static String getValidNormalizedFileName(String fileNameOrPath, Supplier<String> getDefaultBaseName, String contentType, boolean ensureExtension) {
+    public static final String getValidNormalizedFileName(@Nullable String fileNameOrPath, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType, boolean ensureExtension) {
 
         String fileName = getMinimallyValidFileName(fileNameOrPath, getDefaultBaseName, contentType);
         fileName = StringUtils.trimToNull(StringUtil.collapseAndNormalizeWhitespace(fileName, true));
@@ -667,11 +668,11 @@ public final class FileNameUtil {
 
     }
 
-    public static String getDefaultValidFileName(String contentType) {
+    public static final String getDefaultValidFileName(@Nullable String contentType) {
         return getDefaultValidFileName(null, contentType);
     }
 
-    public static String getDefaultValidFileName(Supplier<String> getDefaultBaseName, String contentType) {
+    public static final String getDefaultValidFileName(@Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
         String ext = MediaTypeUtil.getExtensionFromContentType(contentType);
         String baseName = getDefaultBaseFileName(getDefaultBaseName);
         if (StringUtils.isBlank(ext)) {
@@ -680,7 +681,7 @@ public final class FileNameUtil {
         return baseName + EXTENSION_SEPARATOR_CHAR + ext;
     }
 
-    public static final String getDescendantPathSpec(String directoryPath, String... pathComponents) {
+    public static final String getDescendantPathSpec(@Nullable String directoryPath, String... pathComponents) {
 
         if (directoryPath == null) {
             return StringUtil.join(pathComponents, File.separator);
@@ -707,7 +708,7 @@ public final class FileNameUtil {
         return System.getProperty("com.tractionsoftware.commons.io.default_base_file_name", "Untitled");
     }
 
-    private static String getDefaultBaseFileName(Supplier<String> getDefaultBaseName) {
+    private static final String getDefaultBaseFileName(@Nullable Supplier<String> getDefaultBaseName) {
         if (getDefaultBaseName == null) {
             return getDefaultBaseFileName();
         }

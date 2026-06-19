@@ -28,12 +28,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.net.MediaType;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.codec.Base64Util;
 import com.tractionsoftware.commons.io.*;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
-import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.util.CollectionUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
@@ -192,36 +194,6 @@ public final class URLUtil {
 
     public static final char ANCHOR_MARKER_CHAR = '#';
 
-    public static final URLModifierCallback<String> URL_PARAMETER_NAMES_KEEP = new URLModifierCallback<>() {
-
-        @Override
-        public final String toString() {
-            return "keep URL params";
-        }
-
-        @Override
-        public final void modifyUrl(URLBuilder url, String urlParameterName) {
-            url.keepParameter(urlParameterName);
-        }
-
-    };
-
-    public static final URLModifierCallback<String> URL_PARAMETER_NAMES_STICK = new URLModifierCallback<>() {
-
-        @Override
-        public final String toString() {
-            return "stick URL params";
-        }
-
-        @Override
-        public final void modifyUrl(URLBuilder url, String urlParameterName) {
-            url.stickParameter(urlParameterName);
-        }
-
-    };
-
-    public static final URLModifierCallback<String> URL_PARAMETER_NAMES_DROP = URLBuilder::removeParameter;
-
     private static final MediaType DATA_URI_DEFAULT_MEDIA_TYPE =
         MediaType.PLAIN_TEXT_UTF_8.withCharset(StandardCharsets.US_ASCII);
 
@@ -233,17 +205,28 @@ public final class URLUtil {
         EnhancedCharSequence.getInstance(new char[] { PATH_SEPARATOR_CHAR, QUERY_MARKER_CHAR })
     );
 
-    public interface KeyValuePair {
+    public static interface KeyValuePair {
 
-        public String getKey();
+        public String key();
 
-        public String getValue();
+        public String value();
 
     }
 
+    public static final record SimpleKeyValuePair(@Nonnull String key, @Nonnull String value) implements KeyValuePair {
+
+        public SimpleKeyValuePair {
+            Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(value, "value");
+        }
+
+    }
+
+    @FunctionalInterface
     public static interface URLModifierCallback<T> {
 
-        public void modifyUrl(URLBuilder url, T value);
+        @CanIgnoreReturnValue
+        public boolean modifyUrl(@Nonnull URLBuilder<?> url, T value);
 
     }
 
@@ -277,7 +260,7 @@ public final class URLUtil {
 
         @Override
         public final void accept(KeyValuePair pair) {
-            map.put(pair.getKey(), pair.getValue());
+            map.put(pair.key(), pair.value());
         }
 
         public final Map<String,String> getMap() {
@@ -286,111 +269,60 @@ public final class URLUtil {
 
     }
 
-    public static abstract class URLParameterValueCallback implements URLModifierCallback<String> {
+    public static abstract class AbstractURLModifierCallback implements URLModifierCallback<String> {
 
         protected final String urlParameterName;
 
-        public URLParameterValueCallback(String urlParameterName) {
+        public AbstractURLModifierCallback(String urlParameterName) {
+            Objects.requireNonNull(urlParameterName, "URL parameter name");
             this.urlParameterName = urlParameterName;
         }
 
     }
 
-    public static final class URLParameterValueAddCallback extends URLParameterValueCallback {
+    public static final class URLParameterValueAddCallback extends AbstractURLModifierCallback {
 
         public URLParameterValueAddCallback(String urlParameterName) {
             super(urlParameterName);
         }
 
         @Override
-        public void modifyUrl(URLBuilder url, String addValue) {
-            String existingValue = url.getParameter(urlParameterName);
-            if (StringUtils.isBlank(existingValue)) {
-                url.setParameter(urlParameterName, addValue);
-                return;
+        public final boolean modifyUrl(@Nonnull URLBuilder<?> url, @Nullable String addValue) {
+            if (addValue == null) {
+                return false;
             }
-            url.setParameter(urlParameterName, existingValue + "," + addValue);
+            url.addParameterValue(urlParameterName, addValue);
+            return true;
         }
 
     }
 
-    public static final class URLParameterValueRemoveCallback extends URLParameterValueCallback {
+    public static final class URLParameterValueRemoveCallback extends AbstractURLModifierCallback {
 
         public URLParameterValueRemoveCallback(String urlParameterName) {
             super(urlParameterName);
         }
 
         @Override
-        public void modifyUrl(URLBuilder url, String removeValue) {
-
-            if (StringUtils.isBlank(removeValue)) {
-                return;
-            }
-            String existingValue = url.getParameter(urlParameterName);
-            if (StringUtils.isBlank(existingValue)) {
-                return;
-            }
-
-            ArrayList<String> values = new ArrayList<>();
-            if (!NativeTypeConversion.stringToList(existingValue, values)) {
-                return;
-            }
-
-            StringBuilder sb = new StringBuilder();
-            for (String value : values) {
-                if (value.equals(removeValue)) {
-                    continue;
-                }
-                if (!sb.isEmpty()) {
-                    sb.append(",");
-                }
-                sb.append(value);
-            }
-            if (sb.isEmpty()) {
-                url.removeParameter(urlParameterName);
-                return;
-            }
-            url.setParameter(urlParameterName, sb.toString());
-
+        public final boolean modifyUrl(@Nonnull URLBuilder<?> url, @Nullable String removeValue) {
+            return url.removeParameterValue(urlParameterName, removeValue);
         }
 
     }
 
-    public static final class URLParameterValueSetCallback extends URLParameterValueCallback {
+    public static final class URLParameterValueSetCallback extends AbstractURLModifierCallback {
 
         public URLParameterValueSetCallback(String urlParameterName) {
             super(urlParameterName);
         }
 
         @Override
-        public void modifyUrl(URLBuilder url, String setValue) {
+        public final boolean modifyUrl(@Nonnull URLBuilder<?> url, String setValue) {
             if (setValue == null) {
-                url.removeParameter(urlParameterName);
+                return url.removeParameter(urlParameterName);
             }
-            url.setParameter(urlParameterName, setValue);
-        }
-
-    }
-
-    private static final class SimpleKeyValuePair implements KeyValuePair {
-
-        private final String key;
-
-        private final String value;
-
-        private SimpleKeyValuePair(String key, String value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        @Override
-        public final String getKey() {
-            return key;
-        }
-
-        @Override
-        public final String getValue() {
-            return value;
+            url.setParameterValue(urlParameterName, setValue);
+            return true;
         }
 
     }
@@ -602,10 +534,11 @@ public final class URLUtil {
      *     to notify when a key-value pair is identified.
      */
     @Beta
-    public static final void parseUrlParameterSequence(String queryString, boolean decode, BiConsumer<? super String,? super String> callback) {
-        if (queryString == null) {
+    public static final void parseUrlParameterSequence(@Nullable String queryString, boolean decode, @Nonnull BiConsumer<? super String,? super String> callback) {
+        if (StringUtils.isBlank(queryString)) {
             return;
         }
+        Objects.requireNonNull(callback, "callback");
         for (String kvPair : queryString.split(PARAMETER_DELIMITER)) {
             String[] kv = kvPair.split(PARAMETER_SET, 2);
             if (!kv[0].isEmpty()) {
@@ -617,8 +550,8 @@ public final class URLUtil {
     }
 
     @Beta
-    public static final Multimap<String,String> getUrlParameters(String queryString, boolean decode) {
-        if (queryString == null) {
+    public static final Multimap<String,String> getUrlParameters(@Nullable String queryString, boolean decode) {
+        if (StringUtils.isBlank(queryString)) {
             return ImmutableMultimap.of();
         }
         ImmutableMultimap.Builder<String,String> builder = ImmutableMultimap.builder();
@@ -626,28 +559,29 @@ public final class URLUtil {
         return builder.build();
     }
 
-    public static final boolean isOrIsDescendantPath(String folderPath, String filePath) {
-        if (folderPath.equals(filePath)) {
+    public static final boolean isOrIsDescendantPath(@Nonnull String path, @Nonnull String otherPath) {
+        if (path.equals(otherPath)) {
             return true;
         }
-        if (!folderPath.isEmpty() && folderPath.charAt(folderPath.length() - 1) != PATH_SEPARATOR_CHAR &&
-            (folderPath + PATH_SEPARATOR_CHAR).equals(filePath)) {
+        if (!path.isEmpty() && path.charAt(path.length() - 1) != PATH_SEPARATOR_CHAR &&
+            (path + PATH_SEPARATOR_CHAR).equals(otherPath)) {
             return true;
         }
-        if (isDescendantPath(folderPath, filePath)) {
+        if (isDescendantPath(path, otherPath)) {
             return true;
         }
         return false;
     }
 
-    public static final String ensureTrailingSlashIfDirectoryPath(String filePath, BooleanSupplier isDirectory) {
-        if (filePath.isEmpty()) {
+    public static final String ensureTrailingSlashIfDirectoryPath(@Nullable String filePath, @Nonnull BooleanSupplier isDirectory) {
+        Objects.requireNonNull(isDirectory, "is directory");
+        if (StringUtils.isEmpty(filePath)) {
             if (isDirectory.getAsBoolean()) {
                 return PATH_SEPARATOR;
             }
             return "";
         }
-        if (filePath.charAt(filePath.length() - 1) == PATH_SEPARATOR_CHAR) {
+        if (StringUtil.endsWith(filePath, PATH_SEPARATOR_CHAR)) {
             return filePath;
         }
         if (isDirectory.getAsBoolean()) {

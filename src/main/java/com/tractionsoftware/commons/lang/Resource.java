@@ -20,8 +20,6 @@
 
 package com.tractionsoftware.commons.lang;
 
-import com.google.common.annotations.Beta;
-
 /**
  * A thin extension of {@link AutoCloseable} representing a loaded resource. It may wrap a traditional resource, such as
  * a file descriptor or open socket, or may instead be an encapsulation for the cleanup required after an operation has
@@ -37,7 +35,6 @@ public interface Resource extends AutoCloseable {
      * @author Dave Shepperton
      * @see LoadAttemptResult#getErrorType()
      */
-    @Beta
     public static enum LoadErrorType {
 
         /**

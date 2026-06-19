@@ -21,8 +21,14 @@
 package com.tractionsoftware.commons.mail;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Multimap;
+import com.tractionsoftware.commons.io.FileResource;
+import com.tractionsoftware.commons.io.LocalFileResource;
 import org.apache.commons.lang3.StringUtils;
 
+import jakarta.activation.DataSource;
+import jakarta.mail.Address;
 import jakarta.mail.Header;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
@@ -30,14 +36,22 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Properties;
+import java.util.SequencedSet;
+import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -712,7 +726,7 @@ public final class MailUtilTest {
 
     @Test
     void parseHeaderLine_null_withDefault_usesDefault() {
-        Header h = MailUtil.parseHeaderLine(null, false, line -> new Header("default", ""));
+        Header h = MailUtil.parseHeaderLine(null, false, _ -> new Header("default", ""));
         assertNotNull(h);
         assertEquals("default", h.getName());
     }
@@ -738,6 +752,485 @@ public final class MailUtilTest {
         Header h = MailUtil.invalidHeaderLineToHeader("NoDelimiter");
         assertNotNull(h);
         assertEquals("", h.getName());
+    }
+
+    // =====================================================================
+    // headersToHeaderMap / LowerCaseHeaderMap (get/containsEntry/containsKey)
+    // =====================================================================
+
+    @Test
+    void headersToHeaderMap_getWithNullKey_doesNotThrow() {
+        var map = MailUtil.headersToHeaderMap(List.of(new Header("A", "1")));
+        assertTrue(map.get(null).isEmpty());
+    }
+
+    @Test
+    void headersToHeaderMap_containsEntry_stringKeyCaseInsensitive() {
+        var map = MailUtil.headersToHeaderMap(List.of(new Header("A", "1")));
+        Header h = map.get("a").iterator().next();
+        assertTrue(map.containsEntry("A", h));
+        assertTrue(map.containsEntry("a", h));
+    }
+
+    @Test
+    void headersToHeaderMap_containsEntry_nonStringKey_returnsFalse() {
+        var map = MailUtil.headersToHeaderMap(List.of(new Header("A", "1")));
+        assertFalse(map.containsEntry(1, "1"));
+    }
+
+    @Test
+    void headersToHeaderMap_containsKey_stringKeyCaseInsensitive() {
+        var map = MailUtil.headersToHeaderMap(List.of(new Header("A", "1")));
+        assertTrue(map.containsKey("A"));
+        assertTrue(map.containsKey("a"));
+    }
+
+    @Test
+    void headersToHeaderMap_containsKey_nonStringKey_returnsFalse() {
+        var map = MailUtil.headersToHeaderMap(List.of(new Header("A", "1")));
+        assertFalse(map.containsKey(1));
+    }
+
+    // =====================================================================
+    // DynamicMessageEmailHeaders (toString / hasHeader / getHeaders / getRawHeaderLines / iterator)
+    // =====================================================================
+
+    @Test
+    void dynamicEmailHeaders_toString_containsClassName() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        assertTrue(h.toString().contains("DynamicMessageEmailHeaders"), h.toString());
+    }
+
+    @Test
+    void dynamicEmailHeaders_hasHeader_nullName_returnsFalse() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        assertFalse(h.hasHeader(null));
+    }
+
+    @Test
+    void dynamicEmailHeaders_hasHeader_absentHeader_returnsFalse() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        assertFalse(h.hasHeader("X-Does-Not-Exist"));
+    }
+
+    @Test
+    void dynamicEmailHeaders_getHeaders_nullName_returnsEmpty() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        assertTrue(h.getHeaders(null).isEmpty());
+    }
+
+    @Test
+    void dynamicEmailHeaders_getHeaders_absentHeader_returnsEmpty() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        assertTrue(h.getHeaders("X-Does-Not-Exist").isEmpty());
+    }
+
+    @Test
+    void dynamicEmailHeaders_getRawHeaderLines_containsSubjectLine() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        boolean found = false;
+        for (String line : h.getRawHeaderLines()) {
+            if (line.startsWith("Subject:")) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found);
+    }
+
+    @Test
+    void dynamicEmailHeaders_iterator_yieldsSubjectHeader() throws Exception {
+        EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
+        boolean found = false;
+        for (Header header : h) {
+            if ("Subject".equalsIgnoreCase(header.getName())) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found);
+    }
+
+    // =====================================================================
+    // getDataSource / InputStreamDataSource / ReadOnlyAdapterDataSource
+    // =====================================================================
+
+    @Test
+    void getDataSource_fromText_roundTripsContentAndMetadata() throws Exception {
+        DataSource ds = MailUtil.getDataSource("greeting.txt", "hello there", StandardCharsets.UTF_8, "text/plain");
+        assertEquals("greeting.txt", ds.getName());
+        assertEquals("text/plain", ds.getContentType());
+        try (InputStream in = ds.getInputStream()) {
+            assertEquals("hello there", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void getDataSource_fromText_nullName_returnsEmptyName() {
+        DataSource ds = MailUtil.getDataSource(null, "hello", StandardCharsets.UTF_8, "text/plain");
+        assertEquals("", ds.getName());
+    }
+
+    @Test
+    void getDataSource_fromBytes_roundTripsContent() throws Exception {
+        byte[] data = "raw bytes".getBytes(StandardCharsets.UTF_8);
+        DataSource ds = MailUtil.getDataSource("data.bin", data, "application/octet-stream");
+        try (InputStream in = ds.getInputStream()) {
+            assertArrayEquals(data, in.readAllBytes());
+        }
+    }
+
+    @Test
+    void getDataSource_fromBytes_nullData_throwsNpe() {
+        assertThrows(
+            NullPointerException.class, () -> MailUtil.getDataSource("data.bin", null, "application/octet-stream")
+        );
+    }
+
+    @Test
+    void getDataSource_fromFileResource_roundTripsContent() throws Exception {
+        File temp = File.createTempFile("mailutil-test", ".txt");
+        temp.deleteOnExit();
+        Files.writeString(temp.toPath(), "file contents");
+        FileResource resource = LocalFileResource.createInstance(temp);
+        DataSource ds = MailUtil.getDataSource(resource);
+        try (InputStream in = ds.getInputStream()) {
+            assertEquals("file contents", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void getDataSource_fromFileResource_nullFile_throwsNpe() {
+        assertThrows(NullPointerException.class, () -> MailUtil.getDataSource(null));
+    }
+
+    @Test
+    void dataSource_getOutputStream_throwsUnsupportedOperationException() {
+        DataSource ds = MailUtil.getDataSource("x.txt", "x", StandardCharsets.UTF_8, "text/plain");
+        assertThrows(UnsupportedOperationException.class, ds::getOutputStream);
+    }
+
+    // =====================================================================
+    // makeFriendlyNameAddress(InternetAddress)
+    // =====================================================================
+
+    @Test
+    void makeFriendlyNameAddress_internetAddress_withPersonal_formatsCorrectly() throws Exception {
+        InternetAddress addr = new InternetAddress("bobby@example.com", "Bobby McGee");
+        assertEquals("\"Bobby McGee\" <bobby@example.com>", MailUtil.makeFriendlyNameAddress(addr));
+    }
+
+    @Test
+    void makeFriendlyNameAddress_internetAddress_withoutPersonal_returnsAddressOnly() throws Exception {
+        InternetAddress addr = new InternetAddress("bobby@example.com");
+        assertEquals("bobby@example.com", MailUtil.makeFriendlyNameAddress(addr));
+    }
+
+    @Test
+    void makeFriendlyNameAddress_internetAddress_null_returnsNull() {
+        assertNull(MailUtil.makeFriendlyNameAddress(null));
+    }
+
+    // =====================================================================
+    // encodeFriendlyNameInAddress
+    // =====================================================================
+
+    @Test
+    void encodeFriendlyNameInAddress_null_returnsEmpty() {
+        assertEquals("", MailUtil.encodeFriendlyNameInAddress(null));
+    }
+
+    @Test
+    void encodeFriendlyNameInAddress_blank_returnsEmpty() {
+        assertEquals("", MailUtil.encodeFriendlyNameInAddress("   "));
+    }
+
+    @Test
+    void encodeFriendlyNameInAddress_noAngleBracket_returnsUnchanged() {
+        assertEquals("bobby@example.com", MailUtil.encodeFriendlyNameInAddress("bobby@example.com"));
+    }
+
+    @Test
+    void encodeFriendlyNameInAddress_angleBracketAtStart_returnsUnchanged() {
+        String input = "<bobby@example.com>";
+        assertEquals(input, MailUtil.encodeFriendlyNameInAddress(input));
+    }
+
+    @Test
+    void encodeFriendlyNameInAddress_withFriendlyName_encodesAndReassembles() {
+        assertEquals(
+            "Bobby McGee <bobby@example.com>",
+            MailUtil.encodeFriendlyNameInAddress("Bobby McGee <bobby@example.com>")
+        );
+    }
+
+    @Test
+    void encodeFriendlyNameInAddress_missingClosingBracket_returnsUnchanged() {
+        String input = "Bobby McGee <bobby@example.com";
+        assertEquals(input, MailUtil.encodeFriendlyNameInAddress(input));
+    }
+
+    // =====================================================================
+    // getOtherRecipients / getDummyEmailAddress / safeParseAddresses (catch branch)
+    // =====================================================================
+
+    @Test
+    void getOtherRecipients_excludesAddressesAlreadyInToOrCc() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of(
+            "To: alice@example.com",
+            "Cc: bob@example.com",
+            "Delivered-To: alice@example.com",
+            "X-Original-To: carol@example.com"
+        ));
+        SequencedSet<Address> others = MailUtil.getOtherRecipients(eh);
+        assertEquals(1, others.size());
+        assertEquals("carol@example.com", ((InternetAddress) others.getFirst()).getAddress());
+    }
+
+    @Test
+    void getOtherRecipients_noAuxiliaryHeaders_returnsEmpty() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("To: alice@example.com"));
+        assertTrue(MailUtil.getOtherRecipients(eh).isEmpty());
+    }
+
+    @Test
+    void getDummyEmailAddress_returnsExpectedAddress() throws Exception {
+        Address address = MailUtil.getDummyEmailAddress();
+        assertEquals("badaddress@unrecognized.domain", ((InternetAddress) address).getAddress());
+    }
+
+    @Test
+    void safeParseAddresses_malformed_returnsNullInsteadOfThrowing() {
+        // Unterminated quoted phrase triggers an AddressException internally; safeParseAddresses must catch it.
+        assertNull(MailUtil.safeParseAddresses("\"Unterminated"));
+    }
+
+    // =====================================================================
+    // shouldSuppressAutomaticResponse (remaining branches)
+    // =====================================================================
+
+    @Test
+    void shouldSuppressAutomaticResponse_autoSubmittedNo_false() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Auto-Submitted: no"));
+        assertFalse(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    @Test
+    void shouldSuppressAutomaticResponse_nullReturnPath_true() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Return-Path: <>"));
+        assertTrue(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    @Test
+    void shouldSuppressAutomaticResponse_xAutoResponseSuppressAutoReply_true() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("X-Auto-Response-Suppress: AutoReply"));
+        assertTrue(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    @Test
+    void shouldSuppressAutomaticResponse_xAutoResponseSuppressAll_true() {
+        EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("X-Auto-Response-Suppress: All"));
+        assertTrue(MailUtil.shouldSuppressAutomaticResponse(eh));
+    }
+
+    // =====================================================================
+    // getDomain (remaining branch)
+    // =====================================================================
+
+    @Test
+    void getDomain_atSignIsLastCharacter_returnsEmpty() {
+        assertEquals("", MailUtil.getDomain("foo@"));
+    }
+
+    // =====================================================================
+    // getSafelyEncodedToken(text, charsetName) (remaining branches)
+    // =====================================================================
+
+    @Test
+    void getSafelyEncodedToken_withCharset_blankText_returnsTextUnchanged() {
+        assertEquals("", MailUtil.getSafelyEncodedToken("", "UTF-8"));
+        assertEquals("   ", MailUtil.getSafelyEncodedToken("   ", "UTF-8"));
+    }
+
+    @Test
+    void getSafelyEncodedToken_withCharset_invalidCharsetName_returnsNull() {
+        assertEquals("hello", MailUtil.getSafelyEncodedToken("hello", "not-a-real-charset"));
+    }
+
+    // =====================================================================
+    // getFriendlyNameWithSafelyEncodedDisplayName
+    // =====================================================================
+
+    @Test
+    void getFriendlyNameWithSafelyEncodedDisplayName_blankDisplayName_returnsAddress() {
+        assertEquals(
+            "bobby@example.com",
+            MailUtil.getFriendlyNameWithSafelyEncodedDisplayName("bobby@example.com", "  ")
+        );
+    }
+
+    @Test
+    void getFriendlyNameWithSafelyEncodedDisplayName_withDisplayName_formatsAddress() {
+        String result = MailUtil.getFriendlyNameWithSafelyEncodedDisplayName("bobby@example.com", "Bobby McGee");
+        assertNotNull(result);
+        assertTrue(result.contains("bobby@example.com"), result);
+        assertTrue(result.contains("Bobby McGee"), result);
+    }
+
+    // =====================================================================
+    // headerLinesToHeaderMap(Stream<String>) overload
+    // =====================================================================
+
+    @Test
+    void headerLinesToHeaderMap_streamOverload_parsesLines() {
+        var map = MailUtil.headerLinesToHeaderMap(Stream.of("Subject: Hello", "From: user@example.com"));
+        assertFalse(map.get(EmailHeaders.NAME_SUBJECT).isEmpty());
+        assertFalse(map.get(EmailHeaders.NAME_FROM).isEmpty());
+    }
+
+    // =====================================================================
+    // getRfc2047DecodedHeaders
+    // =====================================================================
+
+    @Test
+    void getRfc2047DecodedHeaders_emptyMultimap_returnsEmpty() {
+        Multimap<String,Header> result = MailUtil.getRfc2047DecodedHeaders(ImmutableListMultimap.of());
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getRfc2047DecodedHeaders_null_returnsEmpty() {
+        assertTrue(MailUtil.getRfc2047DecodedHeaders(null).isEmpty());
+    }
+
+    @Test
+    void getRfc2047DecodedHeaders_encodedSubject_decodesValue() {
+        Multimap<String,Header> encoded = MailUtil.headersToHeaderMap(
+            List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="))
+        );
+        Multimap<String,Header> decoded = MailUtil.getRfc2047DecodedHeaders(encoded);
+        Header h = decoded.get("subject").iterator().next();
+        assertEquals("Hello", h.getValue());
+    }
+
+    // =====================================================================
+    // setHeadersForAutomaticallyGeneratedMessage / ...ReplyMessage / ...Exchange / setNullReturnPath
+    // =====================================================================
+
+    @Test
+    void setHeadersForAutomaticallyGeneratedMessage_setsExpectedHeaders() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setHeadersForAutomaticallyGeneratedMessage(msg, false);
+        assertEquals("auto-generated", msg.getHeader("Auto-Submitted", null));
+        assertEquals("All", msg.getHeader("X-Auto-Response-Suppress", null));
+        assertNull(msg.getHeader("Return-Path", null));
+    }
+
+    @Test
+    void setHeadersForAutomaticallyGeneratedMessage_withNullReturnPath_setsReturnPath() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setHeadersForAutomaticallyGeneratedMessage(msg, true);
+        assertEquals("<>", msg.getHeader("Return-Path", null));
+    }
+
+    @Test
+    void setHeadersForAutomaticallyGeneratedReplyMessage_setsExpectedHeaders() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setHeadersForAutomaticallyGeneratedReplyMessage(msg, false);
+        assertEquals("auto-replied", msg.getHeader("Auto-Submitted", null));
+        assertEquals("All", msg.getHeader("X-Auto-Response-Suppress", null));
+        assertNull(msg.getHeader("Return-Path", null));
+    }
+
+    @Test
+    void setHeadersForAutomaticallyGeneratedReplyMessage_withNullReturnPath_setsReturnPath() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setHeadersForAutomaticallyGeneratedReplyMessage(msg, true);
+        assertEquals("<>", msg.getHeader("Return-Path", null));
+    }
+
+    @Test
+    void setHeadersForAutomaticallyGeneratedMessageExchange_setsHeader() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setHeadersForAutomaticallyGeneratedMessageExchange(msg);
+        assertEquals("All", msg.getHeader("X-Auto-Response-Suppress", null));
+    }
+
+    @Test
+    void setNullReturnPath_setsHeader() throws Exception {
+        MimeMessage msg = makeMimeMessage();
+        MailUtil.setNullReturnPath(msg);
+        assertEquals("<>", msg.getHeader("Return-Path", null));
+    }
+
+    // =====================================================================
+    // getRecipients(Message, Message.RecipientType)
+    // =====================================================================
+
+    @Test
+    void getRecipients_nullMessage_returnsNull() {
+        assertNull(MailUtil.getRecipients(null, Message.RecipientType.TO));
+    }
+
+    @Test
+    void getRecipients_nullType_returnsNull() throws Exception {
+        assertNull(MailUtil.getRecipients(makeMimeMessage(), null));
+    }
+
+    @Test
+    void getRecipients_validMessage_returnsRecipients() throws Exception {
+        List<Address> recipients = MailUtil.getRecipients(makeMimeMessage(), Message.RecipientType.TO);
+        assertNotNull(recipients);
+        assertEquals(1, recipients.size());
+        assertEquals("to@example.com", ((InternetAddress) recipients.getFirst()).getAddress());
+    }
+
+    // =====================================================================
+    // BUG: headerLineToHeader(String, boolean) (and therefore encodedHeaderLineToHeader(String)) ignores its
+    // tryToDecode parameter -- it always calls parseHeaderLine(headerLine, false, ...). The decoding logic in
+    // parseHeaderLine itself works fine when invoked directly with tryToDecode=true (first test below); but the
+    // only public entry points meant to expose that behavior never actually apply it (second test below documents
+    // the current, broken behavior).
+    // =====================================================================
+
+    @Test
+    void parseHeaderLine_tryToDecodeTrue_decodesRfc2047EncodedSubjectLine() {
+        Header h = MailUtil.parseHeaderLine("Subject: =?UTF-8?B?SGVsbG8=?=", true, null);
+        assertNotNull(h);
+        assertEquals("Subject", h.getName());
+        assertEquals("Hello", h.getValue());
+    }
+
+    @Test
+    void encodedHeaderLineToHeader_subjectHeader_doesNotActuallyDecode_bug() {
+        String encodedSubjectLine = "Subject: =?UTF-8?B?SGVsbG8=?=";
+        Header header = MailUtil.encodedHeaderLineToHeader(encodedSubjectLine);
+        assertEquals("Subject", header.getName());
+        // Expected "Hello" if decoding were actually applied; instead the encoded form passes through unchanged.
+        assertEquals("=?UTF-8?B?SGVsbG8=?=", header.getValue());
+    }
+
+    // =====================================================================
+    // BUG: createEmailHeaders(Iterable<Header>, boolean) ignores its tryToDecode parameter -- it always passes
+    // true to the Multimap overload. Contrast with createEmailHeaders(Multimap, boolean), which respects the flag
+    // correctly (second test below).
+    // =====================================================================
+
+    @Test
+    void createEmailHeaders_iterableHeaders_tryToDecodeFalse_stillDecodes_bug() {
+        List<Header> hdrs = List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="));
+        EmailHeaders eh = MailUtil.createEmailHeaders(hdrs, false);
+        // Expected the still-encoded value if tryToDecode=false were honored; instead it's decoded anyway.
+        assertEquals("Hello", eh.getHeader("Subject"));
+    }
+
+    @Test
+    void createEmailHeaders_multimapOverload_tryToDecodeFalse_doesNotDecode() {
+        Multimap<String,Header> headers = MailUtil.headersToHeaderMap(
+            List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="))
+        );
+        EmailHeaders eh = MailUtil.createEmailHeaders(headers, false);
+        assertEquals("=?UTF-8?B?SGVsbG8=?=", eh.getHeader("Subject"));
     }
 
 }

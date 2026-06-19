@@ -38,13 +38,17 @@ public abstract class FileMetadataBasedFileResource<F extends FileMetadata> impl
     @Nonnull
     @Override
     public URI getURI() {
-        return metadata.getURI();
+        URI uri = metadata.getURI();
+        Objects.requireNonNull(uri, "metadata URI");
+        return uri;
     }
 
     @Nonnull
     @Override
     public String getFilename() {
-        return metadata.getFilename();
+        String fileName = metadata.getFilename();
+        Objects.requireNonNull(fileName, "metadata file name");
+        return fileName;
     }
 
     @Nullable

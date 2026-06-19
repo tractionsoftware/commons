@@ -88,27 +88,6 @@ public final class FileUtil {
 
     }
 
-//    private static final class FileNamePredicateFileFilter extends AbstractFileFilter {
-//
-//        static FileNamePredicateFileFilter createInstanceForPattern(String patternSpec) {
-//            StringUtil.checkNotBlankX(patternSpec, "file name pattern spec");
-//            Pattern pattern = Pattern.compile(patternSpec);
-//            return new FileNamePredicateFileFilter(name -> pattern.matcher(name).matches());
-//        }
-//
-//        private final Predicate<String> test;
-//
-//        private FileNamePredicateFileFilter(Predicate<String> test) {
-//            this.test = test;
-//        }
-//
-//        @Override
-//        public boolean accept(File pathname) {
-//            return test.test(pathname.getName());
-//        }
-//
-//    }
-
     /**
      * A {@link FileFilter} for including files that have a given file extension. It will never match directories.
      */
@@ -128,14 +107,14 @@ public final class FileUtil {
         }
 
         @Override
-        public boolean accept(File pathname) {
+        public final boolean accept(File pathname) {
             if (pathname.isDirectory()) {
                 return false;
             }
             return hasIncludedExtension(pathname.getName());
         }
 
-        private boolean hasIncludedExtension(String name) {
+        private final boolean hasIncludedExtension(String name) {
             String ext = FileNameUtil.getExtension(name, null);
             if (ext == null) {
                 return false;

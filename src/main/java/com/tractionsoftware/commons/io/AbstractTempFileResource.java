@@ -256,7 +256,7 @@ public abstract class AbstractTempFileResource extends FileMetadataBasedFileReso
         OutputStream output = createRawOutputStream();
 
         try {
-            output = IOUtil.getSizeLimitingOutputStream(output, getSizeLimit());
+            output = IOUtil.getSizeLimitingOutputStream(output, getSizeLimit(), true);
             LOGGER.debug("Opened OutputStream for {}", this);
             return IOUtil.getCloseNotifyingOutputStream(
                 output, this::onBeforeCloseOutput, this::onAfterCloseOutput

@@ -24,6 +24,7 @@ import com.tractionsoftware.commons.net.URLUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.io.function.IOSupplier;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import java.io.*;
@@ -79,16 +80,15 @@ public interface TempFileResource extends FileResource, Flushable, Closeable {
          * {@link FileMetadata#getURI() the given metadata's file resource path}.
          *
          * @param metadata
-         *     the base metadata for the temp file whose {@link FileMetadata#getURI() file resource path}
-         *     refers to the requested file. A modified version of the metadata may be
+         *     the base metadata for the temp file whose {@link FileMetadata#getURI() file resource path} refers to the
+         *     requested file. A modified version of the metadata may be
          *     {@link TempFileResource#getMetadata() carried by the returned TempFileResource}.
          * @param logger
          *     an optional {@link Logger} to use for logging.
          * @return a {@link TempFileResource} for an existing temporary file resource identified by
          *     {@link FileMetadata#getURI() the given metadata's file resource path}.
          * @throws NullPointerException
-         *     if the {@link FileMetadata} or {@link FileMetadata#getURI() its file resource path} is
-         *     null.
+         *     if the {@link FileMetadata} or {@link FileMetadata#getURI() its file resource path} is null.
          */
         @Nonnull
         public TempFileResource loadExisting(@Nonnull FileMetadata metadata, @Nullable Logger logger);
@@ -158,6 +158,22 @@ public interface TempFileResource extends FileResource, Flushable, Closeable {
     @Override
     public default boolean isPersistent() {
         return false;
+    }
+
+    /**
+     * Returns a path that can be used to uniquely refer to this temp file resource. It will almost certainly not
+     * reflect the details of the underlying storage location, such as a path to an actual file.
+     *
+     * <p>
+     * This default implementation returns the result of {@code getURI().getSchemeSpecificPart()}, because the default
+     * temp file resource URI is of the form "temp:[file-or-path-identifier]". Subclasses may override this if a
+     * different URI scheme or structure is required.
+     *
+     * @return a path that can be used to uniquely refer to this temp file resource.
+     */
+    @Nonnull
+    public default String getPath() {
+        return getURI().getSchemeSpecificPart();
     }
 
     /**
@@ -264,7 +280,8 @@ public interface TempFileResource extends FileResource, Flushable, Closeable {
     @Override
     public abstract void close() throws IOException;
 
-    public default void setContent(InputStream input) throws IOException {
+    public default void setContent(@Nonnull InputStream input) throws IOException {
+        Objects.requireNonNull(input, "input");
         try (OutputStream destination = getOutputStream()) {
             input.transferTo(destination);
         }

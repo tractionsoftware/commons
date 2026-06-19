@@ -90,11 +90,6 @@ public final class ErrorTempFileResource extends FileMetadataBasedFileResource<M
     }
 
     @Override
-    public final void setContent(InputStream input) throws IOException {
-        TempFileResource.super.setContent(input);
-    }
-
-    @Override
     public final boolean isValid() {
         return false;
     }

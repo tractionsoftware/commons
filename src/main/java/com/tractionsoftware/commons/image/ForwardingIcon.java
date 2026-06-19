@@ -95,16 +95,6 @@ public abstract class ForwardingIcon implements Icon {
     }
 
     @Override
-    public int getWidth() {
-        return delegate().getWidth();
-    }
-
-    @Override
-    public int getHeight() {
-        return delegate().getHeight();
-    }
-
-    @Override
     public String getContentId() {
         return delegate().getContentId();
     }

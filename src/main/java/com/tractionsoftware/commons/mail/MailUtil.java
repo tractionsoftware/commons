@@ -86,7 +86,7 @@ public final class MailUtil {
             if (key != null) {
                 return delegate().get(key.toLowerCase());
             }
-            return delegate().get(key);
+            return delegate().get(null);
         }
 
         @Override
@@ -1266,7 +1266,7 @@ public final class MailUtil {
                 e
             );
         }
-        return null;
+        return text;
     }
 
     @Nullable

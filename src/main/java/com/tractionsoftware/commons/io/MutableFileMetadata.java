@@ -82,7 +82,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws UnsupportedOperationException
      *     if the description is considered a read-only property for this FileMetadata.
      */
-    public void setDescription(String description);
+    public void setDescription(@Nullable String description);
 
     /**
      * Sets the media type designation -- "Content-Type" or "mime type" -- that was associated with this file as it was
@@ -126,7 +126,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws IllegalArgumentException
      *     if the given value is considered an invalid "Content-Type" for this FileMetadata.
      */
-    public void setContentType(String contentType);
+    public void setContentType(@Nullable String contentType);
 
     /**
      * Sets the serial number for the file in the context of a list of files. This is generally used for an assigned and
@@ -170,7 +170,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-ID" MIME header.
      */
-    public void setContentId(String contentId);
+    public void setContentId(@Nullable String contentId);
 
     /**
      * Sets the "Content-Location" header that was associated with this file as it was originally created from a MIME
@@ -183,7 +183,7 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-Location" MIME header.
      */
-    public void setContentLocation(String contentLocation);
+    public void setContentLocation(@Nullable String contentLocation);
 
     /**
      * Sets the "Content-Base" header that was associated with this file as it was originally created from a MIME
@@ -198,13 +198,13 @@ public interface MutableFileMetadata extends FileMetadata {
      * @throws IllegalArgumentException
      *     if the given value is not considered valid for a "Content-Base" MIME header.
      */
-    public void setContentBase(String contentBase);
+    public void setContentBase(@Nullable String contentBase);
 
     public default void ensureValidFilename() {
         ensureValidFilename(null);
     }
 
-    public void setResourceType(FileResourceType resourceType);
+    public void setResourceType(@Nullable FileResourceType resourceType);
 
     /**
      * Modifies the file name as necessary to make it "valid" and minimally normalized. This default implementation
@@ -213,8 +213,11 @@ public interface MutableFileMetadata extends FileMetadata {
      * {@link #getContentType() currently set Content-Type} and not requesting that a file extension be added to an
      * otherwise valid file name, and using {@link #setFilename(String)} to apply the result. It should be adequate for
      * all implementations.
+     *
+     * @param getDefaultBaseName
+     *     an optional provider for the base of the default file name (without the extension).
      */
-    public default void ensureValidFilename(Supplier<String> getDefaultBaseName) {
+    public default void ensureValidFilename(@Nullable Supplier<String> getDefaultBaseName) {
         setFilename(FileNameUtil.getMinimallyValidFileName(getFilename(), getDefaultBaseName, getContentType()));
     }
 

@@ -407,8 +407,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
                 return base;
             }
             return Sets.union(
-                base,
-                Collections.unmodifiableSet(SimpleMutableFileMetadata.this.extendedProperties.keySet())
+                base, Collections.unmodifiableSet(SimpleMutableFileMetadata.this.extendedProperties.keySet())
             );
         }
 
@@ -578,6 +577,10 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final String getProperty(String name) {
             return switch (name) {
+                case PROP_NAME_DISPLAY_NAME, PROP_NAME_FILE_NAME, PROP_NAME_DESCRIPTION,
+                     PROP_NAME_MIMETYPE, PROP_NAME_URI, PROP_NAME_NUMBER, PROP_NAME_REFERENCE_TO_PERSISTED_FILE,
+                     PROP_NAME_CID, PROP_NAME_CONTENT_LOCATION, PROP_NAME_CONTENT_BASE,
+                     PROP_NAME_ERROR, PROP_NAME_EXTENSION -> null;
                 case PROP_NAME_IMAGE ->
                     NativeTypeConversion.booleanToString(SimpleMutableFileMetadata.this.appearsToBeImage());
                 case PROP_NAME_FORMATTED_SIZE, PROP_NAME_BYTESIZE, PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
@@ -593,7 +596,11 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final void putProperty(String name, String value) {
             switch (name) {
-            case PROP_NAME_FORMATTED_SIZE, PROP_NAME_BYTESIZE, PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
+            case PROP_NAME_DISPLAY_NAME, PROP_NAME_FILE_NAME, PROP_NAME_DESCRIPTION,
+                 PROP_NAME_MIMETYPE, PROP_NAME_URI, PROP_NAME_NUMBER, PROP_NAME_REFERENCE_TO_PERSISTED_FILE,
+                 PROP_NAME_CID, PROP_NAME_CONTENT_LOCATION, PROP_NAME_CONTENT_BASE,
+                 PROP_NAME_ERROR, PROP_NAME_EXTENSION,
+                 PROP_NAME_FORMATTED_SIZE, PROP_NAME_BYTESIZE, PROP_NAME_ICON_URL, PROP_NAME_ICON_WIDTH,
                  PROP_NAME_ICON_HEIGHT, PROP_NAME_IMAGE,
                  PROP_NAME_IMAGE_WIDTH, PROP_NAME_IMAGE_HEIGHT ->
                 // not supported
@@ -678,15 +685,20 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
             return imageDimensions;
         }
 
+        @Nullable
         private final Dimensions<Integer> readImageDimensions() {
             FileResource fileResource = getFileInfo.get();
             if (fileResource == null) {
-                return Dimensions.getInvalidInstanceInPixels();
+                return null;
             }
             if (fileResource instanceof IconFileResource iconFile) {
                 return iconFile.getOriginalDimensions();
             }
-            return fileResource.getImage().getDimensions();
+            Icon image = fileResource.getImage();
+            if (image == null) {
+                return null;
+            }
+            return image.getDimensions();
         }
 
         private final long byteSize() {
@@ -860,7 +872,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     @Override
-    public final void setDescription(String description) {
+    public final void setDescription(@Nullable String description) {
         this.description = description;
     }
 
@@ -871,7 +883,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     @Override
-    public final void setContentType(String contentType) {
+    public final void setContentType(@Nullable String contentType) {
         this.contentType = contentType;
     }
 
@@ -913,7 +925,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     @Override
-    public final void setContentId(String contentId) {
+    public final void setContentId(@Nullable String contentId) {
         this.contentId = contentId;
     }
 
@@ -923,17 +935,17 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     @Override
-    public final void setContentLocation(String contentLocation) {
+    public final void setContentLocation(@Nullable String contentLocation) {
         this.contentLocation = contentLocation;
     }
 
     @Override
-    public final void setContentBase(String contentBase) {
+    public final void setContentBase(@Nullable String contentBase) {
         this.contentBase = contentBase;
     }
 
     @Override
-    public final void setResourceType(FileResourceType resourceType) {
+    public final void setResourceType(@Nullable FileResourceType resourceType) {
         this.resourceType = resourceType;
     }
 
@@ -973,7 +985,11 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
     }
 
     public final GetPutProperty asGetPutProperty(FileResource fileResource) {
-        return getBaseProperties().withDefaults(new ExtendedGetPutProperty(Suppliers.ofInstance(fileResource)));
+        return getExtendedProperties(fileResource).withDefaults(getBaseProperties());
+    }
+
+    private final GetPutProperty getExtendedProperties(FileResource fileResource) {
+        return new ExtendedGetPutProperty(Suppliers.ofInstance(fileResource));
     }
 
     /**
@@ -1024,7 +1040,7 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         if (StringUtils.isBlank(getContentType())) {
             setContentType(metadata.getContentType());
         }
-        if (getNumber() < 0) {
+        if (getNumber() == 0) {
             setNumber(metadata.getNumber());
         }
         if (StringUtils.isBlank(getContentId())) {

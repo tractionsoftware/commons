@@ -24,7 +24,7 @@ import com.google.common.collect.*;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
-import com.tractionsoftware.commons.util.function.FunctionsUtil;
+import com.tractionsoftware.commons.util.function.FunctionUtil;
 import com.tractionsoftware.commons.util.function.PredicateUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -116,11 +116,11 @@ public final class CollectionUtil {
          */
         private K lastIdx;
 
-        private MapValueIterator(MapIteratorAdapter<? super K,? extends V> objects, Iterator<? extends K> indicesIter) {
+        private MapValueIterator(@Nonnull MapIteratorAdapter<? super K,? extends V> objects, @Nonnull Iterator<? extends K> indexIter) {
             Objects.requireNonNull(objects, "objects");
-            Objects.requireNonNull(indicesIter, "indices");
+            Objects.requireNonNull(indexIter, "indices");
             this.objects = objects;
-            this.indexIter = indicesIter;
+            this.indexIter = indexIter;
         }
 
         /**
@@ -503,7 +503,7 @@ public final class CollectionUtil {
      *     the {@link Collection} to test.
      * @return true if the given {@link Collection} is either null or empty; false otherwise.
      */
-    public static final boolean isEmpty(Collection<?> coll) {
+    public static final boolean isEmpty(@Nullable Collection<?> coll) {
         if (coll == null || coll.isEmpty()) {
             return true;
         }
@@ -517,7 +517,7 @@ public final class CollectionUtil {
      *     the {@link Collection} to test.
      * @return true if the given {@link Collection} is neither null or empty; false otherwise.
      */
-    public static final boolean isNotEmpty(Collection<?> coll) {
+    public static final boolean isNotEmpty(@Nullable Collection<?> coll) {
         return !isEmpty(coll);
     }
 
@@ -534,7 +534,7 @@ public final class CollectionUtil {
      *     the element to search for in the {@link Collection}.
      * @return true if the given {@link Collection} is not null and contains the given element; false otherwise.
      */
-    public static final boolean contains(Collection<?> coll, Object element) {
+    public static final boolean contains(@Nullable Collection<?> coll, @Nullable Object element) {
         if (coll == null) {
             return false;
         }
@@ -559,7 +559,7 @@ public final class CollectionUtil {
      *     the {@link Map} to test.
      * @return true if the given {@link Map} is either null or empty; false otherwise.
      */
-    public static final boolean isEmpty(Map<?,?> map) {
+    public static final boolean isEmpty(@Nullable Map<?,?> map) {
         if (map == null || map.isEmpty()) {
             return true;
         }
@@ -573,7 +573,7 @@ public final class CollectionUtil {
      *     the {@link Multimap} to test.
      * @return true if the given {@link Multimap} is either null or empty; false otherwise.
      */
-    public static final boolean isEmpty(Multimap<?,?> map) {
+    public static final boolean isEmpty(@Nullable Multimap<?,?> map) {
         if (map == null || map.isEmpty()) {
             return true;
         }
@@ -587,7 +587,7 @@ public final class CollectionUtil {
      *     the {@link Map} to test.
      * @return true if the given {@link Map} is neither null or empty; false otherwise.
      */
-    public static final boolean isNotEmpty(Map<?,?> map) {
+    public static final boolean isNotEmpty(@Nullable Map<?,?> map) {
         return !isEmpty(map);
     }
 
@@ -599,7 +599,8 @@ public final class CollectionUtil {
      *     the {@link List} whose elements are to be mapped.
      * @return a {@link Function} which maps an {@link Integer}s to the element at that index in the given {@link List}.
      */
-    public static final <T> IntFunction<T> getListIndex2ListValueFunction(List<? extends T> list) {
+    @Nonnull
+    public static final <T> IntFunction<T> getListIndex2ListValueFunction(@Nullable List<? extends T> list) {
         if (list == null) {
             return i -> null;
         }
@@ -617,9 +618,10 @@ public final class CollectionUtil {
      *     the {@link Map} whose key-value pairs will be used to define the returned {@link Function}.
      * @return a {@link Function} which maps keys to values using the given {@link Map}.
      */
-    public static final <K, V> Function<K,V> getMapKey2ValueFunction(final Map<? super K,? extends V> map) {
+    @Nonnull
+    public static final <K, V> Function<K,V> getMapKey2ValueFunction(@Nullable Map<? super K,? extends V> map) {
         if (map == null) {
-            return FunctionsUtil.nullValueFunction();
+            return FunctionUtil.nullValueFunction();
         }
         return new SafeMapKey2Value<>(map);
     }
@@ -636,7 +638,7 @@ public final class CollectionUtil {
      * @param destination
      *     the Collection to which the elements will be added.
      */
-    public static final <T> boolean addFromIterable(Iterable<? extends T> source, Collection<? super T> destination) {
+    public static final <T> boolean addFromIterable(@Nullable Iterable<? extends T> source, @Nullable Collection<? super T> destination) {
         if (source == null || destination == null) {
             return false;
         }
@@ -657,7 +659,7 @@ public final class CollectionUtil {
      * @return true if any elements were added to the destination {@link Collection} from the given source
      *     {@link Iterator}; false otherwise.
      */
-    public static final <E> boolean addFromIterator(Iterator<? extends E> source, Collection<? super E> destination) {
+    public static final <E> boolean addFromIterator(@Nullable Iterator<? extends E> source, @Nullable Collection<? super E> destination) {
         if (source == null || destination == null) {
             return false;
         }
@@ -678,7 +680,8 @@ public final class CollectionUtil {
      * @return the first element from the {@link Iterable}, if it has at least one element; the given default value
      *     otherwise.
      */
-    public static final <E> E firstOrDefault(Iterable<? extends E> coll, E defaultValue) {
+    @Nullable
+    public static final <E> E firstOrDefault(@Nullable Iterable<? extends E> coll, @Nullable E defaultValue) {
         if (coll == null) {
             return defaultValue;
         }
@@ -701,12 +704,13 @@ public final class CollectionUtil {
      * @return the given Map if it is an instance of HashMap; null if the given Map is null; otherwise, a new HashMap
      *     containing the same key-value pairs as the given Map, if it is not null.
      */
-    public static final <K, V> HashMap<K,V> hashMap(Map<K,V> map) {
+    @Nullable
+    public static final <K, V> HashMap<K,V> hashMap(@Nullable Map<K,V> map) {
         if (map == null) {
             return null;
         }
-        if (map instanceof HashMap) {
-            return (HashMap<K,V>) map;
+        if (map instanceof HashMap<K,V> hashMap) {
+            return hashMap;
         }
         return new HashMap<>(map);
     }
@@ -721,7 +725,8 @@ public final class CollectionUtil {
      * @return the given List if it is an instance of ArrayList; null if the given List is null; otherwise, a new
      *     ArrayList that contains the same elements that the given Collection contains.
      */
-    public static final <T> ArrayList<T> arrayList(Collection<T> coll) {
+    @Nullable
+    public static final <T> ArrayList<T> arrayList(@Nullable Collection<T> coll) {
         if (coll == null) {
             return null;
         }
@@ -741,12 +746,13 @@ public final class CollectionUtil {
      * @return the given Collection if it is an instance of HashSet; null if the given Collection is null; otherwise, a
      *     new HashSet that contains the same elements that the given Collection contains.
      */
-    public static final <T> HashSet<T> hashSet(Collection<T> coll) {
+    @Nullable
+    public static final <T> HashSet<T> hashSet(@Nullable Collection<T> coll) {
         if (coll == null) {
             return null;
         }
-        if (coll instanceof HashSet) {
-            return (HashSet<T>) coll;
+        if (coll instanceof HashSet<T> hashSet) {
+            return hashSet;
         }
         return new HashSet<>(coll);
     }
@@ -761,12 +767,13 @@ public final class CollectionUtil {
      * @return the given Collection if it is an instance of LinkedHashSet; null if the given Collection is null;
      *     otherwise, a new LinkedHashSet that contains the same elements that the given Collection contains.
      */
-    public static final <T> LinkedHashSet<T> linkedHashSet(Collection<T> coll) {
+    @Nullable
+    public static final <T> LinkedHashSet<T> linkedHashSet(@Nullable Collection<T> coll) {
         if (coll == null) {
             return null;
         }
-        if (coll instanceof LinkedHashSet) {
-            return (LinkedHashSet<T>) coll;
+        if (coll instanceof LinkedHashSet<T> linkedHashSet) {
+            return linkedHashSet;
         }
         return new LinkedHashSet<>(coll);
     }
@@ -779,7 +786,7 @@ public final class CollectionUtil {
      * @param destination
      *     the Collection to be cleared and then populated by the elements from the source Collection.
      */
-    public static final <E> void clearAndCopy(Collection<? extends E> source, Collection<? super E> destination) {
+    public static final <E> void clearAndCopy(@Nullable Collection<? extends E> source, @Nullable Collection<? super E> destination) {
         if (destination == null) {
             return;
         }
@@ -796,7 +803,7 @@ public final class CollectionUtil {
      * @param destination
      *     the Collection to which the elements from the source Collection should be added.
      */
-    public static final <E> void copy(Collection<? extends E> source, Collection<? super E> destination) {
+    public static final <E> void copy(@Nullable Collection<? extends E> source, @Nullable Collection<? super E> destination) {
         if (source == null || destination == null || source.isEmpty()) {
             return;
         }
@@ -812,7 +819,7 @@ public final class CollectionUtil {
      *     the Collection to which the non-null elements from the source Collection should be added.
      * @return true if any elements were added to the destination {@link Collection}; false otherwise.
      */
-    public static final <E> boolean copyNonNull(Collection<? extends E> source, Collection<? super E> destination) {
+    public static final <E> boolean copyNonNull(@Nullable Collection<? extends E> source, @Nullable Collection<? super E> destination) {
         if (source == null || destination == null || source.isEmpty()) {
             return false;
         }
@@ -832,7 +839,7 @@ public final class CollectionUtil {
      * @param destination
      *     the Collection to be cleared and then populated by the elements from the source Collection.
      */
-    public static final <K, V> void clearAndCopy(Map<? extends K,? extends V> source, Map<? super K,? super V> destination) {
+    public static final <K, V> void clearAndCopy(@Nullable Map<? extends K,? extends V> source, @Nullable Map<? super K,? super V> destination) {
         if (destination == null) {
             return;
         }
@@ -848,7 +855,7 @@ public final class CollectionUtil {
      * @param destination
      *     the Map to which the key-value pairs should be copied.
      */
-    public static final <K, V> void copy(Map<? extends K,? extends V> source, Map<? super K,? super V> destination) {
+    public static final <K, V> void copy(@Nullable Map<? extends K,? extends V> source, @Nullable Map<? super K,? super V> destination) {
         if (destination == null || isEmpty(source)) {
             return;
         }
@@ -862,7 +869,8 @@ public final class CollectionUtil {
      *     the List to be examined.
      * @return the given Collection if it is not null; an empty List otherwise.
      */
-    public static final <T> Collection<T> emptyInsteadOfNull(Collection<T> original) {
+    @Nonnull
+    public static final <T> Collection<T> emptyInsteadOfNull(@Nullable Collection<T> original) {
         return Objects.requireNonNullElseGet(original, Collections::emptyList);
     }
 
@@ -873,7 +881,8 @@ public final class CollectionUtil {
      *     the List to be examined.
      * @return the given List if it is not null; an empty List otherwise.
      */
-    public static final <T> List<T> emptyListInsteadOfNull(List<T> original) {
+    @Nonnull
+    public static final <T> List<T> emptyListInsteadOfNull(@Nullable List<T> original) {
         return Objects.requireNonNullElseGet(original, Collections::emptyList);
     }
 
@@ -884,7 +893,8 @@ public final class CollectionUtil {
      *     the Set to be examined.
      * @return the given Set if it is not null; an empty Set otherwise.
      */
-    public static final <T> Set<T> emptySetInsteadOfNull(Set<T> original) {
+    @Nonnull
+    public static final <T> Set<T> emptySetInsteadOfNull(@Nullable Set<T> original) {
         return Objects.requireNonNullElseGet(original, Collections::emptySet);
     }
 
@@ -895,7 +905,8 @@ public final class CollectionUtil {
      *     the Set to be examined.
      * @return the given Set if it is not null; an empty Set otherwise.
      */
-    public static final <T> SequencedSet<T> emptySequencedSetInsteadOfNull(SequencedSet<T> original) {
+    @Nonnull
+    public static final <T> SequencedSet<T> emptySequencedSetInsteadOfNull(@Nullable SequencedSet<T> original) {
         return Objects.requireNonNullElseGet(original, CollectionUtil::emptySequencedSet);
     }
 
@@ -909,17 +920,19 @@ public final class CollectionUtil {
      *     the key whose map entry is to be modified or removed.
      * @param value
      *     the value for the map entry to be set or removed.
+     * @return the value removed or replaced, if any; null otherwise.
      */
-    public static final <K, V> void putOrRemove(Map<? super K,? super V> map, K key, V value) {
+    @Nullable
+    @CanIgnoreReturnValue
+    @SuppressWarnings("unchecked")
+    public static final <K, V> V putOrRemove(@Nullable Map<? super K,? super V> map, @Nullable K key, @Nullable V value) {
         if (map == null) {
-            return;
+            return null;
         }
         if (value == null) {
-            map.remove(key);
+            return (V) map.remove(key);
         }
-        else {
-            map.put(key, value);
-        }
+        return (V) map.put(key, value);
     }
 
     /**
@@ -929,7 +942,7 @@ public final class CollectionUtil {
      *     the Collection whose size is to be determined.
      * @return the size of the given Collection, or 0 if the Collection is null.
      */
-    public static final int size(Collection<?> coll) {
+    public static final int size(@Nullable Collection<?> coll) {
         if (coll == null) {
             return 0;
         }
@@ -945,7 +958,8 @@ public final class CollectionUtil {
      *     the destination {@link Collection} to which all the array's elements should be added.
      * @return true if any source elements were copied to the destination; false otherwise.
      */
-    public static final <T> boolean copy(Iterable<? extends T> source, Collection<? super T> destination) {
+    @CanIgnoreReturnValue
+    public static final <T> boolean copy(@Nullable Iterable<? extends T> source, @Nullable Collection<? super T> destination) {
         if (source == null || destination == null) {
             return false;
         }
@@ -966,7 +980,7 @@ public final class CollectionUtil {
      * @return true if the value was successfully added to the given {@link Collection}; false otherwise.
      */
     @CanIgnoreReturnValue
-    public static final <E> boolean addIfNotNull(E value, Collection<? super E> coll) {
+    public static final <E> boolean addIfNotNull(@Nullable E value, @Nullable Collection<? super E> coll) {
         if (value == null || coll == null) {
             return false;
         }
@@ -990,7 +1004,7 @@ public final class CollectionUtil {
      * @return true if the key-value pair was successfully added to the given {@link Map}; false otherwise.
      */
     @CanIgnoreReturnValue
-    public static final <K, V> boolean putIfNotNull(K key, V value, Map<? super K,? super V> map) {
+    public static final <K, V> boolean putIfNotNull(@Nullable K key, @Nullable V value, @Nullable Map<? super K,? super V> map) {
         if (value == null || map == null) {
             return false;
         }
@@ -1017,9 +1031,10 @@ public final class CollectionUtil {
      *
      * @param coll
      *     the {@link Collection} to be sorted if it is a {@link List}.
-     * @return true if the {@link Collection} was a {@link List}, and was sorted.
+     * @return true if the {@link Collection} was a {@link List}, and was sorted; false otherwise.
      */
-    public static final <E extends Comparable<E>> boolean sortIfList(Collection<E> coll) {
+    @CanIgnoreReturnValue
+    public static final <E extends Comparable<E>> boolean sortIfList(@Nullable Collection<E> coll) {
         if (coll instanceof List) {
             Collections.sort((List<E>) coll);
             return true;
@@ -1039,9 +1054,11 @@ public final class CollectionUtil {
      *     the {@link Comparator} that provides the ordering for the sort operation.
      * @return true if the {@link Collection} was a {@link List}, and was sorted.
      */
-    public static final <E> boolean sortIfList(Collection<? extends E> coll, Comparator<? super E> comparator) {
-        if (coll instanceof List) {
-            ((List<? extends E>) coll).sort(comparator);
+    @CanIgnoreReturnValue
+    public static final <E> boolean sortIfList(@Nullable Collection<? extends E> coll, @Nonnull Comparator<? super E> comparator) {
+        if (coll instanceof List<? extends E> list) {
+            Objects.requireNonNull(comparator, "Comparator");
+            list.sort(comparator);
             return true;
         }
         return false;
@@ -1062,7 +1079,8 @@ public final class CollectionUtil {
      *     null; otherwise, an {@link Iterable} over the elements in the given Iterable that match the given
      *     {@link Predicate}.
      */
-    public static final <E> Iterable<E> filteringIterable(final Iterable<E> iterable, final Predicate<? super E> matcher) {
+    @Nonnull
+    public static final <E> Iterable<E> filteringIterable(@Nullable Iterable<E> iterable, @Nullable Predicate<? super E> matcher) {
         if (iterable == null) {
             return Collections.emptyList();
         }
@@ -1089,7 +1107,8 @@ public final class CollectionUtil {
      *     null; otherwise, an {@link Iterator} over the elements in the given Iterable that match the given
      *     {@link Predicate}.
      */
-    public static final <E> Iterator<E> filteredIterator(Iterator<E> iter, Predicate<? super E> matcher) {
+    @Nonnull
+    public static final <E> Iterator<E> filteredIterator(@Nullable Iterator<E> iter, @Nullable Predicate<? super E> matcher) {
         if (iter == null) {
             return Collections.emptyIterator();
         }
@@ -1116,7 +1135,8 @@ public final class CollectionUtil {
      *     null; otherwise, an {@link Iterator} over the elements in the given Iterable that <em>do not</em> match the
      *     given {@link Predicate}.
      */
-    public static final <E> Iterator<E> inverseFilteredIterator(Iterator<E> iter, Predicate<? super E> matcher) {
+    @Nonnull
+    public static final <E> Iterator<E> inverseFilteredIterator(@Nullable Iterator<E> iter, @Nullable Predicate<? super E> matcher) {
         if (iter == null) {
             return Collections.emptyIterator();
         }
@@ -1142,7 +1162,8 @@ public final class CollectionUtil {
      * @return an {@link Iterable} covering all the elements in the given source Iterable which are not contained in the
      *     given {@link Collection}.
      */
-    public static final <E> Iterable<E> excluding(final Iterable<E> iterable, final Collection<?> exclude) {
+    @Nonnull
+    public static final <E> Iterable<E> excluding(@Nullable Iterable<E> iterable, @Nullable Collection<?> exclude) {
         if (iterable == null) {
             return Collections.emptyList();
         }
@@ -1167,7 +1188,11 @@ public final class CollectionUtil {
      * @return an {@link Iterable} covering all the elements in the given source Iterable which are contained in the
      *     given {@link Collection}.
      */
-    public static final <E> Iterable<E> includingOnly(final Iterable<E> iterable, final Collection<?> include) {
+    @Nonnull
+    public static final <E> Iterable<E> includingOnly(@Nullable Iterable<E> iterable, @Nullable Collection<?> include) {
+        if (iterable == null) {
+            return Collections.emptyList();
+        }
         return () -> includingOnly(iterable.iterator(), include);
     }
 
@@ -1211,7 +1236,8 @@ public final class CollectionUtil {
      * @return an {@link Iterator} covering all the elements in the given source Iterator which are not contained in the
      *     given {@link Collection}.
      */
-    public static final <E> Iterator<E> includingOnly(Iterator<E> iter, Collection<?> include) {
+    @Nonnull
+    public static final <E> Iterator<E> includingOnly(@Nullable Iterator<E> iter, @Nullable Collection<?> include) {
         if (iter == null || isEmpty(include)) {
             return Collections.emptyIterator();
         }
@@ -1232,7 +1258,8 @@ public final class CollectionUtil {
      *     should be removed from the given {@link Iterator} (via {@link Iterator#remove()}).
      * @return true if any elements were removed from the given {@link Iterator}; false otherwise.
      */
-    public static final <E> boolean removeIf(Iterator<? extends E> iter, Predicate<? super E> matcher) {
+    @CanIgnoreReturnValue
+    public static final <E> boolean removeIf(@Nullable Iterator<? extends E> iter, @Nullable Predicate<? super E> matcher) {
         if (iter == null || matcher == null) {
             return false;
         }
@@ -1256,6 +1283,7 @@ public final class CollectionUtil {
      *     the last value to be returned by the {@link Iterator}.
      * @return an {@link Iterator} over {@link Integer}s in the range covered by the two int values, inclusive.
      */
+    @Nonnull
     public static final Iterator<Integer> intRangeIterator(int first, int last) {
         return new IntegerRangeIterator(first, last);
     }
@@ -1278,7 +1306,11 @@ public final class CollectionUtil {
      * @return an {@link Iterator} over the values from the map underlying the given {@link MapIteratorAdapter},
      *     corresponding to (and in the same order as) the keys covered by the given Iterable.
      */
-    public static final <K, V> Iterator<V> mapValueIterator(MapIteratorAdapter<? super K,? extends V> objects, Iterable<? extends K> keys) {
+    @Nonnull
+    public static final <K, V> Iterator<V> mapValueIterator(@Nullable MapIteratorAdapter<? super K,? extends V> objects, @Nullable Iterable<? extends K> keys) {
+        if (objects == null || keys == null || (keys instanceof Collection<?> coll && isEmpty(coll))) {
+            return Collections.emptyIterator();
+        }
         return mapValueIterator(objects, keys.iterator());
     }
 
@@ -1300,7 +1332,11 @@ public final class CollectionUtil {
      * @return an {@link Iterator} over the values from the map underlying the given {@link MapIteratorAdapter},
      *     corresponding to (and in the same order as) the keys covered by the given Iterator.
      */
-    public static final <K, V> Iterator<V> mapValueIterator(MapIteratorAdapter<? super K,? extends V> objects, Iterator<? extends K> keys) {
+    @Nonnull
+    public static final <K, V> Iterator<V> mapValueIterator(@Nullable MapIteratorAdapter<? super K,? extends V> objects, @Nullable Iterator<? extends K> keys) {
+        if (objects == null || keys == null) {
+            return Collections.emptyIterator();
+        }
         return new MapValueIterator<K,V>(objects, keys);
     }
 
@@ -1328,7 +1364,11 @@ public final class CollectionUtil {
      *     the keys represented by an {@link Iterator} of {@link Integer} values starting with the first given int value
      *     and ending with the second given int value.
      */
-    public static final <V> Iterator<V> mapValueKeyRangeIterator(MapIteratorAdapter<Integer,? extends V> objects, int firstKey, int lastKey) {
+    @Nonnull
+    public static final <V> Iterator<V> mapValueKeyRangeIterator(@Nullable MapIteratorAdapter<Integer,? extends V> objects, int firstKey, int lastKey) {
+        if (objects == null) {
+            return Collections.emptyIterator();
+        }
         return mapValueIterator(objects, intRangeIterator(firstKey, lastKey));
     }
 
@@ -1349,6 +1389,7 @@ public final class CollectionUtil {
      * @return an {@link Iterable} that can produce an {@link Iterator} that will return the given value an infinite
      *     number of times.
      */
+    @Nonnull
     public static final <E> Iterable<E> infiniteSingleValueIterable(final E value) {
         return () -> infiniteSingleValueIterator(value);
     }
@@ -1368,7 +1409,8 @@ public final class CollectionUtil {
      *     the value to be returned.
      * @return an {@link Iterator} that will return the given value an infinite number of times.
      */
-    public static final <E> Iterator<E> infiniteSingleValueIterator(final E value) {
+    @Nonnull
+    public static final <E> Iterator<E> infiniteSingleValueIterator(E value) {
         return Iterators.unmodifiableIterator(Iterators.cycle(value));
     }
 
@@ -1434,7 +1476,7 @@ public final class CollectionUtil {
      * @return the Iterator so produced.
      */
     public static final <D, E> Iterator<E> convertingIterator(Iterator<D> source, Function<? super D,? extends E> converter) {
-        return Iterators.transform(source, FunctionsUtil.asGuavaFunction(converter));
+        return Iterators.transform(source, FunctionUtil.asGuavaFunction(converter));
     }
 
     /**

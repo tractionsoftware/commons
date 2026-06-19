@@ -22,6 +22,7 @@ package com.tractionsoftware.commons.codec;
 
 import com.tractionsoftware.commons.io.IOUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -39,15 +40,27 @@ public final class Base64Util {
     private Base64Util() {
     }
 
-    public static Base64.Decoder getDecoder(boolean mime) {
+    /**
+     * Returns the requested {@link Base64.Decoder} instance.
+     *
+     * @param mime
+     *     whether the MIME-style {@link Base64.Decoder} (RFC 2045) is required.
+     * @return the requested {@link Base64.Decoder} instance.
+     */
+    public static final Base64.Decoder getDecoder(boolean mime) {
         if (mime) {
             return Base64.getMimeDecoder();
         }
         return Base64.getDecoder();
     }
 
-    public static Base64.Decoder getMimeDecoder() {
-        return getDecoder(true);
+    /**
+     * Returns a MIME-style {@link Base64.Decoder} (RFC 2045) instance.
+     *
+     * @return a MIME-style {@link Base64.Decoder} (RFC 2045) instance.
+     */
+    public static final Base64.Decoder getMimeDecoder() {
+        return Base64.getMimeDecoder();
     }
 
     /**
@@ -55,13 +68,24 @@ public final class Base64Util {
      *
      * @param encodedStr
      *     the String containing the base-64 encoded representation of the bytes.
-     * @return the bytes encoded in the base-64 encoding input String.
+     * @return the bytes encoded in the base-64 encoding input String, if they represent a valid base-64 encoding; null
+     *     otherwise.
      */
-    public static byte[] getDecodedBytes(String encodedStr) {
+    public static final byte[] getDecodedBytes(@Nullable String encodedStr) {
         return getDecodedBytes(encodedStr, false);
     }
 
-    public static byte[] getDecodedBytes(String encodedStr, boolean mime) {
+    /**
+     * Decodes the base-64 data encoded in the given input String.
+     *
+     * @param encodedStr
+     *     the String containing the base-64 encoded representation of the bytes.
+     * @param mime
+     *     indicates whether the MIME-style decoder (RFC 2045) should be used.
+     * @return the bytes encoded in the base-64 encoding input String, if they represent a valid base-64 encoding; null
+     *     otherwise.
+     */
+    public static final byte[] getDecodedBytes(@Nullable String encodedStr, boolean mime) {
         if (encodedStr == null) {
             return null;
         }
@@ -72,8 +96,8 @@ public final class Base64Util {
             LOGGER.warn(
                 "Failed to decode base 64 string value {}", StringUtil.truncatedToStringForLog(encodedStr, 100), e
             );
-            return ArrayUtils.EMPTY_BYTE_ARRAY;
         }
+        return null;
     }
 
     public static byte[] getDecodedBytes(byte[] encoding) {
@@ -119,6 +143,7 @@ public final class Base64Util {
     public static String getUtf8DecodedString(String encodedStr, boolean mime) {
         return getDecodedString(encodedStr, StandardCharsets.UTF_8, mime);
     }
+
     public static String getDecodedString(String encodedStr, Charset charset, boolean mime) {
         if (encodedStr == null) {
             return null;

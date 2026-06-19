@@ -55,7 +55,7 @@ public final class HtmlEncodingUtil {
 
         NON_BREAKING_SPACE(' ', "nbsp");
 
-        public static SimpleHtmlEntity getForLiteral(char c) {
+        public static final SimpleHtmlEntity getForLiteral(char c) {
             return switch (c) {
                 case '>' -> SimpleHtmlEntity.GREATER_THAN;
                 case '<' -> SimpleHtmlEntity.LESS_THAN;
@@ -64,7 +64,7 @@ public final class HtmlEncodingUtil {
             };
         }
 
-        public static SimpleHtmlEntity getForTagAttributeValue(char c) {
+        public static final SimpleHtmlEntity getForTagAttributeValue(char c) {
             return switch (c) {
                 case '"' -> QUOTATION_MARK;
                 case '>' -> GREATER_THAN;
@@ -74,7 +74,7 @@ public final class HtmlEncodingUtil {
             };
         }
 
-        public static SimpleHtmlEntity getForClassicConversion(char c) {
+        public static final SimpleHtmlEntity getForClassicConversion(char c) {
             return switch (c) {
                 case '"' -> QUOTATION_MARK;
                 case '>' -> GREATER_THAN;
@@ -85,7 +85,7 @@ public final class HtmlEncodingUtil {
             };
         }
 
-        public static SimpleHtmlEntity get(char c) {
+        public static final SimpleHtmlEntity get(char c) {
             return switch (c) {
                 case '"' -> QUOTATION_MARK;
                 case '>' -> GREATER_THAN;
@@ -96,7 +96,7 @@ public final class HtmlEncodingUtil {
             };
         }
 
-        public static SimpleHtmlEntity get(String s, int index) {
+        public static final SimpleHtmlEntity get(String s, int index) {
 
             char c = s.charAt(index);
             if (Character.isSurrogate(c) || c != '&') {
@@ -105,15 +105,12 @@ public final class HtmlEncodingUtil {
 
             int remaining = s.length() - index;
             if (remaining < 4) {
+                // Too short for any of these.
                 return null;
             }
 
-            int start = index + 1;
             for (SimpleHtmlEntity entity : SimpleHtmlEntity.values()) {
-                int len = entity.name.length();
-                if (remaining > len &&
-                    entity.name.equals(s.substring(start, start + len)) &&
-                    s.charAt(start + len) == ';') {
+                if (s.regionMatches(index, entity.encoding, 0, entity.encoding.length())) {
                     return entity;
                 }
             }
@@ -121,7 +118,7 @@ public final class HtmlEncodingUtil {
 
         }
 
-        public static String encodeForLiteral(char c) {
+        public static final String encodeForLiteral(char c) {
             SimpleHtmlEntity entity = getForLiteral(c);
             if (entity == null) {
                 return null;
@@ -129,7 +126,7 @@ public final class HtmlEncodingUtil {
             return entity.encoding;
         }
 
-        public static String encodeForTagAttributeValue(char c) {
+        public static final String encodeForTagAttributeValue(char c) {
             SimpleHtmlEntity entity = getForTagAttributeValue(c);
             if (entity == null) {
                 return null;
@@ -145,13 +142,20 @@ public final class HtmlEncodingUtil {
             return entity.encoding;
         }
 
+        public static final String escapeAmpersand(char c) {
+            if (c == '&') {
+                return AMPERSAND.encoding;
+            }
+            return null;
+        }
+
         private final char value;
 
         private final String name;
 
         private final String encoding;
 
-        SimpleHtmlEntity(char value, String name) {
+        private SimpleHtmlEntity(char value, String name) {
             this.value = value;
             this.name = name;
             this.encoding = "&" + name + ";";
@@ -177,13 +181,6 @@ public final class HtmlEncodingUtil {
             return name.length();
         }
 
-        public static String escapeAmpersand(char c) {
-            if (c == '&') {
-                return AMPERSAND.encoding;
-            }
-            return null;
-        }
-
     }
 
     private static final class HtmlLiteralAppendableWrapper implements Appendable {
@@ -198,19 +195,19 @@ public final class HtmlEncodingUtil {
         }
 
         @Override
-        public Appendable append(CharSequence csq) {
+        public final Appendable append(CharSequence csq) {
             appendLiteralText(csq);
             return this;
         }
 
         @Override
-        public Appendable append(CharSequence csq, int start, int end) {
+        public final Appendable append(CharSequence csq, int start, int end) {
             appendLiteralText(csq.subSequence(start, end));
             return this;
         }
 
         @Override
-        public Appendable append(char c) {
+        public final Appendable append(char c) {
             String literalReplacement = encodeForLiteral(c);
             if (literalReplacement != null) {
                 StringWriteUtil.safeAppend(out, literalReplacement);
@@ -221,13 +218,13 @@ public final class HtmlEncodingUtil {
             return this;
         }
 
-        private void appendLiteralText(CharSequence text) {
+        private final void appendLiteralText(CharSequence text) {
             if (StringUtils.isNotEmpty(text)) {
                 CharBasedFilteringTextMapper.replace(text, out, this::encodeForLiteral);
             }
         }
 
-        private String encodeForLiteral(char c) {
+        private final String encodeForLiteral(char c) {
             if (c == StringUtil.CHAR_ZERO_WIDTH_SPACE) {
                 return preferredZeroWidthSpace;
             }
@@ -247,7 +244,7 @@ public final class HtmlEncodingUtil {
      * , . / \ | - % ) &amp; &gt; &lt; &quot;
      */
     private static final Pattern NON_SPACE_BREAK_OPPORTUNITIES =
-        Pattern.compile("([,./\\\\|\\-%)]|&(amp|gt|lt|quot);)(^\\s)");
+        Pattern.compile("([,./\\\\|\\-%)]|&(amp|gt|lt|quot);)(\\S)");
 
     /**
      * Applies the minimal amount of entity-encoding necessary for the given plain text to appear in literal form in an
@@ -258,7 +255,7 @@ public final class HtmlEncodingUtil {
      * @return a version of the given plain text with any tag delimiters and ampersands entity-encoded; or null if the
      *     given text is null.
      */
-    public static String getLiteralText(CharSequence text) {
+    public static final String getLiteralText(CharSequence text) {
         if (text == null) {
             return null;
         }
@@ -278,21 +275,20 @@ public final class HtmlEncodingUtil {
      * @return some HTML representing the given text converted to HTML-safe text, plus substituting BR tags for line
      *     breaks.
      */
-    public static String getLiteralTextWithLineBreaks(CharSequence text) {
+    public static final String getLiteralTextWithLineBreaks(CharSequence text) {
         if (StringUtils.isEmpty(text)) {
             return "";
         }
         return StringUtil.join(StringUtil.getLines(getLiteralText(text)).iterator(), TAG_BR);
     }
 
-    public static void printLiteralTextWithLineBreaks(Appendable out, CharSequence text) {
+    public static final void printLiteralTextWithLineBreaks(Appendable out, CharSequence text) {
         if (StringUtils.isEmpty(text)) {
             return;
         }
         try {
             StringUtil.getNullSkippingJoiner(TAG_BR).appendTo(
-                out,
-                StringUtil.getLines(getLiteralText(text)).iterator()
+                out, StringUtil.getLines(getLiteralText(text)).iterator()
             );
         }
         catch (IOException e) {
@@ -309,7 +305,7 @@ public final class HtmlEncodingUtil {
      *     the text to be encoded in an HTML-safe manner.
      * @return a version of the given text that is safe for an HTML attribute value.
      */
-    public static String getTagAttributeValue(CharSequence text) {
+    public static final String getTagAttributeValue(CharSequence text) {
         if (text == null) {
             return null;
         }
@@ -317,8 +313,7 @@ public final class HtmlEncodingUtil {
             return text.toString();
         }
         return Objects.toString(
-            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForTagAttributeValue),
-            null
+            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForTagAttributeValue), null
         );
     }
 
@@ -335,13 +330,12 @@ public final class HtmlEncodingUtil {
      * @return a conversion of the given text to HTML, including the non-literal and usually unnecessary conversion
      *     spaces to non-breaking spaces.
      */
-    public static String getClassicHtmlText(String text) {
+    public static final String getClassicHtmlText(String text) {
         if (StringUtils.isBlank(text)) {
             return text;
         }
         return Objects.toString(
-            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForClassicHtmlText),
-            null
+            CharBasedFilteringTextMapper.replace(text, SimpleHtmlEntity::encodeForClassicHtmlText), null
         );
     }
 
@@ -353,7 +347,7 @@ public final class HtmlEncodingUtil {
      *     the HTML to be converted to text.
      * @return the decoded version of the string.
      */
-    public static String getClassicTextHtml(String html) {
+    public static final String getClassicTextHtml(String html) {
 
         if (StringUtils.isEmpty(html)) {
             return html;
@@ -392,7 +386,7 @@ public final class HtmlEncodingUtil {
      * @return the preferred non-space optional break HTML sequence for the UserAgent being used for the current
      *     request, defaulting to "<wbr>".
      */
-    public static String getNonSpaceBreaksHtml() {
+    public static final String getNonSpaceBreaksHtml() {
         return System.getProperty(
             "com.tractionsoftware.commons.codec.non_space_break_html", DEFAULT_NON_SPACE_BREAK_HTML
         );
@@ -408,14 +402,14 @@ public final class HtmlEncodingUtil {
      * @return the given text with the preferred non-space optional break HTML sequence for the UserAgent being used for
      *     the current request inserted where appropriate.
      */
-    public static String getHtmlWithNonSpaceBreaks(String text) {
+    public static final String getHtmlWithNonSpaceBreaks(String text) {
         if (text == null) {
             return null;
         }
         return NON_SPACE_BREAK_OPPORTUNITIES.matcher(text).replaceAll("$1" + getNonSpaceBreaksHtml() + "$3");
     }
 
-    public static Appendable getLiteralAppendable(Appendable out, String preferredZeroWidthSpace) {
+    public static final Appendable getLiteralAppendable(Appendable out, String preferredZeroWidthSpace) {
         Objects.requireNonNull(out, "output");
         if (StringUtils.isBlank(preferredZeroWidthSpace)) {
             preferredZeroWidthSpace = TextWrapUtil.DEFAULT_ZERO_WIDTH_SPACE;

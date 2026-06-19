@@ -24,6 +24,7 @@ import com.tractionsoftware.commons.io.FileResourceType;
 import com.tractionsoftware.commons.io.ForwardingFileResource;
 import com.tractionsoftware.commons.util.Dimensions;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 public abstract class ForwardingIconFile extends ForwardingFileResource implements IconFileResource {
 
@@ -31,6 +32,13 @@ public abstract class ForwardingIconFile extends ForwardingFileResource implemen
     @Override
     protected abstract IconFileResource delegate();
 
+    @Nonnull
+    @Override
+    public Icon getImage(Dimensions<Integer> maxDimensions) {
+        return delegate().getImage(maxDimensions);
+    }
+
+    @Nullable
     @Override
     public String getDisplayName() {
         return delegate().getDisplayName();

@@ -55,7 +55,7 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
     }
 
     public static SingleThreadPrintWriter createUtf8Instance(OutputStream out) {
-        return createInstance(out, null);
+        return createInstance(out, StandardCharsets.UTF_8);
     }
 
     public static SingleThreadPrintWriter createInstance(OutputStream out, Charset charset) {
@@ -64,9 +64,9 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
 
     public static SingleThreadPrintWriter createInstance(OutputStream out, Charset charset, boolean autoFlush) {
         Objects.requireNonNull(out, "OutputStream");
+        Objects.requireNonNull(charset, "Charset");
         return createInstance(
-            new OutputStreamWriter(IOUtil.getBufferedOutputStream(out), charset),
-            autoFlush
+            new OutputStreamWriter(IOUtil.getBufferedOutputStream(out), charset), autoFlush
         );
     }
 
@@ -246,7 +246,9 @@ public final class SingleThreadPrintWriter extends AbstractCustomPrintWriter {
 
     @Override
     public SingleThreadPrintWriter append(CharSequence csq, int start, int end) {
-        if (csq == null) csq = "null";
+        if (csq == null) {
+            csq = "null";
+        }
         return append(csq.subSequence(start, end));
     }
 

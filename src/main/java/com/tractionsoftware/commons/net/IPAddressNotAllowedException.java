@@ -22,10 +22,19 @@ package com.tractionsoftware.commons.net;
 
 import com.google.common.annotations.Beta;
 
+import java.io.Serial;
 import java.security.GeneralSecurityException;
 
-@Beta
+/**
+ * A {@link GeneralSecurityException} representing a disallowed IP address in cases such as
+ * {@link HostAddressUtil.InetAddressWrapper#checkAllowedX(HostAddressUtil.IPAddressOutgoingRequestFilterMode)}.
+ *
+ * @author Dave Shepperton
+ */
 public final class IPAddressNotAllowedException extends GeneralSecurityException {
+
+    @Serial
+    private static final long serialVersionUID = -6094122205719091311L;
 
     public IPAddressNotAllowedException(String message) {
         super(message);

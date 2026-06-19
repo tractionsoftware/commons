@@ -20,11 +20,16 @@
 
 package com.tractionsoftware.commons.xml;
 
+import com.tractionsoftware.commons.io.SizedInputStream;
+import com.tractionsoftware.commons.processor.Result;
+import com.tractionsoftware.commons.properties.GetPutProperty;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.ErrorListener;
@@ -33,8 +38,12 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -334,6 +343,281 @@ public final class JaxpUtilTest {
     void xml2DocumentConsumer_consumesStream() throws Exception {
         Document doc = JaxpUtil.getDocument(new ByteArrayInputStream(utf8(SIMPLE_XML)));
         assertNotNull(doc);
+    }
+
+    // -- direct invocation of the nested Consumer implementations --------
+
+    @Test
+    void xsl2TransformerConsumer_consumeValidXsl_generatesTransformer() throws Exception {
+        JaxpUtil.Xsl2TransformerConsumer consumer = new JaxpUtil.Xsl2TransformerConsumer(null);
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8(IDENTITY_XSL)), -1);
+        consumer.consume(input);
+        assertNotNull(consumer.getGenerated());
+    }
+
+    @Test
+    void xsl2TransformerConsumer_getGeneratedBeforeConsume_throwsIllegalStateException() {
+        JaxpUtil.Xsl2TransformerConsumer consumer = new JaxpUtil.Xsl2TransformerConsumer(null);
+        assertThrows(IllegalStateException.class, consumer::getGenerated);
+    }
+
+    @Test
+    void xsl2TransformerConsumer_consumeMalformedXsl_throwsJaxpTransformerCreationException() {
+        JaxpUtil.Xsl2TransformerConsumer consumer = new JaxpUtil.Xsl2TransformerConsumer(null);
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8("not xml")), -1);
+        assertThrows(JaxpTransformerCreationException.class, () -> consumer.consume(input));
+    }
+
+    @Test
+    void xsl2TemplatesConsumer_consumeValidXsl_generatesTemplates() throws Exception {
+        JaxpUtil.Xsl2TemplatesConsumer consumer = new JaxpUtil.Xsl2TemplatesConsumer();
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8(IDENTITY_XSL)), -1);
+        consumer.consume(input);
+        assertNotNull(consumer.getGenerated());
+    }
+
+    @Test
+    void xsl2TemplatesConsumer_consumeMalformedXsl_throwsJaxpTransformerCreationException() {
+        JaxpUtil.Xsl2TemplatesConsumer consumer = new JaxpUtil.Xsl2TemplatesConsumer();
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8("not xml")), -1);
+        assertThrows(JaxpTransformerCreationException.class, () -> consumer.consume(input));
+    }
+
+    @Test
+    void xml2DocumentConsumer_consumeValidXml_generatesDocument() throws Exception {
+        JaxpUtil.Xml2DocumentConsumer consumer = new JaxpUtil.Xml2DocumentConsumer();
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8(SIMPLE_XML)), -1);
+        consumer.consume(input);
+        assertNotNull(consumer.getGenerated());
+        assertEquals("root", consumer.getGenerated().getDocumentElement().getTagName());
+    }
+
+    @Test
+    void xml2DocumentConsumer_consumeMalformedXml_throwsJaxpDocumentCreationException() {
+        JaxpUtil.Xml2DocumentConsumer consumer = new JaxpUtil.Xml2DocumentConsumer();
+        SizedInputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(utf8("not xml")), -1);
+        assertThrows(JaxpDocumentCreationException.class, () -> consumer.consume(input));
+    }
+
+    // =====================================================================
+    // getLoggingErrorListener - actually invoking the returned listener
+    // =====================================================================
+
+    @Test
+    void getLoggingErrorListener_invokeAllMethods_doesNotThrow() {
+        ErrorListener listener = JaxpUtil.getLoggingErrorListener(LoggerFactory.getLogger(JaxpUtilTest.class));
+        assertDoesNotThrow(() -> listener.error(new TransformerException("e")));
+        assertDoesNotThrow(() -> listener.fatalError(new TransformerException("fe")));
+        assertDoesNotThrow(() -> listener.warning(new TransformerException("w")));
+    }
+
+    // =====================================================================
+    // getXMLReader
+    // =====================================================================
+
+    @Test
+    void getXMLReader_returnsConfiguredReader() throws Exception {
+        XMLReader reader = JaxpUtil.getXMLReader();
+        assertNotNull(reader);
+        assertTrue(reader.getFeature("http://xml.org/sax/features/namespaces"));
+    }
+
+    // =====================================================================
+    // getTransformedDocument(Document, File[, ErrorListener])
+    // =====================================================================
+
+    @Test
+    void getTransformedDocument_documentAndXslFile_appliesTransform() throws Exception {
+        File xslFile = File.createTempFile("jaxputil-identity", ".xsl");
+        xslFile.deleteOnExit();
+        Files.write(xslFile.toPath(), utf8(IDENTITY_XSL));
+        Document doc = parseXml(SIMPLE_XML);
+        Document result = JaxpUtil.getTransformedDocument(doc, xslFile);
+        assertNotNull(result);
+        assertEquals("root", result.getDocumentElement().getTagName());
+    }
+
+    @Test
+    void getTransformedDocument_documentAndXslFileWithListener_appliesTransform() throws Exception {
+        File xslFile = File.createTempFile("jaxputil-identity2", ".xsl");
+        xslFile.deleteOnExit();
+        Files.write(xslFile.toPath(), utf8(IDENTITY_XSL));
+        Document doc = parseXml(SIMPLE_XML);
+        ErrorListener listener = JaxpUtil.getLoggingErrorListener(LoggerFactory.getLogger(JaxpUtilTest.class));
+        Document result = JaxpUtil.getTransformedDocument(doc, xslFile, listener);
+        assertNotNull(result);
+        assertEquals("root", result.getDocumentElement().getTagName());
+    }
+
+    @Test
+    void getTransformedDocument_documentAndXslFile_terminatingStylesheet_returnsNull() throws Exception {
+        // xsl:message terminate="yes" causes the JAXP transformer to throw a TransformerException
+        // during transform(), which getTransformedDocument(Document,File,ErrorListener) catches and
+        // turns into a null return value.
+        String terminatingXsl =
+            "<?xml version='1.0'?>" +
+            "<xsl:stylesheet xmlns:xsl='http://www.w3.org/1999/XSL/Transform' version='1.0'>" +
+            "  <xsl:template match='/'><xsl:message terminate='yes'>abort</xsl:message></xsl:template>" +
+            "</xsl:stylesheet>";
+        File xslFile = File.createTempFile("jaxputil-terminate", ".xsl");
+        xslFile.deleteOnExit();
+        Files.write(xslFile.toPath(), utf8(terminatingXsl));
+        Document doc = parseXml(SIMPLE_XML);
+        Document result = JaxpUtil.getTransformedDocument(doc, xslFile);
+        assertNull(result);
+    }
+
+    // =====================================================================
+    // getTransformedDocument(Document[, ErrorListener]) - no xsl file, identity
+    // =====================================================================
+
+    @Test
+    void getTransformedDocument_documentOnly_appliesIdentityTransform() throws Exception {
+        Document doc = parseXml(SIMPLE_XML);
+        Document result = JaxpUtil.getTransformedDocument(doc);
+        assertNotNull(result);
+        assertEquals("root", result.getDocumentElement().getTagName());
+    }
+
+    @Test
+    void getTransformedDocument_documentAndListener_appliesIdentityTransform() throws Exception {
+        Document doc = parseXml(SIMPLE_XML);
+        ErrorListener listener = JaxpUtil.getLoggingErrorListener(LoggerFactory.getLogger(JaxpUtilTest.class));
+        Document result = JaxpUtil.getTransformedDocument(doc, listener);
+        assertNotNull(result);
+        assertEquals("root", result.getDocumentElement().getTagName());
+    }
+
+    // =====================================================================
+    // getTransformer(File[, ErrorListener]) / getTransformer(ErrorListener)
+    // =====================================================================
+
+    @Test
+    void getTransformer_fromFile_returnsNonNull() throws Exception {
+        File xslFile = File.createTempFile("jaxputil-xsl", ".xsl");
+        xslFile.deleteOnExit();
+        Files.write(xslFile.toPath(), utf8(IDENTITY_XSL));
+        Transformer t = JaxpUtil.getTransformer(xslFile);
+        assertNotNull(t);
+    }
+
+    @Test
+    void getTransformer_fromFileWithListener_setsListener() throws Exception {
+        File xslFile = File.createTempFile("jaxputil-xsl2", ".xsl");
+        xslFile.deleteOnExit();
+        Files.write(xslFile.toPath(), utf8(IDENTITY_XSL));
+        ErrorListener listener = JaxpUtil.getLoggingErrorListener(LoggerFactory.getLogger(JaxpUtilTest.class));
+        Transformer t = JaxpUtil.getTransformer(xslFile, listener);
+        assertNotNull(t);
+        assertSame(listener, t.getErrorListener());
+    }
+
+    @Test
+    void getTransformer_withNonNullListener_setsListener() throws Exception {
+        ErrorListener listener = JaxpUtil.getLoggingErrorListener(LoggerFactory.getLogger(JaxpUtilTest.class));
+        Transformer t = JaxpUtil.getTransformer(listener);
+        assertSame(listener, t.getErrorListener());
+    }
+
+    // =====================================================================
+    // writeXml(Document, Appendable) - OutputStream-but-not-Writer branch
+    // =====================================================================
+
+    @Test
+    void writeXml_toPrintStreamAsAppendable_usesOutputStreamBranch() throws Exception {
+        Document doc = parseXml(SIMPLE_XML);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        // PrintStream implements Appendable and extends OutputStream, but is not a Writer - this
+        // exercises the "out instanceof OutputStream" branch of writeXml(Document, Appendable).
+        PrintStream ps = new PrintStream(bytes, true, StandardCharsets.UTF_8);
+        JaxpUtil.writeXml(doc, (Appendable) ps);
+        String result = bytes.toString(StandardCharsets.UTF_8);
+        assertTrue(result.contains("root"), result);
+    }
+
+    // =====================================================================
+    // getTransformer(Result, ErrorListener) / getTemplates(Result) / getDocument(Result)
+    // =====================================================================
+
+    /**
+     * Minimal test double for the abstract {@link Result} class, backed by an in-memory byte array.
+     * Mirrors the FakeURLBuilder pattern used in URLUtilTest - the production TempFileResult
+     * implementation requires too much infrastructure (Helper, TempFileResource.Factory, etc.)
+     * to be practical for a focused unit test.
+     */
+    private static final class ByteArrayResult extends Result {
+
+        private final byte[] data;
+
+        ByteArrayResult(String content) {
+            this.data = content.getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public void release() {
+        }
+
+        @Override
+        protected OutputStream getOutputStream() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected SizedInputStream getInputStream() {
+            return SizedInputStream.forInputStream(new ByteArrayInputStream(data), data.length);
+        }
+
+        @Override
+        protected void onPopulate(boolean success) {
+        }
+
+        @Override
+        protected void onConsume(boolean success) {
+        }
+
+    }
+
+    @Test
+    void getTransformer_fromResult_validXsl_returnsTransformer() throws Exception {
+        Result result = new ByteArrayResult(IDENTITY_XSL);
+        Transformer t = JaxpUtil.getTransformer(result, null);
+        assertNotNull(t);
+    }
+
+    @Test
+    void getTransformer_fromResult_malformedXsl_throwsSAXException() {
+        Result result = new ByteArrayResult("not xml");
+        assertThrows(SAXException.class, () -> JaxpUtil.getTransformer(result, null));
+    }
+
+    @Test
+    void getTemplates_fromResult_validXsl_returnsTemplates() throws Exception {
+        Result result = new ByteArrayResult(IDENTITY_XSL);
+        Templates t = JaxpUtil.getTemplates(result);
+        assertNotNull(t);
+    }
+
+    @Test
+    void getDocument_fromResult_validXml_returnsDocument() throws Exception {
+        Result result = new ByteArrayResult(SIMPLE_XML);
+        Document doc = JaxpUtil.getDocument(result);
+        assertNotNull(doc);
+        assertEquals("root", doc.getDocumentElement().getTagName());
+    }
+
+    // =====================================================================
+    // getAttributesAsGetPutProperty
+    // =====================================================================
+
+    @Test
+    void getAttributesAsGetPutProperty_readsAndWritesAttributes() throws Exception {
+        Document doc = parseXml("<root id='42' name='test'/>");
+        Element root = doc.getDocumentElement();
+        GetPutProperty props = JaxpUtil.getAttributesAsGetPutProperty(root);
+        assertEquals("42", props.getProperty("id"));
+        assertEquals("test", props.getProperty("name"));
+        props.putProperty("name", "changed");
+        assertEquals("changed", props.getProperty("name"));
     }
 
 }

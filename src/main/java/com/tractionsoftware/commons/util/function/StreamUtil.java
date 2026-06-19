@@ -31,6 +31,11 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Some helper methods to simplify some handling of objects related to the {@link Stream} API.
+ *
+ * @author Dave Shepperton
+ */
 public final class StreamUtil {
 
     private StreamUtil() {

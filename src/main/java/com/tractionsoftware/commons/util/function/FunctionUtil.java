@@ -27,9 +27,9 @@ import java.util.function.Function;
  *
  * @author Dave Shepperton
  */
-public final class FunctionsUtil {
+public final class FunctionUtil {
 
-    private FunctionsUtil() {
+    private FunctionUtil() {
     }
 
     /**
