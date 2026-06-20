@@ -20,9 +20,9 @@
 
 package com.tractionsoftware.commons.image;
 
+import com.tractionsoftware.commons.io.FileUtil;
 import com.tractionsoftware.commons.io.LocalFileResource;
 import com.tractionsoftware.commons.util.Dimensions;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,6 +39,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Andy Keller, Dave Shepperton
@@ -57,11 +59,11 @@ public class ImageUtilTest {
 
     static final void assertSize(Dimensions<Integer> expected, String imageFileName) {
         try (InputStream input = imageFileStream(imageFileName)) {
-            Assertions.assertNotNull(input, "Image file " + imageFileName);
-            Assertions.assertEquals(expected, ImageUtil.getDimensions(input));
+            assertNotNull(input, "Image file " + imageFileName);
+            assertEquals(expected, ImageUtil.getDimensions(input));
         }
         catch (IOException e) {
-            Assertions.fail(e.toString());
+            fail(e.toString());
         }
     }
 
@@ -83,147 +85,147 @@ public class ImageUtilTest {
     @Test
     public void testScaledDimensionsPng1() {
         try (InputStream input = imageFileStream("default-profile.png")) {
-            Assertions.assertNotNull(input, "Image file");
+            assertNotNull(input, "Image file");
             Dimensions<Integer> original = ImageUtil.getDimensions(input);
             Dimensions<Integer> max = Dimensions.getInstanceInPixels(120, 60);
             Dimensions<Integer> expected = Dimensions.getInstanceInPixels(60, 60);
             Dimensions<Integer> scaled = ImageUtil.getScaledDimensions(original, max);
-            Assertions.assertEquals(expected, scaled);
+            assertEquals(expected, scaled);
         }
         catch (IOException e) {
-            Assertions.fail(e.toString());
+            fail(e.toString());
         }
     }
 
     @Test
     public void testIsImagePNG() {
-        Assertions.assertTrue(ImageUtil.isImage("png", "image/png"));
+        assertTrue(ImageUtil.isImage("png", "image/png"));
     }
 
     @Test
     public void testIsImageQQQ() {
-        Assertions.assertFalse(ImageUtil.isImage("qqq", "application/x-foobar"));
+        assertFalse(ImageUtil.isImage("qqq", "application/x-foobar"));
     }
 
     @Test
     public void testIsImageJPG() {
         // .jps is recognized even if image/garbage means nothing.
-        Assertions.assertTrue(ImageUtil.isImage("jpg", "image/garbage"));
+        assertTrue(ImageUtil.isImage("jpg", "image/garbage"));
     }
 
     @Test
     public void testIsImageJPEG() {
         // .img means nothing, but image/jpeg is recognized.
-        Assertions.assertTrue(ImageUtil.isImage("img", "image/jpeg"));
+        assertTrue(ImageUtil.isImage("img", "image/jpeg"));
     }
 
     @Test
     public void testIsImageOctetStream() {
-        Assertions.assertFalse(ImageUtil.isImage("img", "application/octet-stream"));
+        assertFalse(ImageUtil.isImage("img", "application/octet-stream"));
     }
 
     @Test
     public void testIsImageExtensionPNG() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("png"));
+        assertTrue(ImageUtil.isImageExtension("png"));
     }
 
     @Test
     public void testIsImageExtensionJPG() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("jpg"));
+        assertTrue(ImageUtil.isImageExtension("jpg"));
     }
 
     @Test
     public void testIsImageExtensionJPEG() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("jpeg"));
+        assertTrue(ImageUtil.isImageExtension("jpeg"));
     }
 
     @Test
     public void testIsImageExtensionGIF() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("gif"));
+        assertTrue(ImageUtil.isImageExtension("gif"));
     }
 
     @Test
     public void testIsImageExtensionBMP() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("bmp"));
+        assertTrue(ImageUtil.isImageExtension("bmp"));
     }
 
     @Test
     public void testIsImageExtensionSVG() {
         // No reader for SVG files
-        Assertions.assertFalse(ImageUtil.isImageMimeType("svg"));
+        assertFalse(ImageUtil.isImageMimeType("svg"));
     }
 
     @Test
     public void testIsImageExtensionTIF() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("tif"));
+        assertTrue(ImageUtil.isImageExtension("tif"));
     }
 
     @Test
     public void testIsImageExtensionTIFF() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("tiff"));
+        assertTrue(ImageUtil.isImageExtension("tiff"));
     }
 
     @Test
     public void testIsImageExtensionTXT() {
-        Assertions.assertFalse(ImageUtil.isImageExtension("txt"));
+        assertFalse(ImageUtil.isImageExtension("txt"));
     }
 
     @Test
     public void testIsImageMimeTypePNG() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/png"));
+        assertTrue(ImageUtil.isImageMimeType("image/png"));
     }
 
     @Test
     public void testIsImageMimeTypeJPEG() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/jpeg"));
+        assertTrue(ImageUtil.isImageMimeType("image/jpeg"));
     }
 
     @Test
     public void testIsImageMimeTypeGIF() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/gif"));
+        assertTrue(ImageUtil.isImageMimeType("image/gif"));
     }
 
     @Test
     public void testIsImageMimeTypeWEBP() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/webp"));
+        assertTrue(ImageUtil.isImageMimeType("image/webp"));
     }
 
     @Test
     public void testIsImageMimeTypeTIFF() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/tiff"));
+        assertTrue(ImageUtil.isImageMimeType("image/tiff"));
     }
 
     @Test
     public void testIsImageMimeTypeSVG() {
         // No reader for SVG files
-        Assertions.assertFalse(ImageUtil.isImageMimeType("image/svg+xml"));
+        assertFalse(ImageUtil.isImageMimeType("image/svg+xml"));
     }
 
     @Test
     public void testIsImageMimeTypeHEIC() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/heic"));
+        assertTrue(ImageUtil.isImageMimeType("image/heic"));
     }
 
     @Test
     public void testIsImageMimeTypeHEIF() {
-        Assertions.assertTrue(ImageUtil.isImageMimeType("image/heif"));
+        assertTrue(ImageUtil.isImageMimeType("image/heif"));
     }
 
     @Test
     public void testIsImageMimeTypeXMSBMP() {
         // No image decoder for this mime type, apparently
-        Assertions.assertFalse(ImageUtil.isImageMimeType("image/x-ms-bmp"));
+        assertFalse(ImageUtil.isImageMimeType("image/x-ms-bmp"));
     }
 
     @Test
     public void testIsImageMimeTypePICT() {
         // No image decoder for this mime type, apparently
-        Assertions.assertFalse(ImageUtil.isImageMimeType("image/pict"));
+        assertFalse(ImageUtil.isImageMimeType("image/pict"));
     }
 
     @Test
     public void testIsImageMimeTypeText() {
-        Assertions.assertFalse(ImageUtil.isImageMimeType("text/plain"));
+        assertFalse(ImageUtil.isImageMimeType("text/plain"));
     }
 
     // ---------------------------------------------------------------------------
@@ -232,23 +234,23 @@ public class ImageUtilTest {
 
     @Test
     public void getImgWidthAttributeHtml_negativeWidth_returnsEmpty() {
-        Assertions.assertEquals("", ImageUtil.getImgWidthAttributeHtml(-1));
+        assertEquals("", ImageUtil.getImgWidthAttributeHtml(-1));
     }
 
     @Test
     public void getImgWidthAttributeHtml_zeroWidth_returnsAttribute() {
         String result = ImageUtil.getImgWidthAttributeHtml(0);
-        Assertions.assertNotNull(result);
-        Assertions.assertFalse(result.isEmpty());
-        Assertions.assertTrue(result.contains("0"));
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertTrue(result.contains("0"));
     }
 
     @Test
     public void getImgWidthAttributeHtml_positiveWidth_returnsAttributeWithValue() {
         String result = ImageUtil.getImgWidthAttributeHtml(120);
-        Assertions.assertNotNull(result);
-        Assertions.assertTrue(result.contains("120"));
-        Assertions.assertTrue(result.contains("width"));
+        assertNotNull(result);
+        assertTrue(result.contains("120"));
+        assertTrue(result.contains("width"));
     }
 
     // ---------------------------------------------------------------------------
@@ -257,23 +259,23 @@ public class ImageUtilTest {
 
     @Test
     public void getImgHeightAttributeHtml_negativeHeight_returnsEmpty() {
-        Assertions.assertEquals("", ImageUtil.getImgHeightAttributeHtml(-1));
+        assertEquals("", ImageUtil.getImgHeightAttributeHtml(-1));
     }
 
     @Test
     public void getImgHeightAttributeHtml_zeroHeight_returnsAttribute() {
         String result = ImageUtil.getImgHeightAttributeHtml(0);
-        Assertions.assertNotNull(result);
-        Assertions.assertFalse(result.isEmpty());
-        Assertions.assertTrue(result.contains("0"));
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertTrue(result.contains("0"));
     }
 
     @Test
     public void getImgHeightAttributeHtml_positiveHeight_returnsAttributeWithValue() {
         String result = ImageUtil.getImgHeightAttributeHtml(80);
-        Assertions.assertNotNull(result);
-        Assertions.assertTrue(result.contains("80"));
-        Assertions.assertTrue(result.contains("height"));
+        assertNotNull(result);
+        assertTrue(result.contains("80"));
+        assertTrue(result.contains("height"));
     }
 
     // ---------------------------------------------------------------------------
@@ -282,13 +284,13 @@ public class ImageUtilTest {
 
     @Test
     public void getScaledDimensions_nullOriginal_returnsNull() {
-        Assertions.assertNull(ImageUtil.getScaledDimensions(null, Dimensions.getInstanceInPixels(100, 100)));
+        assertNull(ImageUtil.getScaledDimensions(null, Dimensions.getInstanceInPixels(100, 100)));
     }
 
     @Test
     public void getScaledDimensions_nullMax_returnsOriginal() {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(300, 200);
-        Assertions.assertSame(original, ImageUtil.getScaledDimensions(original, null));
+        assertSame(original, ImageUtil.getScaledDimensions(original, null));
     }
 
     @Test
@@ -296,7 +298,7 @@ public class ImageUtilTest {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(50, 50);
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(100, 100);
         // Already fits, should return original unchanged
-        Assertions.assertEquals(original, ImageUtil.getScaledDimensions(original, max));
+        assertEquals(original, ImageUtil.getScaledDimensions(original, max));
     }
 
     @Test
@@ -304,9 +306,9 @@ public class ImageUtilTest {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(400, 200);
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(200, 200);
         Dimensions<Integer> scaled = ImageUtil.getScaledDimensions(original, max);
-        Assertions.assertNotNull(scaled);
-        Assertions.assertEquals(200, (int) scaled.getWidth());
-        Assertions.assertEquals(100, (int) scaled.getHeight());
+        assertNotNull(scaled);
+        assertEquals(200, (int) scaled.getWidth());
+        assertEquals(100, (int) scaled.getHeight());
     }
 
     @Test
@@ -314,9 +316,9 @@ public class ImageUtilTest {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(200, 400);
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(200, 200);
         Dimensions<Integer> scaled = ImageUtil.getScaledDimensions(original, max);
-        Assertions.assertNotNull(scaled);
-        Assertions.assertEquals(100, (int) scaled.getWidth());
-        Assertions.assertEquals(200, (int) scaled.getHeight());
+        assertNotNull(scaled);
+        assertEquals(100, (int) scaled.getWidth());
+        assertEquals(200, (int) scaled.getHeight());
     }
 
     // ---------------------------------------------------------------------------
@@ -327,8 +329,8 @@ public class ImageUtilTest {
     public void getImageFileExtensionFromContents_png_returnsPng() throws Exception {
         try (InputStream input = imageFileStream("cat-normal.png")) {
             String ext = ImageUtil.getImageFileExtensionFromContents(input);
-            Assertions.assertNotNull(ext);
-            Assertions.assertTrue(ext.equalsIgnoreCase("png"),
+            assertNotNull(ext);
+            assertTrue(ext.equalsIgnoreCase("png"),
                 "Expected 'png' but got: " + ext);
         }
     }
@@ -338,7 +340,7 @@ public class ImageUtilTest {
         // Plain text is not a recognized image format
         java.io.InputStream textStream = new java.io.ByteArrayInputStream("hello world".getBytes());
         String ext = ImageUtil.getImageFileExtensionFromContents(textStream);
-        Assertions.assertNull(ext);
+        assertNull(ext);
     }
 
     // ---------------------------------------------------------------------------
@@ -347,37 +349,37 @@ public class ImageUtilTest {
 
     @Test
     public void isImageExtension_null_returnsFalse() {
-        Assertions.assertFalse(ImageUtil.isImageExtension(null));
+        assertFalse(ImageUtil.isImageExtension(null));
     }
 
     @Test
     public void isImageExtension_blank_returnsFalse() {
-        Assertions.assertFalse(ImageUtil.isImageExtension("   "));
+        assertFalse(ImageUtil.isImageExtension("   "));
     }
 
     @Test
     public void isImageExtension_webp_returnsTrue() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("webp"));
+        assertTrue(ImageUtil.isImageExtension("webp"));
     }
 
     @Test
     public void isImageExtension_heic_returnsTrue() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("heic"));
+        assertTrue(ImageUtil.isImageExtension("heic"));
     }
 
     @Test
     public void isImageExtension_heif_returnsTrue() {
-        Assertions.assertTrue(ImageUtil.isImageExtension("heif"));
+        assertTrue(ImageUtil.isImageExtension("heif"));
     }
 
     @Test
     public void isImageMimeType_null_returnsFalse() {
-        Assertions.assertFalse(ImageUtil.isImageMimeType(null));
+        assertFalse(ImageUtil.isImageMimeType(null));
     }
 
     @Test
     public void isImageMimeType_blank_returnsFalse() {
-        Assertions.assertFalse(ImageUtil.isImageMimeType("   "));
+        assertFalse(ImageUtil.isImageMimeType("   "));
     }
 
     // ---------------------------------------------------------------------------
@@ -387,8 +389,8 @@ public class ImageUtilTest {
     @Test
     public void getDimensions_unrecognizedFormat_throwsIOException() {
         InputStream input = new ByteArrayInputStream("not an image".getBytes());
-        IOException ex = Assertions.assertThrows(IOException.class, () -> ImageUtil.getDimensions(input));
-        Assertions.assertTrue(ex.getMessage().contains("Unsupported format"));
+        IOException ex = assertThrows(IOException.class, () -> ImageUtil.getDimensions(input));
+        assertTrue(ex.getMessage().contains("Unsupported format"));
     }
 
     // ---------------------------------------------------------------------------
@@ -401,9 +403,9 @@ public class ImageUtilTest {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(200, 100);
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(-1, 50);
         Dimensions<Integer> scaled = ImageUtil.getScaledDimensions(original, max);
-        Assertions.assertNotNull(scaled);
-        Assertions.assertEquals(100, (int) scaled.getWidth());
-        Assertions.assertEquals(50, (int) scaled.getHeight());
+        assertNotNull(scaled);
+        assertEquals(100, (int) scaled.getWidth());
+        assertEquals(50, (int) scaled.getHeight());
     }
 
     @Test
@@ -412,9 +414,9 @@ public class ImageUtilTest {
         Dimensions<Integer> original = Dimensions.getInstanceInPixels(0, 100);
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(50, 50);
         Dimensions<Integer> scaled = ImageUtil.getScaledDimensions(original, max);
-        Assertions.assertNotNull(scaled);
-        Assertions.assertEquals(0, (int) scaled.getWidth());
-        Assertions.assertEquals(50, (int) scaled.getHeight());
+        assertNotNull(scaled);
+        assertEquals(0, (int) scaled.getWidth());
+        assertEquals(50, (int) scaled.getHeight());
     }
 
     // ---------------------------------------------------------------------------
@@ -422,11 +424,9 @@ public class ImageUtilTest {
     // ---------------------------------------------------------------------------
 
     @Test
-    public void cropToSquare_alreadySquare_returnsSameDimensions() {
+    public void cropToSquare_alreadySquare_returnsSameInstance() {
         BufferedImage img = new BufferedImage(50, 50, BufferedImage.TYPE_INT_ARGB);
-        BufferedImage cropped = ImageUtil.cropToSquare(img);
-        Assertions.assertEquals(50, cropped.getWidth());
-        Assertions.assertEquals(50, cropped.getHeight());
+        assertSame(img, ImageUtil.cropToSquare(img));
     }
 
     @Test
@@ -438,22 +438,16 @@ public class ImageUtilTest {
             img.setRGB(0, y, new Color(y % 256, 0, 0).getRGB());
         }
         BufferedImage cropped = ImageUtil.cropToSquare(img);
-        Assertions.assertEquals(ow, cropped.getWidth());
-        Assertions.assertEquals(ow, cropped.getHeight());
+        assertEquals(ow, cropped.getWidth());
+        assertEquals(ow, cropped.getHeight());
 
         int expectedCenteredOffset = (oh - ow) / 2; // 40, the portrait branch divides by 2 correctly.
         int topEdgeOriginalY = new Color(cropped.getRGB(0, 0)).getRed();
-        Assertions.assertEquals(expectedCenteredOffset, topEdgeOriginalY);
+        assertEquals(expectedCenteredOffset, topEdgeOriginalY);
     }
 
     @Test
-    public void cropToSquare_landscapeImage_horizontalOffsetIsBuggyNotCentered() {
-        // BUG: in cropToSquare's "ow >= oh" branch, the horizontal crop offset is computed as
-        //   dw = (ow - w) / w
-        // instead of (ow - w) / 2 (which is what the symmetric "ow < oh" branch correctly uses for dh,
-        // as proven by cropToSquare_portraitImage_cropsToWidthAndCentersVertically above). This produces
-        // a left-biased crop rather than a centered one for landscape images. This test documents the
-        // actual (buggy) offset rather than the centered offset a caller would likely expect.
+    public void cropToSquare_landscapeImage_cropsToHeightAndCentersVertically() {
         int ow = 100;
         int oh = 20;
         BufferedImage img = new BufferedImage(ow, oh, BufferedImage.TYPE_INT_ARGB);
@@ -461,14 +455,13 @@ public class ImageUtilTest {
             img.setRGB(x, 0, new Color(x % 256, 0, 0).getRGB());
         }
         BufferedImage cropped = ImageUtil.cropToSquare(img);
-        Assertions.assertEquals(oh, cropped.getWidth());
-        Assertions.assertEquals(oh, cropped.getHeight());
+        assertEquals(oh, cropped.getWidth());
+        assertEquals(oh, cropped.getHeight());
 
-        int actualBuggyOffset = (ow - oh) / oh; // 4 -- what the code actually computes (dw = (ow - w) / w, w == oh)
-        int centeredOffsetCallerWouldExpect = (ow - oh) / 2; // 40 -- what a centered crop would use
+        // 40 -- what a centered crop would use
+        int centeredOffsetCallerWouldExpect = (ow - oh) / 2;
         int leftEdgeOriginalX = new Color(cropped.getRGB(0, 0)).getRed();
-        Assertions.assertEquals(actualBuggyOffset, leftEdgeOriginalX);
-        Assertions.assertNotEquals(centeredOffsetCallerWouldExpect, leftEdgeOriginalX);
+        assertEquals(centeredOffsetCallerWouldExpect, leftEdgeOriginalX);
     }
 
     // ---------------------------------------------------------------------------
@@ -479,14 +472,14 @@ public class ImageUtilTest {
     public void hadFailure_onSuccessfulResult_returnsFalse() throws Exception {
         File originalFile = imageFile("cat-normal.png");
         File scaledFile = File.createTempFile("scaled-success", ".png");
-        Assertions.assertTrue(scaledFile.delete());
+        assertTrue(scaledFile.delete());
         try {
             ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, null);
-            Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
-            Assertions.assertFalse(result.hadFailure());
+            assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
+            assertFalse(result.hadFailure());
         }
         finally {
-            scaledFile.delete();
+            FileUtil.deleteOrDeleteOnExit(scaledFile);
         }
     }
 
@@ -496,10 +489,10 @@ public class ImageUtilTest {
         // result reports hadFailure() == false here, again the opposite of what is documented.
         File originalFile = new File("/does/not/exist-" + System.nanoTime() + ".png");
         File scaledFile = File.createTempFile("scaled-failure", ".png");
-        Assertions.assertTrue(scaledFile.delete());
+        assertTrue(scaledFile.delete());
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, null);
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
-        Assertions.assertTrue(result.hadFailure());
+        assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
+        assertTrue(result.hadFailure());
     }
 
     // ---------------------------------------------------------------------------
@@ -512,11 +505,11 @@ public class ImageUtilTest {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             Dimensions<Integer> max = Dimensions.getInstanceInPixels(100, 100);
             ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(in, out, max);
-            Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
-            Assertions.assertTrue(out.size() > 0);
-            Assertions.assertNotNull(result.dimensions());
-            Assertions.assertTrue(result.dimensions().getWidth() <= 100);
-            Assertions.assertEquals(result.dimensions().getWidth(), result.dimensions().getHeight());
+            assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
+            assertTrue(out.size() > 0);
+            assertNotNull(result.dimensions());
+            assertTrue(result.dimensions().getWidth() <= 100);
+            assertEquals(result.dimensions().getWidth(), result.dimensions().getHeight());
         }
     }
 
@@ -525,11 +518,11 @@ public class ImageUtilTest {
         try (InputStream in = imageFileStream("default-profile.png")) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(in, out, null);
-            Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
-            Assertions.assertTrue(out.size() > 0);
+            assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
+            assertTrue(out.size() > 0);
             // default-profile.png is 300x299; cropToSquare runs before sizing is determined, so the
             // result is the square crop (299x299), not the original 300x299.
-            Assertions.assertEquals(Dimensions.getInstanceInPixels(299, 299), result.dimensions());
+            assertEquals(Dimensions.getInstanceInPixels(299, 299), result.dimensions());
         }
     }
 
@@ -538,9 +531,9 @@ public class ImageUtilTest {
         InputStream in = new ByteArrayInputStream("not an image".getBytes());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(in, out, null);
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
-        Assertions.assertNotNull(result.error());
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
+        assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
+        assertNotNull(result.error());
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
     }
 
     // ---------------------------------------------------------------------------
@@ -551,15 +544,15 @@ public class ImageUtilTest {
     public void createScaledPNG_fileOverload_success_createsMissingParentDirsAndScaledFile(@TempDir Path tempDir) throws Exception {
         File originalFile = imageFile("default-profile.png");
         File scaledFile = tempDir.resolve("nested").resolve("dir").resolve("scaled.png").toFile();
-        Assertions.assertFalse(scaledFile.getParentFile().exists());
+        assertFalse(scaledFile.getParentFile().exists());
 
         Dimensions<Integer> max = Dimensions.getInstanceInPixels(100, 100);
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, max);
 
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
-        Assertions.assertTrue(scaledFile.getParentFile().exists());
-        Assertions.assertTrue(scaledFile.exists());
-        Assertions.assertNotNull(result.dimensions());
+        assertEquals(ImageUtil.ImageCreationResultStatus.SUCCESS, result.getStatus());
+        assertTrue(scaledFile.getParentFile().exists());
+        assertTrue(scaledFile.exists());
+        assertNotNull(result.dimensions());
     }
 
     @Test
@@ -571,9 +564,9 @@ public class ImageUtilTest {
 
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, null);
 
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.ALREADY_EXISTS, result.getStatus());
-        Assertions.assertNull(result.error());
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
+        assertEquals(ImageUtil.ImageCreationResultStatus.ALREADY_EXISTS, result.getStatus());
+        assertNull(result.error());
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
     }
 
     @Test
@@ -586,10 +579,10 @@ public class ImageUtilTest {
 
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, null);
 
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.ALREADY_EXISTS, result.getStatus());
-        Assertions.assertEquals(Dimensions.getInstanceInPixels(300, 299), result.dimensions());
+        assertEquals(ImageUtil.ImageCreationResultStatus.ALREADY_EXISTS, result.getStatus());
+        assertEquals(Dimensions.getInstanceInPixels(300, 299), result.dimensions());
         // calling dimensions() again exercises the memoized branch
-        Assertions.assertEquals(Dimensions.getInstanceInPixels(300, 299), result.dimensions());
+        assertEquals(Dimensions.getInstanceInPixels(300, 299), result.dimensions());
     }
 
     @Test
@@ -599,9 +592,9 @@ public class ImageUtilTest {
 
         ImageUtil.ImageCreationResult result = ImageUtil.createScaledPNG(originalFile, scaledFile, null);
 
-        Assertions.assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
-        Assertions.assertNotNull(result.error());
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
+        assertEquals(ImageUtil.ImageCreationResultStatus.FAILURE, result.getStatus());
+        assertNotNull(result.error());
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), result.dimensions());
     }
 
     // ---------------------------------------------------------------------------
@@ -612,7 +605,7 @@ public class ImageUtilTest {
     public void getDimensionsForImageFile_directory_returnsInvalidDimensions(@TempDir Path tempDir) {
         LocalFileResource dirResource = LocalFileResource.createInstance(tempDir.toFile());
         Dimensions<Integer> result = ImageUtil.getDimensionsForImageFile(dirResource, null);
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), result);
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), result);
     }
 
     @Test
@@ -620,16 +613,16 @@ public class ImageUtilTest {
         File pngFile = imageFile("default-profile.png");
         LocalFileResource fileResource = LocalFileResource.createInstance(pngFile);
         Dimensions<Integer> result = ImageUtil.getDimensionsForImageFile(fileResource, null);
-        Assertions.assertEquals(Dimensions.getInstanceInPixels(300, 299), result);
+        assertEquals(Dimensions.getInstanceInPixels(300, 299), result);
     }
 
     @Test
     public void getDimensionsSupplier_directory_returnsSupplierYieldingInvalidDimensions(@TempDir Path tempDir) {
         LocalFileResource dirResource = LocalFileResource.createInstance(tempDir.toFile());
         Supplier<Dimensions<Integer>> supplier = ImageUtil.getDimensionsSupplier(dirResource, null);
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), supplier.get());
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), supplier.get());
         // a second call exercises the memoized supplier without re-deriving the value
-        Assertions.assertEquals(Dimensions.getInvalidInstanceInPixels(), supplier.get());
+        assertEquals(Dimensions.getInvalidInstanceInPixels(), supplier.get());
     }
 
     @Test
@@ -637,7 +630,7 @@ public class ImageUtilTest {
         File pngFile = imageFile("default-profile.png");
         LocalFileResource fileResource = LocalFileResource.createInstance(pngFile);
         Supplier<Dimensions<Integer>> supplier = ImageUtil.getDimensionsSupplier(fileResource, null);
-        Assertions.assertEquals(Dimensions.getInstanceInPixels(300, 299), supplier.get());
+        assertEquals(Dimensions.getInstanceInPixels(300, 299), supplier.get());
     }
 
 }

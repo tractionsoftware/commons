@@ -577,6 +577,10 @@ public final class ImageUtil {
         int ow = img.getWidth();
         int oh = img.getHeight();
 
+        if (ow == oh) {
+            return img;
+        }
+
         // new width and height
         int w = ow;
         int h = oh;
@@ -591,12 +595,17 @@ public final class ImageUtil {
         }
         else {
             w = h;
-            dw = (ow - w) / w;
+            dw = (ow - w) / 2;
         }
 
-        BufferedImage cropped = img.getSubimage(dw, dh, w, h);
+        try {
+            return img.getSubimage(dw, dh, w, h);
+        }
+        catch (RuntimeException e) {
+            LOGGER.warn("Unable to crop {} to {}x{} dw={} dh={}", ObjectUtil.safeToStringObject(img), w, h, dw, dh, e);
+        }
+        return img;
 
-        return cropped != null ? cropped : img;
     }
 
     public static final String getImgWidthAttributeHtml(int width) {
