@@ -20,13 +20,15 @@
 
 package com.tractionsoftware.commons.properties;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Dave Shepperton
@@ -87,34 +89,34 @@ public final class PropertyValueMappingTest {
 
     @Test
     public void test1() {
-        Assertions.assertEquals("-xyz-", changedValues.getProperty("foo"));
+        assertEquals("-xyz-", changedValues.getProperty("foo"));
     }
 
     @Test
     public void test2() {
-        Assertions.assertEquals("-abc-", changedValues.getProperty("bar"));
+        assertEquals("-abc-", changedValues.getProperty("bar"));
     }
 
     @Test
     public void test3() {
-        Assertions.assertEquals(mapStore.getPropertyNames(), changedValues.getPropertyNames());
+        assertEquals(mapStore.getPropertyNames(), changedValues.getPropertyNames());
     }
 
     @Test
     public void test4() {
         changedValues.putProperty("abc", "-678-");
-        Assertions.assertEquals("-678-", changedValues.getProperty("abc"));
+        assertEquals("-678-", changedValues.getProperty("abc"));
     }
 
     @Test
     public void test5() {
         changedValues.putProperty("abc", "-678-");
-        Assertions.assertEquals("678", mapStore.getProperty("abc"));
+        assertEquals("678", mapStore.getProperty("abc"));
     }
 
     @Test
     public void test6() {
-        Assertions.assertNull(changedValues.getProperty("baz"));
+        assertNull(changedValues.getProperty("baz"));
     }
 
 }

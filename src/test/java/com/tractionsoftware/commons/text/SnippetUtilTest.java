@@ -20,14 +20,15 @@
 
 package com.tractionsoftware.commons.text;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public final class SnippetUtilTest {
 
     @Test
     public void testTruncateFirstTwoWordsPlusEllipses() {
-        Assertions.assertEquals(
+        assertEquals(
             "The quick...",
             SnippetUtil.getSnippet("The quick brown fox jumps over the lazy dog.", 12, "...")
         );
@@ -35,7 +36,7 @@ public final class SnippetUtilTest {
 
     @Test
     public void testTruncateFirstWordPlusPartOfSecondGiganticWord() {
-        Assertions.assertEquals(
+        assertEquals(
             "Those antidisestab...",
             SnippetUtil.getSnippet("Those antidisestablishmentarianism people are weird.", 21, "...")
         );

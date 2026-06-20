@@ -23,13 +23,15 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.util.CollectionUtil;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.AssertionsKt.assertNull;
 
 /**
  * @author Dave Shepperton
@@ -90,80 +92,80 @@ public final class BasicPropertyCollectionsTest {
     @Test
     public void testGetPropertyToReadOnlyReturnsSelf() {
         GetProperty fromMap = simpleGetProperty();
-        Assertions.assertSame(fromMap, fromMap.toReadOnly());
+        assertSame(fromMap, fromMap.toReadOnly());
     }
 
     @Test
     public void testGetPutPropertyToReadOnlyNotGetPutProperty() {
         GetProperty readOnly = simpleGetPutProperty().toReadOnly();
-        Assertions.assertFalse(readOnly instanceof GetPutProperty);
+        assertFalse(readOnly instanceof GetPutProperty);
     }
 
     @Test
     public void testGetPutPropertyToWriteOnlyNotGetProperty() {
         PutProperty writeOnly = simpleGetPutProperty().toWriteOnly();
-        Assertions.assertFalse(writeOnly instanceof GetProperty);
+        assertFalse(writeOnly instanceof GetProperty);
     }
 
     @Test
     public void testGetPutPropertyToReadWriteReturnsSelf() {
         GetPutProperty fromMap = simpleGetPutProperty();
-        Assertions.assertSame(fromMap, fromMap.toReadWrite());
+        assertSame(fromMap, fromMap.toReadWrite());
     }
 
     @Test
     public void testPutPropertyToWriteOnlyReturnsSelf() {
         PutProperty fromMap = simplePutProperty();
-        Assertions.assertSame(fromMap, fromMap.toWriteOnly());
+        assertSame(fromMap, fromMap.toWriteOnly());
     }
 
     @Test
     public void testPropStoreToReadOnlyNotGetPutProperty() {
         GetProperty readOnly = new MapPropertyStore<>().toReadOnly();
-        Assertions.assertFalse(readOnly instanceof GetPutProperty);
+        assertFalse(readOnly instanceof GetPutProperty);
     }
 
     @Test
     public void testPropStoreToWriteOnlyNotGetProperty() {
         PutProperty writeOnly = new MapPropertyStore<>().toWriteOnly();
-        Assertions.assertFalse(writeOnly instanceof GetProperty);
+        assertFalse(writeOnly instanceof GetProperty);
     }
 
     @Test
     public void testPropStoreToReadWriteNotPropStore() {
         GetPutProperty readWriteOnly = new MapPropertyStore<>().toReadWrite();
-        Assertions.assertFalse(readWriteOnly instanceof PropStore);
+        assertFalse(readWriteOnly instanceof PropStore);
     }
 
     @Test
     public void testLocalsIsSameObjectForLeafGetProperty() {
         GetProperty get = simpleGetProperty();
-        Assertions.assertSame(get, get.getLocals());
+        assertSame(get, get.getLocals());
     }
 
     @Test
     public void testDefaultsIsNullForLeafGetProperty() {
-        Assertions.assertNull(simpleGetProperty().getDefaults());
+        assertNull(simpleGetProperty().getDefaults());
     }
 
     @Test
     public void testNoLocalPropertyFromDefaults() {
         GetProperty locals = SimpleProperties.emptyGetProperty();
         GetProperty defaults = SimpleProperties.asGetProperty(ImmutableMap.of("foo", "bar"));
-        Assertions.assertNull(locals.withDefaults(defaults).getLocalProperty("foo"));
+        assertNull(locals.withDefaults(defaults).getLocalProperty("foo"));
     }
 
     @Test
     public void testEmptyWithNonEmptyDefaultsIsNotEmpty() {
         GetProperty locals = SimpleProperties.emptyGetProperty();
         GetProperty defaults = SimpleProperties.asGetProperty(ImmutableMap.of("foo", "bar"));
-        Assertions.assertFalse(locals.withDefaults(defaults).isEmpty());
+        assertFalse(locals.withDefaults(defaults).isEmpty());
     }
 
     @Test
     public void testNamespaceWithOnePropertyIsNotEmpty() {
         GetProperty get = SimpleProperties.asGetProperty(ImmutableMap.of("foo_bar", "baz"));
-        Assertions.assertFalse(get.getNamespace("foo").isEmpty());
+        assertFalse(get.getNamespace("foo").isEmpty());
     }
 
     /**
@@ -174,7 +176,7 @@ public final class BasicPropertyCollectionsTest {
     @Test
     public void testSingleExactNamespacePropertyNameIsEmpty() {
         GetProperty get = SimpleProperties.asGetProperty(ImmutableMap.of("foo", "baz"));
-        Assertions.assertTrue(get.getNamespace("foo").isEmpty());
+        assertTrue(get.getNamespace("foo").isEmpty());
     }
 
     @Test
@@ -185,7 +187,7 @@ public final class BasicPropertyCollectionsTest {
         GetProperty d = SimpleProperties.asGetProperty(ImmutableMap.of("test", "d"));
         GetProperty main = SimpleProperties.emptyGetProperty();
         GetProperty test = main.withDefaults(a.withDefaults(b.withDefaults(c.withDefaults(d))));
-        Assertions.assertNull(test.getLocalProperty("test"));
+        assertNull(test.getLocalProperty("test"));
     }
 
     @Test
@@ -196,7 +198,7 @@ public final class BasicPropertyCollectionsTest {
         GetProperty d = SimpleProperties.asGetProperty(ImmutableMap.of("test", "d"));
         GetProperty main = SimpleProperties.emptyGetProperty();
         GetProperty test = main.withDefaults(a.withDefaults(b.withDefaults(c.withDefaults(d))));
-        Assertions.assertNull(test.getLocals().getProperty("test"));
+        assertNull(test.getLocals().getProperty("test"));
     }
 
     @Test
@@ -207,7 +209,7 @@ public final class BasicPropertyCollectionsTest {
         GetProperty d = SimpleProperties.asGetProperty(ImmutableMap.of("test", "d"));
         GetProperty main = SimpleProperties.emptyGetProperty();
         GetProperty test = main.withDefaults(a.withDefaults(b.withDefaults(c.withDefaults(d))));
-        Assertions.assertEquals("a", test.getProperty("test"));
+        assertEquals("a", test.getProperty("test"));
     }
 
 }

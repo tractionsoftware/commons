@@ -22,12 +22,14 @@ package com.tractionsoftware.commons.properties;
 
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.lang.StringUtil;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * This is effectively a test {@link SimplePropertyNameMapper} and {@link PropStore#getPrefix(String)}.
@@ -54,17 +56,17 @@ public class PropPrefixTest {
 
     @Test
     public void test1() {
-        Assertions.assertNull(mexico.getProperty("xyz"));
+        assertNull(mexico.getProperty("xyz"));
     }
 
     @Test
     public void test2() {
-        Assertions.assertEquals("123", mexico.getProperty("mexico_xyz"));
+        assertEquals("123", mexico.getProperty("mexico_xyz"));
     }
 
     @Test
     public void test3() {
-        Assertions.assertEquals(
+        assertEquals(
             ImmutableSet.of("mexico_xyz", "mexico_abc", "mexico_0", "mexico_1"),
             mexico.getPropertyNames()
         );
@@ -72,34 +74,34 @@ public class PropPrefixTest {
 
     @Test
     public void test4() {
-        Assertions.assertEquals("123", mexico.fullyQualify("mexico_123"));
+        assertEquals("123", mexico.fullyQualify("mexico_123"));
     }
 
     @Test
     public void test5() {
-        Assertions.assertNull(mexico.fullyQualify("123"));
+        assertNull(mexico.fullyQualify("123"));
     }
 
     @Test
     public void test6() {
-        Assertions.assertNull(mexico.fullyQualify("mexico"));
+        assertNull(mexico.fullyQualify("mexico"));
     }
 
     @Test
     public void test7() {
-        Assertions.assertEquals("", mexico.fullyQualify("mexico_"));
+        assertEquals("", mexico.fullyQualify("mexico_"));
     }
 
     @Test
     public void test8() {
-        Assertions.assertEquals("x", mexico.fullyQualify("mexico_x"));
+        assertEquals("x", mexico.fullyQualify("mexico_x"));
     }
 
     @Test
     public void test9() {
         mexico.putProperty("mexico_abc", "678");
-        Assertions.assertEquals("678", mexico.getProperty("mexico_abc"));
-        Assertions.assertEquals("678", mapStore.getProperty("abc"));
+        assertEquals("678", mexico.getProperty("mexico_abc"));
+        assertEquals("678", mapStore.getProperty("abc"));
     }
 
     @Test
@@ -111,15 +113,15 @@ public class PropPrefixTest {
 
         // phase 1: make "attachments_count" accessible as "edit_attachments_count"
         gp = gp.getPrefix("edit");
-        Assertions.assertEquals("123", gp.getProperty("edit_attachments_count"));
+        assertEquals("123", gp.getProperty("edit_attachments_count"));
         // property names should reflect this
-        Assertions.assertEquals("edit_attachments_count", StringUtil.join(gp.getPropertyNames(), ","));
+        assertEquals("edit_attachments_count", StringUtil.join(gp.getPropertyNames(), ","));
 
         // phase 2: make "edit_attachments_count" accessible as "count"
         gp = gp.getNamespace("edit_attachments");
-        Assertions.assertEquals("123", gp.getProperty("count"));
+        assertEquals("123", gp.getProperty("count"));
         // property names should reflect this
-        Assertions.assertEquals("count", StringUtil.join(gp.getPropertyNames(), ","));
+        assertEquals("count", StringUtil.join(gp.getPropertyNames(), ","));
 
     }
 
@@ -132,15 +134,15 @@ public class PropPrefixTest {
 
         // phase 1: make "edit_attachments_count" accessible as "count"
         gp = gp.getNamespace("edit_attachments");
-        Assertions.assertEquals("123", gp.getProperty("count"));
+        assertEquals("123", gp.getProperty("count"));
         // property names should reflect this
-        Assertions.assertEquals("count", StringUtil.join(gp.getPropertyNames(), ","));
+        assertEquals("count", StringUtil.join(gp.getPropertyNames(), ","));
 
         // phase 2: make "count" accessible as "attachments_count"
         gp = gp.getPrefix("attachments");
-        Assertions.assertEquals("123", gp.getProperty("attachments_count"));
+        assertEquals("123", gp.getProperty("attachments_count"));
         // property names should reflect this
-        Assertions.assertEquals("attachments_count", StringUtil.join(gp.getPropertyNames(), ","));
+        assertEquals("attachments_count", StringUtil.join(gp.getPropertyNames(), ","));
 
     }
 

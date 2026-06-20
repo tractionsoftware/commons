@@ -20,10 +20,12 @@
 
 package com.tractionsoftware.commons.properties;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Dave Shepperton
@@ -40,7 +42,7 @@ public final class ImmutablePropStoreTest {
         catch (UnsupportedOperationException e) {
             actual = e;
         }
-        Assertions.assertNotNull(actual);
+        assertNotNull(actual);
     }
 
     @Test
@@ -48,7 +50,7 @@ public final class ImmutablePropStoreTest {
         CommitResult result = SimpleProperties.asPropStore(new HashMap<>())
             .toImmutable()
             .commitChanges(new Object());
-        Assertions.assertEquals(CommitResult.StandardFailureStatus.READ_ONLY_STORE, result.getStatus());
+        assertEquals(CommitResult.StandardFailureStatus.READ_ONLY_STORE, result.getStatus());
     }
 
 }

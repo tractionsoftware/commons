@@ -22,12 +22,13 @@ package com.tractionsoftware.commons.properties;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * These are some basic tests for the CachingObjectStore class.
@@ -62,12 +63,12 @@ public class CachingGetPropertyTest {
          * @param v2
          *     the expected value for the second object.
          */
-        public static final void assertNotEquals(TestLoaderObject o1, TestLoaderObject o2, String v1, String v2) {
-            Assertions.assertNotNull(o1, "object 1");
-            Assertions.assertNotNull(o2, "object 2");
-            Assertions.assertNotEquals(o1, o2);
-            Assertions.assertEquals(v1, o1.val);
-            Assertions.assertEquals(v2, o2.val);
+        public static final void assertNotNullNotEqualsAndValuesEquals(TestLoaderObject o1, TestLoaderObject o2, String v1, String v2) {
+            assertNotNull(o1, "object 1");
+            assertNotNull(o2, "object 2");
+            assertNotEquals(o1, o2);
+            assertEquals(v1, o1.val);
+            assertEquals(v2, o2.val);
         }
 
         /**
@@ -79,10 +80,10 @@ public class CachingGetPropertyTest {
          *     second object.
          */
         public static final void assertEqualsNotSame(TestLoaderObject o1, TestLoaderObject o2) {
-            Assertions.assertNotNull(o1, "object 1");
-            Assertions.assertNotNull(o2, "object 2");
-            Assertions.assertNotSame(o1, o2);
-            Assertions.assertEquals(o1, o2);
+            assertNotNull(o1, "object 1");
+            assertNotNull(o2, "object 2");
+            assertNotSame(o1, o2);
+            assertEquals(o1, o2);
         }
 
         /**
@@ -93,10 +94,10 @@ public class CachingGetPropertyTest {
          * @param o2
          *     second object.
          */
-        public static final void assertSame(TestLoaderObject o1, TestLoaderObject o2) {
-            Assertions.assertNotNull(o1, "object 1");
-            Assertions.assertNotNull(o2, "object 2");
-            Assertions.assertSame(o1, o2);
+        public static final void assertSameNotNull(TestLoaderObject o1, TestLoaderObject o2) {
+            assertNotNull(o1, "object 1");
+            assertNotNull(o2, "object 2");
+            assertSame(o1, o2);
         }
 
         private final String name;
@@ -139,7 +140,7 @@ public class CachingGetPropertyTest {
         GetProperty store = singletonCachingGetProperty("test", "123");
         TestLoaderObject result1 = store.getProperty("test", TestLoaderObject.LOADER, true);
         TestLoaderObject result2 = store.getProperty("test", TestLoaderObject.LOADER, true);
-        TestLoaderObject.assertSame(result1, result2);
+        TestLoaderObject.assertSameNotNull(result1, result2);
     }
 
     @Test
@@ -164,7 +165,7 @@ public class CachingGetPropertyTest {
         TestLoaderObject result2 = store.getProperty("test", TestLoaderObject.LOADER, true);
 
         // Without validate-on-read, the cache doesn't throw out the stale value.
-        TestLoaderObject.assertSame(result1, result2);
+        TestLoaderObject.assertSameNotNull(result1, result2);
 
     }
 
@@ -181,7 +182,7 @@ public class CachingGetPropertyTest {
         map.put("test", "789");
         TestLoaderObject result2 = store.getProperty("test", TestLoaderObject.LOADER, true);
 
-        TestLoaderObject.assertNotEquals(result1, result2, "123", "789");
+        TestLoaderObject.assertNotNullNotEqualsAndValuesEquals(result1, result2, "123", "789");
 
     }
 
@@ -202,7 +203,7 @@ public class CachingGetPropertyTest {
         // With a validate-on-read cache, since we didn't read the object before
         // the original mapping was restored, the second get will still read the
         // same result object as the first get.
-        TestLoaderObject.assertSame(result1, result2);
+        TestLoaderObject.assertSameNotNull(result1, result2);
 
     }
 
@@ -243,7 +244,7 @@ public class CachingGetPropertyTest {
         TestLoaderObject result2 = store.getProperty("test", TestLoaderObject.LOADER, true);
 
         // The objects are not equal.
-        TestLoaderObject.assertNotEquals(result1, result2, "123", "789");
+        TestLoaderObject.assertNotNullNotEqualsAndValuesEquals(result1, result2, "123", "789");
 
     }
 
@@ -261,8 +262,8 @@ public class CachingGetPropertyTest {
         cache.invalidate("test");
         TestLoaderObject result2 = store.getProperty("test", TestLoaderObject.LOADER, true);
 
-        Assertions.assertNotSame(result1, result2);
-        Assertions.assertEquals(result1, result2);
+        assertNotSame(result1, result2);
+        assertEquals(result1, result2);
 
     }
 
@@ -286,7 +287,7 @@ public class CachingGetPropertyTest {
         // Without validate-on-read, but after manually clearing the value for the
         // "test" key, the second get will load a completely different object with
         // the correct new value.
-        TestLoaderObject.assertNotEquals(result1, result2, "123", "789");
+        TestLoaderObject.assertNotNullNotEqualsAndValuesEquals(result1, result2, "123", "789");
 
     }
 

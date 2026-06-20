@@ -23,12 +23,14 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.tractionsoftware.commons.lang.StringUtil;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public final class LocalGetPropertyBehaviorsTest {
 
@@ -37,7 +39,7 @@ public final class LocalGetPropertyBehaviorsTest {
         GetProperty propsMain = SimpleProperties.asGetProperty(ImmutableMap.of());
         GetProperty propsDefaults = SimpleProperties.asGetProperty(ImmutableMap.of("foo", "bar"));
         GetProperty combined = propsMain.withDefaults(propsDefaults);
-        Assertions.assertNull(combined.getLocals().getProperty("foo"));
+        assertNull(combined.getLocals().getProperty("foo"));
     }
 
     @Test
@@ -53,7 +55,7 @@ public final class LocalGetPropertyBehaviorsTest {
         GetProperty propsDefaults = SimpleProperties.asGetProperty(ImmutableMap.of("z", "foo"));
         GetProperty combined = propsMain.withDefaults(propsDefaults);
 
-        Assertions.assertEquals(mainNames, combined.getLocals().getPropertyNames());
+        assertEquals(mainNames, combined.getLocals().getPropertyNames());
 
     }
 

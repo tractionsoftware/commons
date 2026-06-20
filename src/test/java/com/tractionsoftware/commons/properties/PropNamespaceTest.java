@@ -21,11 +21,13 @@
 package com.tractionsoftware.commons.properties;
 
 import com.google.common.collect.ImmutableSet;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Dave Shepperton
@@ -53,44 +55,44 @@ public final class PropNamespaceTest {
 
     @Test
     public void test1() {
-        Assertions.assertNull(mexico.getProperty("mexico_xyz"));
+        assertNull(mexico.getProperty("mexico_xyz"));
     }
 
     @Test
     public void test2() {
-        Assertions.assertEquals("123", mexico.getProperty("xyz"));
+        assertEquals("123", mexico.getProperty("xyz"));
     }
 
     @Test
     public void test3() {
-        Assertions.assertEquals(ImmutableSet.of("xyz", "abc", "0", "1"), mexico.getPropertyNames());
+        assertEquals(ImmutableSet.of("xyz", "abc", "0", "1"), mexico.getPropertyNames());
     }
 
     @Test
     public void test4() {
-        Assertions.assertEquals("mexico_123", mexico.fullyQualify("123"));
+        assertEquals("mexico_123", mexico.fullyQualify("123"));
     }
 
     @Test
     public void test5() {
-        Assertions.assertEquals("mexico", mexico.fullyQualify(null));
+        assertEquals("mexico", mexico.fullyQualify(null));
     }
 
     @Test
     public void test6() {
-        Assertions.assertEquals("mexico", mexico.fullyQualify(""));
+        assertEquals("mexico", mexico.fullyQualify(""));
     }
 
     @Test
     public void test7() {
-        Assertions.assertEquals("mexico_x", mexico.fullyQualify("x"));
+        assertEquals("mexico_x", mexico.fullyQualify("x"));
     }
 
     @Test
     public void test8() {
         mexico.putProperty("abc", "678");
-        Assertions.assertEquals("678", mexico.getProperty("abc"));
-        Assertions.assertEquals("678", store.getProperty("mexico_abc"));
+        assertEquals("678", mexico.getProperty("abc"));
+        assertEquals("678", store.getProperty("mexico_abc"));
     }
 
 }
