@@ -577,7 +577,7 @@ public final class MailUtil {
     }
 
     public static final EmailHeaders createEmailHeaders(Iterable<Header> headers, boolean tryToDecode) {
-        return createEmailHeaders(MailUtil.headersToHeaderMap(headers), true);
+        return createEmailHeaders(MailUtil.headersToHeaderMap(headers), tryToDecode);
     }
 
     public static final EmailHeaders createEmailHeaders(MimeMessage message) throws MessagingException {
@@ -713,7 +713,7 @@ public final class MailUtil {
      */
     @Nonnull
     public static final Header headerLineToHeader(@Nullable String headerLine, boolean tryToDecode) {
-        return parseHeaderLine(headerLine, false, MailUtil::invalidHeaderLineToHeader);
+        return parseHeaderLine(headerLine, tryToDecode, MailUtil::invalidHeaderLineToHeader);
     }
 
     /**

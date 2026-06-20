@@ -52,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public final class MailUtilTest {
 
+    static final String HELLO_RFC_2047_ENCODED = "=?UTF-8?B?SGVsbG8=?=";
+
     @Test
     public void testFriendlyNameFromFull1() {
         String input = "\"Shep Doggy\" <shep@tractionserver.com>";
@@ -113,10 +115,10 @@ public final class MailUtilTest {
 
     @Test
     public void test_getEmailAddresses1() {
-        String input = "Ad Ministrator <admin@shepperton.us>; Dave <shep@tractionsoftware.com>";
+        String input = "Ad Ministrator <admin@example.com>; Dave <shep@tractionsoftware.com>";
         List<EmailAddress> actual = MailUtil.getEmailAddresses(input);
         List<EmailAddress> expected = ImmutableList.of(
-            new EmailAddress("admin@shepperton.us", "Ad Ministrator"),
+            new EmailAddress("admin@example.com", "Ad Ministrator"),
             new EmailAddress("shep@tractionsoftware.com", "Dave")
         );
         assertEquals(expected, actual);
@@ -124,10 +126,10 @@ public final class MailUtilTest {
 
     @Test
     public void test_getEmailAddresses2() {
-        String input = "\"Ad Ministrator\" <admin@shepperton.us>; \"Dave Shepperton\" <shep@tractionsoftware.com>";
+        String input = "\"Ad Ministrator\" <admin@example.com>; \"Dave Shepperton\" <shep@tractionsoftware.com>";
         List<EmailAddress> actual = MailUtil.getEmailAddresses(input);
         List<EmailAddress> expected = ImmutableList.of(
-            new EmailAddress("admin@shepperton.us", "Ad Ministrator"),
+            new EmailAddress("admin@example.com", "Ad Ministrator"),
             new EmailAddress("shep@tractionsoftware.com", "Dave Shepperton")
         );
         assertEquals(expected, actual);
@@ -135,10 +137,10 @@ public final class MailUtilTest {
 
     @Test
     public void test_getEmailAddresses3() {
-        String input = "\"A > B\" <admin@shepperton.us>; shep@tractionsoftware.com";
+        String input = "\"A > B\" <admin@example.com>; shep@tractionsoftware.com";
         List<EmailAddress> actual = MailUtil.getEmailAddresses(input);
         List<EmailAddress> expected = ImmutableList.of(
-            new EmailAddress("admin@shepperton.us", "A > B"),
+            new EmailAddress("admin@example.com", "A > B"),
             new EmailAddress("shep@tractionsoftware.com", null)
         );
         assertEquals(expected, actual);
@@ -164,10 +166,10 @@ public final class MailUtilTest {
 
     @Test
     public void test_getEmailAddresses6() {
-        String input = "\"Ad Ministrator\" <admin@shepperton.us> \"Dave Shepperton\" <shep@tractionsoftware.com>";
+        String input = "\"Ad Ministrator\" <admin@example.com> \"Dave Shepperton\" <shep@tractionsoftware.com>";
         List<EmailAddress> actual = MailUtil.getEmailAddresses(input);
         List<EmailAddress> expected = ImmutableList.of(
-            new EmailAddress("admin@shepperton.us", "Ad Ministrator"),
+            new EmailAddress("admin@example.com", "Ad Ministrator"),
             new EmailAddress("shep@tractionsoftware.com", "Dave Shepperton")
         );
         assertEquals(expected, actual);
@@ -175,10 +177,10 @@ public final class MailUtilTest {
 
     @Test
     public void test_getEmailAddresses7() {
-        String input = "Ad Ministrator <admin@shepperton.us>, Dave Shepperton <shep@tractionsoftware.com>";
+        String input = "Ad Ministrator <admin@example.com>, Dave Shepperton <shep@tractionsoftware.com>";
         List<EmailAddress> actual = MailUtil.getEmailAddresses(input);
         List<EmailAddress> expected = ImmutableList.of(
-            new EmailAddress("admin@shepperton.us", "Ad Ministrator"),
+            new EmailAddress("admin@example.com", "Ad Ministrator"),
             new EmailAddress("shep@tractionsoftware.com", "Dave Shepperton")
         );
         assertEquals(expected, actual);
@@ -289,7 +291,7 @@ public final class MailUtilTest {
     void createEmailHeadersFromRawLines_singleHeader() {
         var headers = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Hello World"));
         assertNotNull(headers);
-        var subjects = headers.getHeaders("Subject");
+        var subjects = headers.getHeaders(EmailHeaders.NAME_SUBJECT);
         assertFalse(subjects.isEmpty(), "expected Subject header");
         assertEquals("Hello World", subjects.getFirst().trim());
     }
@@ -298,9 +300,9 @@ public final class MailUtilTest {
     void createEmailHeadersFromRawLines_multipleHeaders() {
         var lines = List.of("From: alice@example.com", "To: bob@example.com", "Subject: Test");
         var headers = MailUtil.createEmailHeadersFromRawLines(lines);
-        assertNotNull(headers.getHeaders("From"));
-        assertNotNull(headers.getHeaders("To"));
-        assertNotNull(headers.getHeaders("Subject"));
+        assertNotNull(headers.getHeaders(EmailHeaders.NAME_FROM));
+        assertNotNull(headers.getHeaders(EmailHeaders.NAME_TO));
+        assertNotNull(headers.getHeaders(EmailHeaders.NAME_SUBJECT));
     }
 
     @Test
@@ -386,14 +388,18 @@ public final class MailUtilTest {
 
     @Test
     void getRawAddress_fromFriendlyEncoding_addressOnly() {
-        assertEquals("alice@example.com",
-            MailUtil.getRawAddressFromFriendlyEncoding("alice@example.com"));
+        assertEquals(
+            "alice@example.com",
+            MailUtil.getRawAddressFromFriendlyEncoding("alice@example.com")
+        );
     }
 
     @Test
     void getRawAddress_fromFriendlyEncoding_withAngleBrackets() {
-        assertEquals("alice@example.com",
-            MailUtil.getRawAddressFromFriendlyEncoding("Alice <alice@example.com>"));
+        assertEquals(
+            "alice@example.com",
+            MailUtil.getRawAddressFromFriendlyEncoding("Alice <alice@example.com>")
+        );
     }
 
     @Test
@@ -419,8 +425,10 @@ public final class MailUtilTest {
 
     @Test
     void makeFriendlyNameAddress_addressOnly_returnsAddress() {
-        assertEquals("alice@example.com",
-            MailUtil.makeFriendlyNameAddress("alice@example.com", null));
+        assertEquals(
+            "alice@example.com",
+            MailUtil.makeFriendlyNameAddress("alice@example.com", null)
+        );
     }
 
     @Test
@@ -486,14 +494,14 @@ public final class MailUtilTest {
         MimeMessage msg = makeMimeMessage();
         EmailHeaders h = MailUtil.createDynamicEmailHeaders(msg);
         assertNotNull(h);
-        assertTrue(h.hasHeader("Subject"));
+        assertTrue(h.hasHeader(EmailHeaders.NAME_SUBJECT));
     }
 
     @Test
     void createDynamicEmailHeaders_subjectValue() throws Exception {
         MimeMessage msg = makeMimeMessage();
         EmailHeaders h = MailUtil.createDynamicEmailHeaders(msg);
-        assertEquals("Test Subject", h.getHeader("Subject"));
+        assertEquals("Test Subject", h.getHeader(EmailHeaders.NAME_SUBJECT));
     }
 
     // --- getRawHeaderLines(MimeMessage) ---
@@ -533,7 +541,7 @@ public final class MailUtilTest {
         MimeMessage msg = makeMimeMessage();
         EmailHeaders eh = MailUtil.createEmailHeaders(msg);
         assertNotNull(eh);
-        assertEquals("Test Subject", eh.getHeader("Subject"));
+        assertEquals("Test Subject", eh.getHeader(EmailHeaders.NAME_SUBJECT));
     }
 
     // --- getRfc2047DecodedHeader ---
@@ -545,7 +553,7 @@ public final class MailUtilTest {
 
     @Test
     void getRfc2047DecodedHeader_plainText_returnsSame() {
-        Header h = new Header("Subject", "Hello");
+        Header h = new Header(EmailHeaders.NAME_SUBJECT, "Hello");
         Header result = MailUtil.getRfc2047DecodedHeader(h);
         assertNotNull(result);
         assertEquals("Hello", result.getValue());
@@ -694,8 +702,8 @@ public final class MailUtilTest {
     void dumpNamedHeaders_presentHeader_appendsToBuffer() {
         EmailHeaders eh = MailUtil.createEmailHeadersFromRawLines(List.of("Subject: Hello"));
         StringBuilder sb = new StringBuilder();
-        MailUtil.dumpNamedHeaders(sb, eh, "Subject");
-        assertTrue(sb.toString().contains("Subject"), sb.toString());
+        MailUtil.dumpNamedHeaders(sb, eh, EmailHeaders.NAME_SUBJECT);
+        assertTrue(sb.toString().contains(EmailHeaders.NAME_SUBJECT), sb.toString());
     }
 
     @Test
@@ -836,7 +844,7 @@ public final class MailUtilTest {
         EmailHeaders h = MailUtil.createDynamicEmailHeaders(makeMimeMessage());
         boolean found = false;
         for (Header header : h) {
-            if ("Subject".equalsIgnoreCase(header.getName())) {
+            if (EmailHeaders.NAME_SUBJECT.equalsIgnoreCase(header.getName())) {
                 found = true;
                 break;
             }
@@ -1099,7 +1107,7 @@ public final class MailUtilTest {
     @Test
     void getRfc2047DecodedHeaders_encodedSubject_decodesValue() {
         Multimap<String,Header> encoded = MailUtil.headersToHeaderMap(
-            List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="))
+            List.of(new Header(EmailHeaders.NAME_SUBJECT, HELLO_RFC_2047_ENCODED))
         );
         Multimap<String,Header> decoded = MailUtil.getRfc2047DecodedHeaders(encoded);
         Header h = decoded.get("subject").iterator().next();
@@ -1190,40 +1198,33 @@ public final class MailUtilTest {
     void parseHeaderLine_tryToDecodeTrue_decodesRfc2047EncodedSubjectLine() {
         Header h = MailUtil.parseHeaderLine("Subject: =?UTF-8?B?SGVsbG8=?=", true, null);
         assertNotNull(h);
-        assertEquals("Subject", h.getName());
+        assertEquals(EmailHeaders.NAME_SUBJECT, h.getName());
         assertEquals("Hello", h.getValue());
     }
 
     @Test
-    void encodedHeaderLineToHeader_subjectHeader_doesNotActuallyDecode_bug() {
+    void encodedHeaderLineToHeader_subjectHeader_decodesRfc2047EncodedSubjectLine() {
         String encodedSubjectLine = "Subject: =?UTF-8?B?SGVsbG8=?=";
         Header header = MailUtil.encodedHeaderLineToHeader(encodedSubjectLine);
-        assertEquals("Subject", header.getName());
-        // Expected "Hello" if decoding were actually applied; instead the encoded form passes through unchanged.
-        assertEquals("=?UTF-8?B?SGVsbG8=?=", header.getValue());
+        assertEquals(EmailHeaders.NAME_SUBJECT, header.getName());
+        assertEquals("Hello", header.getValue());
     }
 
-    // =====================================================================
-    // BUG: createEmailHeaders(Iterable<Header>, boolean) ignores its tryToDecode parameter -- it always passes
-    // true to the Multimap overload. Contrast with createEmailHeaders(Multimap, boolean), which respects the flag
-    // correctly (second test below).
-    // =====================================================================
-
     @Test
-    void createEmailHeaders_iterableHeaders_tryToDecodeFalse_stillDecodes_bug() {
-        List<Header> hdrs = List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="));
-        EmailHeaders eh = MailUtil.createEmailHeaders(hdrs, false);
-        // Expected the still-encoded value if tryToDecode=false were honored; instead it's decoded anyway.
-        assertEquals("Hello", eh.getHeader("Subject"));
+    void createEmailHeaders_iterableHeaders_tryToDecodeFalse_doesNotDecode() {
+        EmailHeaders headers = MailUtil.createEmailHeaders(
+            List.of(new Header(EmailHeaders.NAME_SUBJECT, HELLO_RFC_2047_ENCODED)), false
+        );
+        assertEquals(HELLO_RFC_2047_ENCODED, headers.getHeader(EmailHeaders.NAME_SUBJECT));
     }
 
     @Test
     void createEmailHeaders_multimapOverload_tryToDecodeFalse_doesNotDecode() {
         Multimap<String,Header> headers = MailUtil.headersToHeaderMap(
-            List.of(new Header("Subject", "=?UTF-8?B?SGVsbG8=?="))
+            List.of(new Header(EmailHeaders.NAME_SUBJECT, HELLO_RFC_2047_ENCODED))
         );
         EmailHeaders eh = MailUtil.createEmailHeaders(headers, false);
-        assertEquals("=?UTF-8?B?SGVsbG8=?=", eh.getHeader("Subject"));
+        assertEquals(HELLO_RFC_2047_ENCODED, eh.getHeader(EmailHeaders.NAME_SUBJECT));
     }
 
 }
