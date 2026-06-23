@@ -4,6 +4,8 @@ package com.tractionsoftware.commons.text;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -138,6 +140,47 @@ class TextWrapUtilTest {
         StringBuilder sb = new StringBuilder();
         inserter.printWithZeroWidthSpacesInserted(sb, "a.b");
         assertTrue(sb.toString().contains(String.valueOf(ZWS)));
+    }
+
+    @Test
+    void printWithZeroWidthSpacesInserted_printWriter() {
+        TextWrapUtil.ZeroWidthSpaceInserter inserter =
+            TextWrapUtil.createNonSpaceWrapInserter(".");
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        inserter.printWithZeroWidthSpacesInserted(pw, "a.b");
+        pw.flush();
+        assertTrue(sw.toString().contains(String.valueOf(ZWS)), "expected ZWS: " + sw);
+    }
+
+    // ---------------------------------------------------------------------------
+    // non-BMP wrap characters - routes to CodePointBasedZeroWidthSpaceInserter
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void nonBmpWrapCharacter_zwsInsertedAfterEmoji() throws IOException {
+        // An emoji (non-BMP codepoint) as the wrap character routes through the
+        // codepoint-based implementation rather than the char-based one.
+        String emoji = "😀"; // U+1F600 GRINNING FACE
+        TextWrapUtil.ZeroWidthSpaceInserter inserter =
+            TextWrapUtil.createNonSpaceWrapInserter(emoji);
+        StringBuilder sb = new StringBuilder();
+        inserter.printWithZeroWidthSpacesInserted(sb, "hello" + emoji + "world");
+        String result = sb.toString();
+        assertTrue(result.contains(emoji + ZWS), "expected ZWS after emoji: " + result);
+        assertTrue(result.contains("hello"), result);
+        assertTrue(result.contains("world"), result);
+    }
+
+    @Test
+    void nonBmpWrapCharacter_cancelledBeforeWhitespace() throws IOException {
+        String emoji = "😀";
+        TextWrapUtil.ZeroWidthSpaceInserter inserter =
+            TextWrapUtil.createNonSpaceWrapInserter(emoji);
+        StringBuilder sb = new StringBuilder();
+        inserter.printWithZeroWidthSpacesInserted(sb, "hello" + emoji + " world");
+        assertFalse(sb.toString().contains(String.valueOf(ZWS)),
+            "ZWS should NOT appear before whitespace: " + sb);
     }
 
 }

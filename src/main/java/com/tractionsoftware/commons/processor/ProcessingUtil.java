@@ -51,7 +51,7 @@ public final class ProcessingUtil {
     }
 
     public static final Consumer<IOException> getOutputStreamConsumer(final OutputStream outputStream) {
-        return inputStream -> IOUtil.copyToEOF(inputStream, outputStream);
+        return inputStream -> IOUtil.copy(inputStream, outputStream);
     }
 
 }

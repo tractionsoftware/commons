@@ -23,6 +23,8 @@ package com.tractionsoftware.commons.util;
 import com.tractionsoftware.commons.io.FileNameUtil;
 import com.tractionsoftware.commons.io.IOUtil;
 import com.tractionsoftware.commons.io.FileUtil;
+import jakarta.annotation.Nonnull;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,7 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -75,7 +78,7 @@ public final class CompressionUtil {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             GZIPOutputStream gzip = new GZIPOutputStream(out, IOUtil.DEFAULT_IO_BUFFER_SIZE);
-            IOUtil.copyToEOF(input, gzip);
+            IOUtil.copy(input, gzip);
             gzip.finish();
             gzip.flush();
             byte[] ret = out.toByteArray();
@@ -96,7 +99,7 @@ public final class CompressionUtil {
      * @param zip
      *     The Archive to add to.
      */
-    public static void addToArchive(Collection<File> inputFiles, Archive zip) throws IOException {
+    public static final void addToArchive(Collection<File> inputFiles, Archive zip) throws IOException {
         for (File fileToAdd : inputFiles) {
             try (InputStream fileInput = FileUtil.getBufferedInputStream(fileToAdd)) {
                 zip.addFile(fileToAdd, fileInput);
@@ -118,7 +121,7 @@ public final class CompressionUtil {
      * Creates a new ZIP archive in the given file and adds the input files to the archive. The entries will be named
      * according to each File's getName method.
      */
-    public static void zip(Collection<File> input, File zipfile) throws IOException {
+    public static final void zip(Collection<File> input, File zipfile) throws IOException {
         zip(input, zipfile, FILE_NAME_ZIP_ENTRY_NAMER);
     }
 
@@ -126,7 +129,7 @@ public final class CompressionUtil {
      * Creates a new ZIP archive in the given file and adds the input files to the archive. The entries will be named
      * using the given ZipEntryNameProvider.
      */
-    public static void zip(Collection<File> input, File zipFile, ZipEntryNameProvider namer) throws IOException {
+    public static final void zip(Collection<File> input, File zipFile, ZipEntryNameProvider namer) throws IOException {
         try (ZipOutputStream zip = getZipOutputStream(zipFile)) {
             zip(input, zip, namer);
             zip.finish();
@@ -138,7 +141,7 @@ public final class CompressionUtil {
      * Adds a ZipEntry for each input file to the ZipOutputStream. The entries will be named according to each File's
      * getName method.
      */
-    public static void zip(Collection<File> input, ZipOutputStream zip) throws IOException {
+    public static final void zip(Collection<File> input, ZipOutputStream zip) throws IOException {
         zip(input, zip, FILE_NAME_ZIP_ENTRY_NAMER);
     }
 
@@ -146,14 +149,14 @@ public final class CompressionUtil {
      * Adds a ZipEntry for each input file to the ZipOutputStream. The entries will be named using the given
      * ZipEntryNameProvider.
      */
-    public static void zip(Collection<File> input, ZipOutputStream zip, ZipEntryNameProvider namer) throws IOException {
+    public static final void zip(Collection<File> input, ZipOutputStream zip, ZipEntryNameProvider namer) throws IOException {
         addToArchive(input, new ZipArchive(zip, namer));
     }
 
     /**
      * Creates a new JAR archive in the given file and adds the input files to the archive.
      */
-    public static void jar(Collection<File> input, File jarfile) throws IOException {
+    public static final void jar(Collection<File> input, File jarfile) throws IOException {
         jar(input, jarfile, (Manifest) null);
     }
 
@@ -161,7 +164,7 @@ public final class CompressionUtil {
      * Creates a new JAR archive in the given file with the given Manifest (optional) and adds the input files to the
      * archive.
      */
-    public static void jar(Collection<File> input, File jarfile, Manifest man) throws IOException {
+    public static final void jar(Collection<File> input, File jarfile, Manifest man) throws IOException {
         jar(input, jarfile, man, FILE_NAME_ZIP_ENTRY_NAMER);
     }
 
@@ -169,7 +172,7 @@ public final class CompressionUtil {
      * Creates a new JAR archive in the given file and adds the input files to the archive. The entries will be named
      * using the given ZipEntryNameProvider.
      */
-    public static void jar(Collection<File> input, File jarfile, ZipEntryNameProvider namer) throws IOException {
+    public static final void jar(Collection<File> input, File jarfile, ZipEntryNameProvider namer) throws IOException {
         jar(input, jarfile, null, namer);
     }
 
@@ -177,7 +180,7 @@ public final class CompressionUtil {
      * Creates a new JAR archive in the given file with the given Manifest (optional) and adds the input files to the
      * archive. The entries will be named using the given ZipEntryNameProvider.
      */
-    public static void jar(Collection<File> input, File jarFile, Manifest man, ZipEntryNameProvider namer)
+    public static final void jar(Collection<File> input, File jarFile, Manifest man, ZipEntryNameProvider namer)
         throws IOException {
         try (JarOutputStream jarOut = getJarOutputStream(jarFile, man)) {
             jar(input, jarOut, namer);
@@ -204,7 +207,7 @@ public final class CompressionUtil {
      * Adds a JarEntry for each input file to the JarOutputStream. The entries will be named according to each File's
      * getName method.
      */
-    public static void jar(Collection<File> input, JarOutputStream zip) throws IOException {
+    public static final void jar(Collection<File> input, JarOutputStream zip) throws IOException {
         jar(input, zip, FILE_NAME_ZIP_ENTRY_NAMER);
     }
 
@@ -212,7 +215,7 @@ public final class CompressionUtil {
      * Adds a ZipEntry for each input file to the ZipOutputStream. The entries will be named using the given
      * ZipEntryNameProvider.
      */
-    public static void jar(Collection<File> input, JarOutputStream jarOut, ZipEntryNameProvider namer)
+    public static final void jar(Collection<File> input, JarOutputStream jarOut, ZipEntryNameProvider namer)
         throws IOException {
         addToArchive(input, new JarArchive(jarOut, namer));
     }
@@ -330,7 +333,7 @@ public final class CompressionUtil {
     /**
      * Unzips the file to the specified directory.
      */
-    public static void unzip(File zipFile, File toDirectory) throws IOException {
+    public static final void unzip(File zipFile, File toDirectory) throws IOException {
 
         try (ZipInputStream zip = getZipInputStream(zipFile)) {
 
@@ -398,7 +401,7 @@ public final class CompressionUtil {
      *     that may be raised by reading the file, creating the JarEntry, or adding the JarEntry or writing the file's
      *     contents to the JarOutputStream.
      */
-    public static void addJarEntry(JarOutputStream out, File file) throws IOException {
+    public static final void addJarEntry(JarOutputStream out, File file) throws IOException {
         try (InputStream in = FileUtil.getBufferedInputStream(file)) {
             JarEntry entry = new JarEntry(file.getName());
             entry.setTime(file.lastModified());
@@ -414,9 +417,12 @@ public final class CompressionUtil {
      *     that may be raised reading from the InputStream or adding the JarEntry or otherwise writing the contents to
      *     the JarOutputStream.
      */
-    public static void addJarEntry(JarOutputStream out, JarEntry entry, InputStream in) throws IOException {
-        out.putNextEntry(entry);
-        IOUtil.copyToEOF(in, out);
+    public static final void addJarEntry(@Nonnull JarOutputStream output, @Nonnull JarEntry entry, @Nonnull InputStream input) throws IOException {
+        Objects.requireNonNull(output, "output");
+        Objects.requireNonNull(entry, "entry");
+        Objects.requireNonNull(input, "input");
+        output.putNextEntry(entry);
+        input.transferTo(output);
     }
 
     /**
@@ -460,9 +466,11 @@ public final class CompressionUtil {
         }
 
         @Override
-        public final void addFile(File file, InputStream inputStream) throws IOException {
+        public final void addFile(@Nonnull File file, @Nonnull InputStream input) throws IOException {
+            Objects.requireNonNull(file, "file");
+            Objects.requireNonNull(input, "input");
             zip.putNextEntry(getEntry(file));
-            IOUtil.copyToEOF(inputStream, zip);
+            input.transferTo(zip);
             zip.closeEntry();
         }
 

@@ -20,8 +20,9 @@
 
 package com.tractionsoftware.commons.io;
 
+import com.tractionsoftware.commons.util.AccumulatesCount;
+import com.tractionsoftware.commons.util.MayHaveKnownSize;
 import org.apache.commons.io.function.IORunnable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -155,24 +156,24 @@ class IOUtilTest {
     @Test
     void copyToEOF_nullInput_triedToCopy() throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(null, out);
-        assertTrue(result.triedToCopy());
+        IOUtil.CopyResult result = IOUtil.copy(null, out);
+        assertFalse(result.triedToCopy());
         assertFalse(result.inputWasTooLarge());
         assertEquals(0, result.getBytesRead());
     }
 
     @Test
     void copyToEOF_nullOutput_triedToCopy() throws IOException {
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(new byte[] { 1, 2 }), null);
-        assertTrue(result.triedToCopy());
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(new byte[] { 1, 2 }), null);
+        assertFalse(result.triedToCopy());
     }
 
     @Test
     void copyToEOF_copiesAllBytes() throws IOException {
         byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(data), out);
-        assertFalse(result.triedToCopy());
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out);
+        assertTrue(result.triedToCopy());
         assertFalse(result.inputWasTooLarge());
         assertEquals(data.length, result.getBytesRead());
         assertEquals(data.length, result.getBytesWritten());
@@ -186,15 +187,15 @@ class IOUtilTest {
     @Test
     void copyToEOF_withLimit_nullInput_triedToCopy() throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(null, out, 100);
-        assertTrue(result.triedToCopy());
+        IOUtil.CopyResult result = IOUtil.copy(null, out, 100L);
+        assertFalse(result.triedToCopy());
     }
 
     @Test
     void copyToEOF_withLimit_underLimit_copiesAll() throws IOException {
         byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(data), out, 100);
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out, 100L);
         assertFalse(result.inputWasTooLarge());
         assertEquals(data.length, result.getBytesRead());
         assertEquals(data.length, result.getBytesWritten());
@@ -205,10 +206,10 @@ class IOUtilTest {
     void copyToEOF_withLimit_overLimit_inputWasTooLarge() throws IOException {
         byte[] data = "hello world".getBytes(StandardCharsets.UTF_8); // 11 bytes
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(data), out, 5);
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out, 5L);
         assertTrue(result.inputWasTooLarge());
         // All bytes were read, but only 5 were written
-        assertEquals(data.length, result.getBytesRead());
+        assertEquals(5, result.getBytesRead());
         assertEquals(5, out.toByteArray().length);
     }
 
@@ -216,7 +217,7 @@ class IOUtilTest {
     void copyToEOF_withNegativeLimit_treatsAsUnlimited() throws IOException {
         byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(data), out, -1);
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out, -1);
         assertFalse(result.inputWasTooLarge());
         assertEquals(data.length, result.getBytesWritten());
     }
@@ -229,11 +230,121 @@ class IOUtilTest {
     void copyResult_normalCopy_notTooLarge_notTriedToCopy() throws IOException {
         byte[] data = { 1, 2, 3 };
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        IOUtil.CopyResult result = IOUtil.copyToEOF(new ByteArrayInputStream(data), out);
-        assertFalse(result.triedToCopy());
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out);
+        assertTrue(result.triedToCopy());
         assertFalse(result.inputWasTooLarge());
         assertEquals(3, result.getBytesRead());
         assertEquals(3, result.getBytesWritten());
+    }
+
+    // ---------------------------------------------------------------------------
+    // copy(InputStream, OutputStream, long) with a MayHaveKnownSize input
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void copyToEOF_withLimit_sizedInputAtOrUnderLimit_copiesFullyWithoutPartialPath() throws IOException {
+        byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
+        InputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(data), data.length);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtil.CopyResult result = IOUtil.copy(input, out, 100L);
+        assertFalse(result.inputWasTooLarge());
+        assertEquals(data.length, result.getBytesRead());
+        assertArrayEquals(data, out.toByteArray());
+    }
+
+    @Test
+    void copyToEOF_withLimit_sizedInputOverLimit_truncatesOutput() throws IOException {
+        byte[] data = "hello world".getBytes(StandardCharsets.UTF_8); // 11 bytes
+        InputStream input = SizedInputStream.forInputStream(new ByteArrayInputStream(data), data.length);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtil.CopyResult result = IOUtil.copy(input, out, 5L);
+        assertTrue(result.inputWasTooLarge());
+        assertEquals(5, result.getBytesRead());
+        assertEquals(5, out.toByteArray().length);
+    }
+
+    /**
+     * This test deliberately violates the contract of {@link MayHaveKnownSize#size()}, which requires that, if a
+     * size is reported at all, it must be the real size -- not a guess or placeholder. Here, a
+     * {@link SizedInputStream} is constructed claiming a size of 1 when the real content is 1000 bytes.
+     *
+     * <p>
+     * It documents the correct behavior given that contract violation: since the reported size is 1, the method
+     * copies all bytes, instead of capping at the requested 5 bytes.
+     */
+    @Test
+    void copyToEOF_withLimit_sizedInputViolatesSizeContract_copiesAll() throws IOException {
+        byte[] data = new byte[1000];
+        Arrays.fill(data, (byte) 'x');
+        // Lies and reports a size of 1, violating the contract of MayHaveSizedInput#size.
+        // Since this is well within the limit of 5, the optimized IOUtil#copy will copy
+        // all 1000 bytes thinking it does not need to cap the number of bytes copied.
+        InputStream lyingSizedInput = SizedInputStream.forInputStream(new ByteArrayInputStream(data), 1);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        IOUtil.CopyResult result = IOUtil.copy(lyingSizedInput, out, 5L);
+        assertFalse(result.inputWasTooLarge());
+        assertEquals(1000, result.getBytesRead());
+        assertEquals(1000, out.toByteArray().length);
+    }
+
+    // ---------------------------------------------------------------------------
+    // copy(...) with an AccumulatesCount output
+    // ---------------------------------------------------------------------------
+
+    private static final class CountingOutputStream extends FilterOutputStream implements AccumulatesCount {
+
+        private long count = 0;
+
+        CountingOutputStream(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            out.write(b);
+            count++;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            out.write(b, off, len);
+            count += len;
+        }
+
+        @Override
+        public long getCount() {
+            return count;
+        }
+
+    }
+
+    @Test
+    void copyToEOF_accumulatesCountOutput_usesOutputsOwnCount() throws IOException {
+        byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
+        ByteArrayOutputStream backing = new ByteArrayOutputStream();
+        CountingOutputStream out = new CountingOutputStream(backing);
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out);
+        assertEquals(data.length, result.getBytesRead());
+        assertEquals(data.length, result.getBytesWritten());
+        assertArrayEquals(data, backing.toByteArray());
+    }
+
+    @Test
+    void copyToEOF_accumulatesCountOutputWithExistingCount_reportsOnlyBytesWrittenDuringCopy() throws IOException {
+        ByteArrayOutputStream backing = new ByteArrayOutputStream();
+        CountingOutputStream out = new CountingOutputStream(backing);
+
+        // Simulate the output already having accumulated a count before this copy operation begins.
+        out.write("preexisting".getBytes(StandardCharsets.UTF_8));
+        assertEquals(11, out.getCount());
+
+        byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
+        IOUtil.CopyResult result = IOUtil.copy(new ByteArrayInputStream(data), out);
+
+        assertEquals(data.length, result.getBytesRead());
+        // bytesWritten should reflect only the delta contributed by this copy, not the pre-existing count.
+        assertEquals(data.length, result.getBytesWritten());
+        assertEquals(16, out.getCount());
     }
 
     // ---------------------------------------------------------------------------
@@ -664,10 +775,10 @@ class IOUtilTest {
     // ---------------------------------------------------------------------------
 
     @Test
-    void copyContent_inputStreamCharsetWriter_copiesContent() throws IOException {
+    void copyText_inputStreamCharsetWriter_copies() throws IOException {
         byte[] data = "hello writer".getBytes(StandardCharsets.UTF_8);
         StringWriter sw = new StringWriter();
-        IOUtil.copyContent(new ByteArrayInputStream(data), StandardCharsets.UTF_8, sw);
+        IOUtil.copyText(new ByteArrayInputStream(data), StandardCharsets.UTF_8, sw);
         assertEquals("hello writer", sw.toString());
     }
 
@@ -676,9 +787,9 @@ class IOUtilTest {
     // ---------------------------------------------------------------------------
 
     @Test
-    void copyContent_readerWriter_copiesContent() throws IOException {
+    void copyContent_readerWriter_copiesText() throws IOException {
         StringWriter sw = new StringWriter();
-        long bytes = IOUtil.copyContent(new StringReader("from reader"), sw);
+        long bytes = IOUtil.copyText(new StringReader("from reader"), sw);
         assertEquals("from reader", sw.toString());
         assertEquals("from reader".length(), bytes);
     }
@@ -702,7 +813,7 @@ class IOUtilTest {
         };
         InputStream buffered = IOUtil.getBufferedInputStream(base);
         assertNotSame(base, buffered);
-        assertTrue(buffered instanceof BufferedInputStream);
+        assertInstanceOf(BufferedInputStream.class, buffered);
     }
 
     @Test
@@ -788,7 +899,7 @@ class IOUtilTest {
     @Test
     void getSizeLimitingInputStream_maxValueLimit_returnsOriginal() {
         InputStream base = new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8));
-        InputStream result = IOUtil.getSizeLimitingInputStream(base, Integer.MAX_VALUE, false);
+        InputStream result = IOUtil.getSizeLimitingInputStream(base, Long.MAX_VALUE, false);
         assertSame(base, result);
     }
 

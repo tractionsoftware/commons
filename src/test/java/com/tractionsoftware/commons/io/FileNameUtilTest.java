@@ -29,264 +29,325 @@ import static org.junit.jupiter.api.Assertions.*;
 public final class FileNameUtilTest {
 
     @Test
-    public void testGetValidNormalizedFileNameNull() {
-        assertEquals("Untitled.txt", FileNameUtil.getValidNormalizedFileName(null, null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameNull() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodNormalizedFileName(null, null, "text/plain", true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameNullNoMimeType() {
-        assertEquals("Untitled", FileNameUtil.getValidNormalizedFileName(null, null, null, true));
+    public void testGetGoodNormalizedFileNameNullNoMimeType() {
+        assertEquals("Untitled", FileNameUtil.getGoodNormalizedFileName(null, null, null, true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameEmpty() {
-        assertEquals("Untitled.txt", FileNameUtil.getValidNormalizedFileName("", null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameEmpty() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodNormalizedFileName("", null, "text/plain", true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameBlank() {
-        assertEquals("Untitled.txt", FileNameUtil.getValidNormalizedFileName("  ", null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameBlank() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodNormalizedFileName("  ", null, "text/plain", true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameSimpleFixInvalidName() {
+    public void testGetGoodNormalizedFileNameSimpleFixInvalidName() {
         assertEquals(
             "_my_-file.txt",
-            FileNameUtil.getValidNormalizedFileName("<my>-file.txt", null, "text/plain", true)
+            FileNameUtil.getGoodNormalizedFileName("<my>-file.txt", null, "text/plain", true)
         );
     }
 
     @Test
-    public void testGetValidNormalizedFileNameSimpleFixAndAddExtension() {
-        assertEquals("_my_-file.txt", FileNameUtil.getValidNormalizedFileName("<my>-file", null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameSimpleFixAndAddExtension() {
+        assertEquals("_my_-file.txt", FileNameUtil.getGoodNormalizedFileName("<my>-file", null, "text/plain", true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameWithAllInvalidCharactersReplaced() {
-        assertEquals("______.txt", FileNameUtil.getValidNormalizedFileName("<????>", null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameWithAllInvalidCharactersReplaced() {
+        assertEquals("______.txt", FileNameUtil.getGoodNormalizedFileName("<????>", null, "text/plain", true));
     }
 
     @Test
-    public void testGetValidNormalizedFileNameWithMultipleSpacesCollapsed() {
-        assertEquals("foo bar.txt", FileNameUtil.getValidNormalizedFileName("foo  bar.txt", null, "text/plain", true));
+    public void testGetGoodNormalizedFileNameWithMultipleSpacesCollapsed() {
+        assertEquals("foo bar.txt", FileNameUtil.getGoodNormalizedFileName("foo  bar.txt", null, "text/plain", true));
     }
 
     @Test
     public void testGetValidNormalizedFileValidDotFileNotChanged() {
-        assertEquals(".foo", FileNameUtil.getValidNormalizedFileName(".foo", null, "text/plain", true));
+        assertEquals(".foo", FileNameUtil.getGoodNormalizedFileName(".foo", null, "text/plain", true));
     }
 
     @Test
-    public void test_isMinimallyValidFileName1a() {
-        assertTrue(FileNameUtil.isMinimallyValidFileName("my  file.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName1b() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("my\tfile.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName1c() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("my\nfile.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName1d() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("my\rfile.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName2() {
-        assertTrue(FileNameUtil.isMinimallyValidFileName("my.file.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName3a() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("my\u0000file.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName3b() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("<my>-\u0000file.txt."));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName4() {
-        assertTrue(FileNameUtil.isMinimallyValidFileName("file"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName5a() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("."));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName5b() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName(".."));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName5c() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("...."));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName6a() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName(null));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName6b() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName(""));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName6c() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName(" "));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName6d() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("\t\t   "));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName7a() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("CON"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName7b() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("CON.txt"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName7c() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("COM¹"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName7d() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("COM¹.gif"));
-    }
-
-    @Test
-    public void test_isMinimallyValidFileName7e() {
-        assertFalse(FileNameUtil.isMinimallyValidFileName("lpt3"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1a() {
-        assertEquals("my  file.txt", FileNameUtil.getMinimallyValidFileName("my  file.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1b() {
-        assertEquals("my file.txt", FileNameUtil.getMinimallyValidFileName("my\tfile.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1c() {
-        assertEquals("my file.txt", FileNameUtil.getMinimallyValidFileName("my\nfile.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1d() {
-        assertEquals("my file.txt", FileNameUtil.getMinimallyValidFileName("my\rfile.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1e() {
-        assertEquals("my  file.txt", FileNameUtil.getMinimallyValidFileName("my\t file.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName1f() {
-        assertEquals("my   file.txt", FileNameUtil.getMinimallyValidFileName("my\t\n\rfile.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName2() {
-        assertEquals("my.file.txt", FileNameUtil.getMinimallyValidFileName("my.file.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName3a() {
-        assertEquals("my_file.txt", FileNameUtil.getMinimallyValidFileName("my\u0000file.txt", null, "text/plain"));
-    }
-
-    @Test
-    public void test_getMinimallyValidFileName3b() {
+    public void test_checkFileName1A() {
         assertEquals(
-            "_my_-_file.txt",
-            FileNameUtil.getMinimallyValidFileName("<my>-\u0000file.txt.", null, "text/plain")
+            FileNameUtil.FileNameCheckResult.DISCOURAGED_WHITESPACE_SEQUENCE, FileNameUtil.checkFileName("my  file.txt")
         );
     }
 
     @Test
-    public void test_getMinimallyValidFileName4() {
-        assertEquals("file", FileNameUtil.getMinimallyValidFileName("file", null, "image/gif"));
+    public void test_checkFileName1B() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("my\tfile.txt"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName5() {
-        assertEquals("Untitled.gif", FileNameUtil.getMinimallyValidFileName(".", null, "image/gif"));
+    public void test_checkFileName1C() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("my\nfile.txt"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName6a() {
-        assertEquals("Untitled.txt", FileNameUtil.getMinimallyValidFileName(null, null, "text/plain"));
+    public void test_checkFileName1D() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("my\rfile.txt"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName6b() {
-        assertEquals("Untitled.txt", FileNameUtil.getMinimallyValidFileName("", null, "text/plain"));
+    public void test_checkFileName2() {
+        assertEquals(FileNameUtil.FileNameCheckResult.NO_PROBLEMS, FileNameUtil.checkFileName("my.file.txt"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName6c() {
-        assertEquals("Untitled.txt", FileNameUtil.getMinimallyValidFileName(" ", null, "text/plain"));
+    public void test_checkFileName3A() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS,
+            FileNameUtil.checkFileName("my\u0000file.txt")
+        );
     }
 
     @Test
-    public void test_getMinimallyValidFileName6d() {
-        assertEquals("Untitled.txt", FileNameUtil.getMinimallyValidFileName("\t\t   ", null, "text/plain"));
+    public void test_checkFileName3B() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS,
+            FileNameUtil.checkFileName("<my>-\u0000file.txt.")
+        );
     }
 
     @Test
-    public void test_getMinimallyValidFileName7a() {
-        assertEquals("Untitled", FileNameUtil.getMinimallyValidFileName("CON", null, null));
+    public void test_checkFileName4() {
+        assertEquals(FileNameUtil.FileNameCheckResult.NO_PROBLEMS, FileNameUtil.checkFileName("file"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName7b() {
-        assertEquals("Untitled.txt", FileNameUtil.getMinimallyValidFileName("CON.txt", null, "text/plain"));
+    public void test_checkFileName5A() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_FILENAME, FileNameUtil.checkFileName("."));
     }
 
     @Test
-    public void test_getMinimallyValidFileName7c() {
-        assertEquals("Untitled", FileNameUtil.getMinimallyValidFileName("COM¹", null, null));
+    public void test_checkFileName5B() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_FILENAME, FileNameUtil.checkFileName(".."));
     }
 
     @Test
-    public void test_getMinimallyValidFileName7d() {
-        assertEquals("Untitled.gif", FileNameUtil.getMinimallyValidFileName("COM¹.gif", null, "image/gif"));
+    public void test_checkFileName5C() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_DOT_SEQUENCE, FileNameUtil.checkFileName("...."));
     }
 
     @Test
-    public void test_getMinimallyValidFileName7e() {
-        assertEquals("Untitled", FileNameUtil.getMinimallyValidFileName("lpt", null, "application/octet-stream"));
+    public void test_checkFileName5D() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_DOT_SEQUENCE, FileNameUtil.checkFileName("file..txt"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName8a() {
-        assertEquals("bar__.foo", FileNameUtil.getMinimallyValidFileName("bar\u007f\u0080.foo", null, "text/plain"));
+    public void test_checkFileName5E() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("/"));
     }
 
     @Test
-    public void test_getMinimallyValidFileName8b() {
-        assertEquals("bar__.foo", FileNameUtil.getMinimallyValidFileName("bar\u008f\u009f.foo", null, "text/plain"));
+    public void test_checkFileName5F() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("\\"));
+    }
+
+    @Test
+    public void test_checkFileName8C() {
+        assertEquals(FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS, FileNameUtil.checkFileName("\\"));
+    }
+
+    @Test
+    public void test_checkFileName6A() {
+        assertEquals(FileNameUtil.FileNameCheckResult.EMPTY_OR_BLANK, FileNameUtil.checkFileName(null));
+    }
+
+    @Test
+    public void test_checkFileName6B() {
+        assertEquals(FileNameUtil.FileNameCheckResult.EMPTY_OR_BLANK, FileNameUtil.checkFileName(""));
+    }
+
+    @Test
+    public void test_checkFileName6C() {
+        assertEquals(FileNameUtil.FileNameCheckResult.EMPTY_OR_BLANK, FileNameUtil.checkFileName(" "));
+    }
+
+    @Test
+    public void test_checkFileName6D() {
+        assertEquals(FileNameUtil.FileNameCheckResult.EMPTY_OR_BLANK, FileNameUtil.checkFileName("\t\t   "));
+    }
+
+    @Test
+    public void test_checkFileName7A() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME, FileNameUtil.checkFileName("CON")
+        );
+    }
+
+    @Test
+    public void test_checkFileName7B() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME, FileNameUtil.checkFileName("CON.txt")
+        );
+    }
+
+    @Test
+    public void test_checkFileName7C() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME, FileNameUtil.checkFileName("COM¹")
+        );
+    }
+
+    @Test
+    public void test_checkFileName7D() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME, FileNameUtil.checkFileName("COM¹.gif")
+        );
+    }
+
+    @Test
+    public void test_checkFileName7E() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME, FileNameUtil.checkFileName("lpt3")
+        );
+    }
+
+    @Test
+    public void test_checkFileName8A() {
+        assertEquals(
+            FileNameUtil.FileNameCheckResult.ILLEGAL_CHARACTERS,
+            FileNameUtil.checkFileName("my/file.txt")
+        );
+    }
+
+    @Test
+    public void test_checkFileName9A() {
+        assertEquals(FileNameUtil.FileNameCheckResult.NO_PROBLEMS, FileNameUtil.checkFileName(".nvm"));
+    }
+
+    @Test
+    public void test_checkFileName9B() {
+        assertEquals(FileNameUtil.FileNameCheckResult.NO_PROBLEMS, FileNameUtil.checkFileName(".nvm"));
+    }
+
+    @Test
+    public void test_checkFileName9C() {
+        assertEquals(FileNameUtil.FileNameCheckResult.NO_PROBLEMS, FileNameUtil.checkFileName(".a"));
+    }
+
+    @Test
+    public void test_getGoodFileName1A() {
+        assertEquals("my  file.txt", FileNameUtil.getGoodFileName("my  file.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName1B() {
+        assertEquals("my file.txt", FileNameUtil.getGoodFileName("my\tfile.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName1C() {
+        assertEquals("my file.txt", FileNameUtil.getGoodFileName("my\nfile.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName1D() {
+        assertEquals("my file.txt", FileNameUtil.getGoodFileName("my\rfile.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName1E() {
+        assertEquals("my  file.txt", FileNameUtil.getGoodFileName("my\t file.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName1F() {
+        assertEquals("my   file.txt", FileNameUtil.getGoodFileName("my\t\n\rfile.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName2() {
+        assertEquals("my.file.txt", FileNameUtil.getGoodFileName("my.file.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName3A() {
+        assertEquals("my_file.txt", FileNameUtil.getGoodFileName("my\u0000file.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName3B() {
+        assertEquals(
+            "_my_-_file.txt",
+            FileNameUtil.getGoodFileName("<my>-\u0000file.txt.", null, "text/plain")
+        );
+    }
+
+    @Test
+    public void test_getGoodFileName4() {
+        assertEquals("file", FileNameUtil.getGoodFileName("file", null, "image/gif"));
+    }
+
+    @Test
+    public void test_getGoodFileName5() {
+        assertEquals("Untitled.gif", FileNameUtil.getGoodFileName(".", null, "image/gif"));
+    }
+
+    @Test
+    public void test_getGoodFileName6A() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodFileName(null, null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName6B() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodFileName("", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName6C() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodFileName(" ", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName6D() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodFileName("\t\t   ", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName7A() {
+        assertEquals("Untitled", FileNameUtil.getGoodFileName("CON", null, null));
+    }
+
+    @Test
+    public void test_getGoodFileName7B() {
+        assertEquals("Untitled.txt", FileNameUtil.getGoodFileName("CON.txt", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName7C() {
+        assertEquals("Untitled", FileNameUtil.getGoodFileName("COM¹", null, null));
+    }
+
+    @Test
+    public void test_getGoodFileName7D() {
+        assertEquals("Untitled.gif", FileNameUtil.getGoodFileName("COM¹.gif", null, "image/gif"));
+    }
+
+    @Test
+    public void test_getGoodFileName7E() {
+        assertEquals("Untitled", FileNameUtil.getGoodFileName("lpt", null, "application/octet-stream"));
+    }
+
+    @Test
+    public void test_getGoodFileName8A() {
+        assertEquals("bar__.foo", FileNameUtil.getGoodFileName("bar\u007f\u0080.foo", null, "text/plain"));
+    }
+
+    @Test
+    public void test_getGoodFileName8B() {
+        assertEquals("bar__.foo", FileNameUtil.getGoodFileName("bar\u008f\u009f.foo", null, "text/plain"));
     }
 
     @Test
@@ -498,42 +559,6 @@ public final class FileNameUtilTest {
     public void test_platformSpecificPath1() {
         String path = File.separator + "foo" + File.separator + "bar" + File.separator + "baz";
         assertSame(path, FileNameUtil.platformSpecificPath(path));
-    }
-
-    /**
-     * Effectively identical to {@link #test_platformIndependentPath1()}.
-     */
-    @Test
-    public void test_filePathToUrlPath1() {
-        String path = "/foo/bar/baz";
-        assertSame(path, FileNameUtil.filePathToUrlPath(path));
-    }
-
-    /**
-     * Effectively identical to {@link #test_platformIndependentPath2()}.
-     */
-    @Test
-    public void test_filePathToUrlPath2() {
-        assertEquals("/foo/bar/baz", FileNameUtil.filePathToUrlPath("\\foo\\bar\\baz"));
-    }
-
-    /**
-     * Effectively identical to {@link #test_platformIndependentPath3()}.
-     */
-    @Test
-    public void test_filePathToUrlPath3() {
-        assertEquals("foo/bar/baz", FileNameUtil.filePathToUrlPath("foo\\bar\\baz"));
-    }
-
-    /**
-     * Effectively identical to {@link #test_platformIndependentPath4()}, even with the : character.
-     */
-    @Test
-    public void test_filePathToUrlPath4() {
-        assertEquals(
-            "C:/Program Files/Traction/traction/server",
-            FileNameUtil.filePathToUrlPath("C:\\Program Files\\Traction\\traction\\server")
-        );
     }
 
 }

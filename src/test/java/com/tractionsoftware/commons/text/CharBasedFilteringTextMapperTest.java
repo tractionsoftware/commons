@@ -289,4 +289,247 @@ class CharBasedFilteringTextMapperTest {
         CharSequence result = t.transform("axb");
         assertEquals("aXXb", result.toString());
     }
+
+    // ---------------------------------------------------------------------------
+    // TextTransformer factory methods - transform(CharSequence, Appendable) overload
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createRemovingTransformer_toAppendable_removesMatchingChars() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createRemovingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
+        StringBuilder sb = new StringBuilder();
+        t.transform("a1b2c", (Appendable) sb);
+        assertEquals("abc", sb.toString());
+    }
+
+    @Test
+    void createRetainingTransformer_toAppendable_retainsMatchingChars() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createRetainingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
+        StringBuilder sb = new StringBuilder();
+        t.transform("a1b2c", (Appendable) sb);
+        assertEquals("12", sb.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_charMapper_toAppendable() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createReplacingTransformer(
+            (StringUtil.CharMapper) Character::toUpperCase);
+        StringBuilder sb = new StringBuilder();
+        t.transform("hello", (Appendable) sb);
+        assertEquals("HELLO", sb.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_charToStringMapper_toAppendable() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createReplacingTransformer(
+            (StringUtil.CharToStringMapper) c -> c == 'x' ? "XX" : null);
+        StringBuilder sb = new StringBuilder();
+        t.transform("axb", (Appendable) sb);
+        assertEquals("aXXb", sb.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // TextTransformer factory methods - transform(Reader, Writer) overload
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createRemovingTransformer_readerWriter_removesMatchingChars() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createRemovingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("a1b2c"), sw);
+        assertEquals("abc", sw.toString());
+    }
+
+    @Test
+    void createRetainingTransformer_readerWriter_retainsMatchingChars() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createRetainingTransformer(StringUtil.MATCHER_ASCII_DIGIT);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("a1b2c"), sw);
+        assertEquals("12", sw.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_charMapper_readerWriter() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createReplacingTransformer(
+            (StringUtil.CharMapper) Character::toUpperCase);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("hello"), sw);
+        assertEquals("HELLO", sw.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_charToStringMapper_readerWriter() throws Exception {
+        TextTransformer t = CharBasedFilteringTextMapper.createReplacingTransformer(
+            (StringUtil.CharToStringMapper) c -> c == 'x' ? "XX" : null);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("axb"), sw);
+        assertEquals("aXXb", sw.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // createInstanceForGenericAppend - instanceof branches (PrintWriter / StringBuilder / generic Appendable)
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void removeIf_appendableStaticType_runtimeStringBuilder_usesStringBuilderBranch() {
+        StringBuilder sb = new StringBuilder();
+        Appendable out = sb;
+        CharBasedFilteringTextMapper.removeIf("a1b2c", out, StringUtil.MATCHER_ASCII_DIGIT);
+        assertEquals("abc", sb.toString());
+    }
+
+    @Test
+    void removeIf_appendableStaticType_runtimePrintWriter_usesPrintWriterBranch() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        Appendable out = pw;
+        CharBasedFilteringTextMapper.removeIf("a1b2c", out, StringUtil.MATCHER_ASCII_DIGIT);
+        pw.flush();
+        assertEquals("abc", sw.toString());
+    }
+
+    @Test
+    void removeIf_genericAppendable_notPrintWriterOrStringBuilder_usesGenericWriter() {
+        StringBuilder backing = new StringBuilder();
+        Appendable customAppendable = new Appendable() {
+
+            @Override
+            public Appendable append(CharSequence csq) {
+                backing.append(csq);
+                return this;
+            }
+
+            @Override
+            public Appendable append(CharSequence csq, int start, int end) {
+                backing.append(csq, start, end);
+                return this;
+            }
+
+            @Override
+            public Appendable append(char c) {
+                backing.append(c);
+                return this;
+            }
+
+        };
+        CharBasedFilteringTextMapper.removeIf("a1b2c", customAppendable, StringUtil.MATCHER_ASCII_DIGIT);
+        assertEquals("abc", backing.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // manual iteration via next() / CharValue - covers FilteringTextMapper.Value and CharValue
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void manualIteration_removeAndKeep() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("hello");
+        StringBuilder seen = new StringBuilder();
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            seen.append(value.c);
+            if (value.c == 'l') {
+                value.remove();
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("hello", seen.toString());
+        assertEquals("heo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_removeOrKeepIf() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            value.removeOrKeepIf(value.c == 'l');
+        }
+        assertEquals("heo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceChar() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.c == 'l') {
+                value.replace('L');
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("heLLo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceString() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.c == 'l') {
+                value.replace("LL");
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("heLLLLo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceStringVarargs() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.c == 'l') {
+                value.replace("[", "L", "]");
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("he[L][L]o", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceWithCodePoint() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("a-b");
+        int emoji = 0x1F600;
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.c == '-') {
+                value.replaceWithCodePoint(emoji);
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("a" + new String(Character.toChars(emoji)) + "b", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_appendReplacement() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("a-b");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.c == '-') {
+                value.appendReplacement(sb -> sb.append("<<>>"));
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("a<<>>b", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_consumingTwice_throwsIllegalStateException() {
+        CharBasedFilteringTextMapper<StringBuilder,String> mapper = CharBasedFilteringTextMapper.createDefaultInstance("a");
+        var value = mapper.next();
+        value.keep();
+        assertThrows(IllegalStateException.class, value::remove);
+    }
+
 }

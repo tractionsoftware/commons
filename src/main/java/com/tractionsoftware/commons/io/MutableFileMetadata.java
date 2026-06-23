@@ -200,15 +200,15 @@ public interface MutableFileMetadata extends FileMetadata {
      */
     public void setContentBase(@Nullable String contentBase);
 
-    public default void ensureValidFilename() {
-        ensureValidFilename(null);
+    public default void ensureGoodFilename() {
+        ensureGoodFilename(null);
     }
 
     public void setResourceType(@Nullable FileResourceType resourceType);
 
     /**
      * Modifies the file name as necessary to make it "valid" and minimally normalized. This default implementation
-     * delegates to {@link FileNameUtil#getMinimallyValidFileName(String, java.util.function.Supplier, String)} to
+     * delegates to {@link FileNameUtil#getGoodFileName(String, java.util.function.Supplier, String)} to
      * transform the {@link #getFilename() current file name}, passing the
      * {@link #getContentType() currently set Content-Type} and not requesting that a file extension be added to an
      * otherwise valid file name, and using {@link #setFilename(String)} to apply the result. It should be adequate for
@@ -217,8 +217,8 @@ public interface MutableFileMetadata extends FileMetadata {
      * @param getDefaultBaseName
      *     an optional provider for the base of the default file name (without the extension).
      */
-    public default void ensureValidFilename(@Nullable Supplier<String> getDefaultBaseName) {
-        setFilename(FileNameUtil.getMinimallyValidFileName(getFilename(), getDefaultBaseName, getContentType()));
+    public default void ensureGoodFilename(@Nullable Supplier<String> getDefaultBaseName) {
+        setFilename(FileNameUtil.getGoodFileName(getFilename(), getDefaultBaseName, getContentType()));
     }
 
     /**
@@ -226,7 +226,7 @@ public interface MutableFileMetadata extends FileMetadata {
      *
      * <p>
      * This default implementation determines the new file name that incorporates the new file name extension, using
-     * {@link FileNameUtil#getMinimallyValidFileName(String, Supplier, String)} to ensure the result will be valid, and
+     * {@link FileNameUtil#getGoodFileName(String, Supplier, String)} to ensure the result will be valid, and
      * using {@link #setFilename(String)} to update the file name accordingly. It should be suitable for all
      * implementations.
      *
@@ -242,7 +242,7 @@ public interface MutableFileMetadata extends FileMetadata {
         else {
             // Ensure the file name is "minimally valid" even with the given extension.
             setFilename(
-                FileNameUtil.getMinimallyValidFileName(
+                FileNameUtil.getGoodFileName(
                     namePart + FileNameUtil.EXTENSION_SEPARATOR_CHAR + ext, null, getContentType()
                 )
             );

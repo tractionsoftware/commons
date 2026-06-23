@@ -20,13 +20,14 @@
 
 package com.tractionsoftware.commons.io;
 
+import com.tractionsoftware.commons.util.MayHaveKnownSize;
 import jakarta.annotation.Nonnull;
 
 import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.util.Objects;
 
-public abstract class SizedInputStream extends FilterInputStream {
+public abstract class SizedInputStream extends FilterInputStream implements MayHaveKnownSize {
 
     @Nonnull
     public static final SizedInputStream forInputStream(@Nonnull InputStream input, long byteSize) {
@@ -51,10 +52,11 @@ public abstract class SizedInputStream extends FilterInputStream {
     /**
      * Returns the size of this {@link InputStream}, if the size is known.
      *
-     * @return the size of this {@link InputStream}, if the size is known; -1 otherwise.
+     * @return the size of this {@link InputStream}, if the size is known; {@link Long#MIN_VALUE} otherwise.
      */
+    @Override
     public long size() {
-        return -1L;
+        return Long.MIN_VALUE;
     }
 
 }

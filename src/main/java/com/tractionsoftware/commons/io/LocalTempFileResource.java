@@ -50,7 +50,7 @@ final class LocalTempFileResource extends AbstractTempFileResource implements Te
 
     @Override
     public final boolean isValid() {
-        if (FileUtil.isValidFileForRead(file)) {
+        if (FileUtil.fileIsOrWouldBeReadable(file)) {
             return true;
         }
         return false;

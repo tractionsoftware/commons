@@ -302,15 +302,35 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     private final class ReadOnlyView implements FileMetadata {
 
+        @Override
+        public final boolean equals(Object other) {
+            if (other instanceof ReadOnlyView otherReadOnly &&
+                SimpleMutableFileMetadata.this == otherReadOnly.container()) {
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public final int hashCode() {
+            return Objects.hash(getURI());
+        }
+
+        @Nonnull
+        @Override
+        public final String toString() {
+            return "Read-only:{" + SimpleMutableFileMetadata.this + "}";
+        }
+
         @Nullable
         @Override
-        public String getFilename() {
+        public final String getFilename() {
             return SimpleMutableFileMetadata.this.getFilename();
         }
 
         @Nullable
         @Override
-        public URI getURI() {
+        public final URI getURI() {
             return SimpleMutableFileMetadata.this.getURI();
         }
 
@@ -364,6 +384,10 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
         @Override
         public final FileMetadata toReadOnly() {
             return this;
+        }
+
+        private final SimpleMutableFileMetadata container() {
+            return SimpleMutableFileMetadata.this;
         }
 
     }

@@ -932,4 +932,180 @@ class SimpleMutableFileMetadataTest {
         assertTrue(props.getPropertyNames().contains("customProp"));
     }
 
+    // ---------------------------------------------------------------------------
+    // MutableFileMetadata default methods: setURISpec, setContentType(MediaType),
+    // ensureGoodFilename, setExtension
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void setURISpec_validSpec_setsURI() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setURISpec("file:///tmp/foo.txt");
+        assertEquals(URI.create("file:///tmp/foo.txt"), metadata.getURI());
+    }
+
+    @Test
+    void setURISpec_null_setsURIToNull() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setURISpec("file:///tmp/foo.txt");
+        metadata.setURISpec(null);
+        assertNull(metadata.getURI());
+    }
+
+    @Test
+    void setContentType_mediaType_setsStringForm() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setContentType(com.google.common.net.MediaType.PLAIN_TEXT_UTF_8);
+        assertEquals(com.google.common.net.MediaType.PLAIN_TEXT_UTF_8.toString(), metadata.getContentType());
+    }
+
+    @Test
+    void setContentType_nullMediaType_setsContentTypeToNull() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setContentType("text/plain");
+        metadata.setContentType((com.google.common.net.MediaType) null);
+        assertNull(metadata.getContentType());
+    }
+
+    @Test
+    void ensureGoodFilename_alreadyValidName_isUnchanged() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report.txt");
+        metadata.ensureGoodFilename();
+        assertEquals("report.txt", metadata.getFilename());
+    }
+
+    @Test
+    void ensureGoodFilename_nullFilenameAndContentType_usesDefaultBaseName() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.ensureGoodFilename();
+        assertEquals("Untitled", metadata.getFilename());
+    }
+
+    @Test
+    void ensureGoodFilename_withSupplierOfDefaultBaseName_isUsedWhenNameIsBlank() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.ensureGoodFilename(() -> "MyDefault");
+        assertEquals("MyDefault", metadata.getFilename());
+    }
+
+    @Test
+    void setExtension_replacesExistingExtension() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report.txt");
+        metadata.setExtension("pdf");
+        assertEquals("report.pdf", metadata.getFilename());
+    }
+
+    @Test
+    void setExtension_blank_removesExtension() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report.txt");
+        metadata.setExtension(null);
+        assertEquals("report", metadata.getFilename());
+    }
+
+    @Test
+    void setExtension_onNameWithoutExtension_addsOne() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report");
+        metadata.setExtension("csv");
+        assertEquals("report.csv", metadata.getFilename());
+    }
+
+    // ---------------------------------------------------------------------------
+    // FileMetadata default methods: getURISpec, hasGoodFileName, hasLegalFileName,
+    // appearsToBeImage, copyTo
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void getURISpec_withURISet_returnsItsStringForm() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setURI(URI.create("file:///tmp/foo.txt"));
+        assertEquals("file:///tmp/foo.txt", metadata.getURISpec());
+    }
+
+    @Test
+    void getURISpec_noURISet_returnsNull() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        assertNull(metadata.getURISpec());
+    }
+
+    @Test
+    void hasGoodFileName_validName_returnsTrue() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report.txt");
+        assertTrue(metadata.hasGoodFileName());
+    }
+
+    @Test
+    void hasGoodFileName_illegalCharacters_returnsFalse() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("bad:name?.txt");
+        assertFalse(metadata.hasGoodFileName());
+    }
+
+    @Test
+    void hasLegalFileName_validName_returnsTrue() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("report.txt");
+        assertTrue(metadata.hasLegalFileName());
+    }
+
+    @Test
+    void hasLegalFileName_illegalCharacters_returnsFalse() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("bad:name?.txt");
+        assertFalse(metadata.hasLegalFileName());
+    }
+
+    @Test
+    void appearsToBeImage_imageExtension_returnsTrue() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("photo.jpg");
+        assertTrue(metadata.appearsToBeImage());
+    }
+
+    @Test
+    void appearsToBeImage_nonImage_returnsFalse() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        metadata.setFilename("doc.txt");
+        metadata.setContentType("text/plain");
+        assertFalse(metadata.appearsToBeImage());
+    }
+
+    @Test
+    void copyTo_copiesAllProperties() {
+        SimpleMutableFileMetadata source = new SimpleMutableFileMetadata();
+        source.setFilename("report.txt");
+        source.setDescription("a report");
+        source.setContentType("text/plain");
+        source.setURI(URI.create("file:///tmp/report.txt"));
+        source.setReferenceToPersistedFile(true);
+        source.setNumber(42);
+        source.setContentId("cid-1");
+        source.setContentLocation("loc-1");
+        source.setContentBase("base-1");
+
+        SimpleMutableFileMetadata destination = new SimpleMutableFileMetadata();
+        source.copyTo(destination);
+
+        assertEquals("report.txt", destination.getFilename());
+        assertEquals("a report", destination.getDescription());
+        assertEquals("text/plain", destination.getContentType());
+        assertEquals(URI.create("file:///tmp/report.txt"), destination.getURI());
+        assertTrue(destination.isReferenceToPersistedFile());
+        assertEquals(42, destination.getNumber());
+        assertEquals("cid-1", destination.getContentId());
+        assertEquals("loc-1", destination.getContentLocation());
+        assertEquals("base-1", destination.getContentBase());
+    }
+
+    @Test
+    void copyTo_nullDestination_doesNotThrow() {
+        SimpleMutableFileMetadata source = new SimpleMutableFileMetadata();
+        source.setFilename("report.txt");
+        assertDoesNotThrow(() -> source.copyTo(null));
+    }
+
 }

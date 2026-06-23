@@ -20,11 +20,15 @@
 
 package com.tractionsoftware.commons.net.http.server;
 
+import com.google.common.net.HttpHeaders;
+import com.google.common.net.MediaType;
 import com.tractionsoftware.commons.io.SizedInputStream;
-import com.tractionsoftware.commons.processor.Consumer;
+import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.processor.Result;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Utility methods that encapsulate sending the content from a {@link Result} as an HTTP response.
@@ -37,15 +41,47 @@ public final class HttpResultSender {
     private HttpResultSender() {
     }
 
+    public static final String CONTENT_DISPOSITION_HEADER_FORMAT_ATTACHMENT = "attachment; %s";
+
+    public static final String CONTENT_DISPOSITION_HEADER_FILE_NAME_TOKEN_FORMAT_MODERN =
+        "filename*=" + StandardCharsets.UTF_8.name() + "''%s";
+
+    public static final String CONTENT_DISPOSITION_HEADER_FILE_NAME_TOKEN_FORMAT_CLASSIC = "filename=\"%s\"";
+
     public static interface ResponseWrapper {
 
         public void setContentLength(long byteSize);
 
-        public void setContentType(String contentTypeSpec);
+        public void setContentType(MediaType mediaType);
 
-        public void send(SizedInputStream input);
+        public void setHeader(String name, String value);
 
-        public void setDefaultDownloadHeaders(String downloadFileName, String contentType);
+        public void addHeader(String name, String value);
+
+        public default void setDefaultDownloadHeaders(String downloadFileName, MediaType contentType) {
+
+            setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+            setContentType(Objects.requireNonNullElse(contentType, MediaType.OCTET_STREAM));
+
+            String urlEncFileName = URLUtil.getUrlEncoding(downloadFileName);
+            addHeader(
+                HttpHeaders.CONTENT_DISPOSITION,
+                String.format(
+                    CONTENT_DISPOSITION_HEADER_FORMAT_ATTACHMENT,
+                    String.format(CONTENT_DISPOSITION_HEADER_FILE_NAME_TOKEN_FORMAT_CLASSIC, urlEncFileName)
+                )
+            );
+            addHeader(
+                HttpHeaders.CONTENT_DISPOSITION,
+                String.format(
+                    CONTENT_DISPOSITION_HEADER_FORMAT_ATTACHMENT,
+                    String.format(CONTENT_DISPOSITION_HEADER_FILE_NAME_TOKEN_FORMAT_MODERN, urlEncFileName)
+                )
+            );
+
+        }
+
+        public void send(SizedInputStream input) throws IOException;
 
     }
 
@@ -55,36 +91,34 @@ public final class HttpResultSender {
 
         protected final Result result;
 
-        protected final String contentType;
+        protected final MediaType contentType;
 
-        protected Sender(ResponseWrapper response, Result result, String contentType) {
+        protected Sender(ResponseWrapper response, Result result, MediaType contentType) {
             this.response = response;
             this.result = result;
             this.contentType = contentType;
         }
 
         public final void send() throws IOException {
-            result.consume(getConsumer());
+            result.consume(this::sendImpl);
         }
 
-        private final Consumer<IOException> getConsumer() {
-            return input -> {
-                setResponseHeaders();
-                response.send(input);
-            };
+        private final void sendImpl(SizedInputStream input) throws IOException {
+            setResponseHeaders();
+            response.send(input);
         }
 
         protected abstract void setResponseHeaders();
 
     }
 
-    private static final class NormalSender extends Sender {
+    private static final class InlineSender extends Sender {
 
-        private static final Sender getInstance(ResponseWrapper response, Result result, String contentType) {
-            return new NormalSender(response, result, contentType);
+        private static final Sender getInstance(ResponseWrapper response, Result result, MediaType contentType) {
+            return new InlineSender(response, result, contentType);
         }
 
-        private NormalSender(ResponseWrapper response, Result result, String contentType) {
+        private InlineSender(ResponseWrapper response, Result result, MediaType contentType) {
             super(response, result, contentType);
         }
 
@@ -95,15 +129,15 @@ public final class HttpResultSender {
 
     }
 
-    private static final class SenderForDownload extends Sender {
+    private static final class DownloadSender extends Sender {
 
         private final String downloadFileName;
 
-        private static final Sender getInstance(ResponseWrapper response, Result result, String contentType, String downloadFileName) {
-            return new SenderForDownload(response, result, contentType, downloadFileName);
+        private static final Sender getInstance(ResponseWrapper response, Result result, MediaType contentType, String downloadFileName) {
+            return new DownloadSender(response, result, contentType, downloadFileName);
         }
 
-        private SenderForDownload(ResponseWrapper response, Result result, String contentType, String downloadFileName) {
+        private DownloadSender(ResponseWrapper response, Result result, MediaType contentType, String downloadFileName) {
             super(response, result, contentType);
             this.downloadFileName = downloadFileName;
         }
@@ -116,7 +150,7 @@ public final class HttpResultSender {
     }
 
     /**
-     * Sends the given TemporaryResult to the client in the normal fashion for HTTP responses, consuming it.
+     * Sends the given {@link Result} to the client in the normal "inline" fashion for HTTP responses, consuming it.
      *
      * @param response
      *     to which the result content should be written.
@@ -127,9 +161,9 @@ public final class HttpResultSender {
      * @throws IOException
      *     if there is a problem sending the result.
      */
-    public static final void sendHttpNormal(ResponseWrapper response, Result result, String contentType)
+    public static final void sendHttpInline(ResponseWrapper response, Result result, MediaType contentType)
         throws IOException {
-        NormalSender.getInstance(response, result, contentType).send();
+        InlineSender.getInstance(response, result, contentType).send();
     }
 
     /**
@@ -147,9 +181,9 @@ public final class HttpResultSender {
      * @throws IOException
      *     if there is a problem sending the result.
      */
-    public static final void sendHttpDownload(ResponseWrapper response, Result result, String contentType, String downloadFileName)
+    public static final void sendHttpDownload(ResponseWrapper response, Result result, MediaType contentType, String downloadFileName)
         throws IOException {
-        SenderForDownload.getInstance(response, result, contentType, downloadFileName).send();
+        DownloadSender.getInstance(response, result, contentType, downloadFileName).send();
     }
 
 }

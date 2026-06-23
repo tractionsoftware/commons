@@ -21,7 +21,6 @@
 package com.tractionsoftware.commons.properties;
 
 import jakarta.annotation.Nonnull;
-import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +66,7 @@ public abstract class ForwardingGetProperty extends ForwardingPropertyCollection
     public String toString() {
         return "GetProperty: fwd {" + delegate() + "}";
     }
+
     /**
      * Returns the {@link GetProperty} that should be used for the implementation of any GetProperty methods.
      *
@@ -176,9 +176,7 @@ public abstract class ForwardingGetProperty extends ForwardingPropertyCollection
         if (isStaticallySpecifiedDelegate()) {
             return delegateMapper.apply(delegate());
         }
-        return DynamicForwardingGetProperty.wrap(() -> {
-            return delegateMapper.apply(delegate());
-        });
+        return DynamicForwardingGetProperty.wrap(() -> delegateMapper.apply(delegate()));
     }
 
     /**
@@ -188,7 +186,8 @@ public abstract class ForwardingGetProperty extends ForwardingPropertyCollection
      * {@link PropertyCollection} interface.
      *
      * <p>
-     * This default implementation returns false, since by default
+     * This default implementation returns false, since the delegate is not static by default. Subclasses should
+     * override it as appropriate.
      *
      * @return true if the {@link #delegate()} method returns the value of a statically specified {@link GetProperty};
      *     false otherwise.

@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.io.output.TeeWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public final class StringWriteUtil {
@@ -55,7 +58,7 @@ public final class StringWriteUtil {
             this.end = end;
         }
 
-        public static CodePointChars createInstance(int[] codePoints, int start, int end) {
+        public static final CodePointChars createInstance(@Nonnull int[] codePoints, int start, int end) {
             char[] chars = new char[2 * (end - start)];
             int nextIndex = 0;
             for (int i = start; i < end; i++) {
@@ -67,24 +70,24 @@ public final class StringWriteUtil {
             return new CodePointChars(chars, nextIndex);
         }
 
-        public void append(Appendable out) throws IOException {
+        public final void append(@Nonnull Appendable out) throws IOException {
             out.append(EnhancedCharSequence.getInstance(chars, 0, end));
         }
 
-        public void write(PrintWriter out) {
+        public final void write(@Nonnull PrintWriter out) {
             out.write(chars, 0, end);
         }
 
     }
 
-    public static void safeAppend(StringBuilder buffer, Object o) {
+    public static final void safeAppend(StringBuilder buffer, Object o) {
         if (buffer == null || o == null) {
             return;
         }
         buffer.append(o);
     }
 
-    public static void safeAppend(Appendable out, CharSequence str) {
+    public static final void safeAppend(@Nullable Appendable out, @Nullable CharSequence str) {
         if (out == null || StringUtils.isEmpty(str)) {
             return;
         }
@@ -96,7 +99,7 @@ public final class StringWriteUtil {
         }
     }
 
-    public static void safeAppend(Appendable out, CharSequence str, int start, int end) {
+    public static final void safeAppend(@Nullable Appendable out, @Nullable CharSequence str, int start, int end) {
         if (out == null || StringUtils.isEmpty(str)) {
             return;
         }
@@ -108,7 +111,7 @@ public final class StringWriteUtil {
         }
     }
 
-    public static void safeAppend(Appendable buffer, char c) {
+    public static final void safeAppend(@Nullable Appendable buffer, char c) {
         if (buffer == null) {
             return;
         }
@@ -129,7 +132,8 @@ public final class StringWriteUtil {
      * @return the String representing the output written to the {@link PrintWriter} that is provided to the callback's
      *     {@link Consumer#accept(Object)} method.
      */
-    public static String getPrintedString(Consumer<PrintWriter> callback) {
+    public static final String getPrintedString(@Nonnull Consumer<PrintWriter> callback) {
+        Objects.requireNonNull(callback, "callback");
         StringWriter sw = new StringWriter();
         PrintWriter out = SingleThreadPrintWriter.createInstance(sw);
         callback.accept(out);
@@ -137,7 +141,7 @@ public final class StringWriteUtil {
         return sw.toString();
     }
 
-    public static String getString(Consumer<StringBuilder> callback) {
+    public static final String getString(Consumer<StringBuilder> callback) {
         StringBuilder buff = new StringBuilder();
         callback.accept(buff);
         return buff.toString();
@@ -158,7 +162,7 @@ public final class StringWriteUtil {
      * @throws X
      *     if one is wrapped by a RuntimeException thrown by {@link Consumer#accept(Object)}.
      */
-    public static <X extends Exception> String getPrintedString(Consumer<PrintWriter> callback, Class<X> exceptionType)
+    public static final <X extends Exception> String getPrintedString(Consumer<PrintWriter> callback, Class<X> exceptionType)
         throws X {
         try {
             return getPrintedString(callback);
@@ -182,7 +186,7 @@ public final class StringWriteUtil {
      * @return the String representing the output written to the {@link PrintWriter} that is provided to the callback's
      *     {@link Consumer#accept(Object)} method.
      */
-    public static String getFullOrPartialPrintedString(Consumer<PrintWriter> callback) {
+    public static final String getFullOrPartialPrintedString(Consumer<PrintWriter> callback) {
         StringWriter sw = new StringWriter();
         PrintWriter out = SingleThreadPrintWriter.createInstance(sw);
         try {
@@ -195,7 +199,7 @@ public final class StringWriteUtil {
         return sw.toString();
     }
 
-    public static String getPrintedResultAndTee(Consumer<PrintWriter> callback, Writer... also) {
+    public static final String getPrintedResultAndTee(Consumer<PrintWriter> callback, Writer... also) {
         StringWriter sw = new StringWriter();
         ImmutableList.Builder<Writer> writers = ImmutableList.builder();
         writers.add(sw);
@@ -206,17 +210,19 @@ public final class StringWriteUtil {
         return sw.toString();
     }
 
-    public static void appendCodePoints(StringBuilder buff, int[] codePoints, int start, int end) {
+    public static final void appendCodePoints(@Nonnull StringBuilder buff, @Nonnull int[] codePoints, int start, int end) {
+        Objects.requireNonNull(buff, "buffer");
+        Objects.requireNonNull(codePoints, "code points");
         for (int i = start; i < end; i++) {
             buff.appendCodePoint(codePoints[i]);
         }
     }
 
-    public static void appendCodePoints(PrintWriter out, int[] codePoints, int start, int end) {
+    public static final void appendCodePoints(PrintWriter out, int[] codePoints, int start, int end) {
         CodePointChars.createInstance(codePoints, start, end).write(out);
     }
 
-    public static void appendCodePoints(Appendable out, int[] codePoints, int start, int end) throws IOException {
+    public static final void appendCodePoints(Appendable out, int[] codePoints, int start, int end) throws IOException {
         if (out instanceof StringBuilder buff) {
             appendCodePoints(buff, codePoints, start, end);
             return;
@@ -228,31 +234,31 @@ public final class StringWriteUtil {
         CodePointChars.createInstance(codePoints, start, end).append(out);
     }
 
-    public static void appendTrimmed(StringBuilder buff, CharSequence str) {
+    public static final void appendTrimmed(@Nonnull StringBuilder buff, CharSequence str) {
         appendMatching(buff, str, CharMatcher.whitespace().negate());
     }
 
-    public static void printTrimmed(PrintWriter out, CharSequence str) {
+    public static final void printTrimmed(@Nullable PrintWriter out, CharSequence str) {
         printMatching(out, str, CharMatcher.whitespace().negate());
     }
 
-    public static void appendTrimmed(Appendable out, CharSequence str) throws IOException {
+    public static final void appendTrimmed(@Nullable Appendable out, CharSequence str) throws IOException {
         appendMatching(out, str, CharMatcher.whitespace().negate());
     }
 
-    public static void appendMatching(StringBuilder buff, CharSequence str, CharMatcher matcher) {
+    public static final void appendMatching(@Nonnull StringBuilder buff, CharSequence str, CharMatcher matcher) {
         StringUtil.getMatchingRange(str, matcher).append(buff, str);
     }
 
-    public static void printMatching(PrintWriter out, CharSequence str, CharMatcher matcher) {
+    public static final void printMatching(@Nullable PrintWriter out, CharSequence str, CharMatcher matcher) {
         StringUtil.getMatchingRange(str, matcher).print(out, str);
     }
 
-    public static void appendMatching(Appendable out, CharSequence str, CharMatcher matcher) throws IOException {
+    public static final void appendMatching(@Nullable Appendable out, CharSequence str, CharMatcher matcher) throws IOException {
         StringUtil.getMatchingRange(str, matcher).append(out, str);
     }
 
-    public static boolean appendTo(Object appendTo, String appendValue, Consumer<Object> onUpdate) throws IOException {
+    public static final boolean appendTo(@Nullable Object appendTo, String appendValue, Consumer<Object> onUpdate) throws IOException {
         if (appendTo instanceof Appendable out) {
             out.append(appendValue);
             return true;
@@ -264,7 +270,7 @@ public final class StringWriteUtil {
         return false;
     }
 
-    public static boolean appendToSafe(Object appendTo, String appendValue, Consumer<Object> onUpdate) {
+    public static final boolean appendToSafe(Object appendTo, String appendValue, Consumer<Object> onUpdate) {
         try {
             return appendTo(appendTo, appendValue, onUpdate);
         }

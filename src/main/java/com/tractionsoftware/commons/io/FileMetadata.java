@@ -111,16 +111,16 @@ public interface FileMetadata {
     public int getNumber();
 
     /**
-     * Returns true if this FileMetadata represents a reference to a "persisted" file, such as an attachment or shared file
-     * that has been stored in the appropriate repository, as opposed to a temporary file.
+     * Returns true if this FileMetadata represents a reference to a "persisted" file, such as an attachment or shared
+     * file that has been stored in the appropriate repository, as opposed to a temporary file.
      *
      * @return true if this FileMetadata represents a reference to a "persisted" file; false otherwise.
      */
     public boolean isReferenceToPersistedFile();
 
     /**
-     * Returns true if this FileMetadata represents a reference to a temp file. This is as opposed to a "persisted" file,
-     * such as an attachment or shared file that has been stored in the appropriate repository.
+     * Returns true if this FileMetadata represents a reference to a temp file. This is as opposed to a "persisted"
+     * file, such as an attachment or shared file that has been stored in the appropriate repository.
      *
      * <p>
      * This default implementation returns {@code !isReferenceToPersistedFile()}, which must always be true by
@@ -165,13 +165,25 @@ public interface FileMetadata {
     public String getContentBase();
 
     /**
-     * Returns true if this {@link FileMetadata} has a minimally valid file name.
+     * Returns true if this {@link FileMetadata} has a file name with no problems, containing no illegal or discouraged
+     * characters.
      *
-     * @return true if this {@link FileMetadata} has a minimally valid file name.
-     * @see FileNameUtil#isMinimallyValidFileName(String)
+     * @return true if this {@link FileMetadata} has a minimally legal file name, containing no illegal or discouraged
+     *     characters.
+     * @see FileNameUtil#checkFileName(String)
      */
-    public default boolean hasValidFileName() {
-        return FileNameUtil.isMinimallyValidFileName(getFilename());
+    public default boolean hasGoodFileName() {
+        return FileNameUtil.checkFileName(getFilename()).noProblem();
+    }
+
+    /**
+     * Returns true if this {@link FileMetadata} has a minimally legal file name.
+     *
+     * @return true if this {@link FileMetadata} has a minimally legal file name.
+     * @see FileNameUtil#checkFileName(String)
+     */
+    public default boolean hasLegalFileName() {
+        return FileNameUtil.checkFileName(getFilename()).legal();
     }
 
     /**

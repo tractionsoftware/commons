@@ -77,7 +77,7 @@ public class PropStoreCommitErrorException extends PropStoreCommitException {
      *     the underlying cause.
      */
     public PropStoreCommitErrorException(String message, Throwable cause) {
-        super(cause);
+        super(message, cause);
     }
 
     @Override

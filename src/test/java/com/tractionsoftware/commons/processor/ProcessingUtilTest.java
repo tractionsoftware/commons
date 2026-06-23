@@ -72,42 +72,8 @@ public final class ProcessingUtilTest {
     // =====================================================================
 
     /**
-     * A minimal in-memory Result for testing, backed by a ByteArrayOutputStream.
+     * A minimal ResultProvider that produces ByteArrayResult instances.
      */
-    static final class ByteArrayResult extends Result {
-
-        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        private boolean populated = false;
-
-        public byte[] getBytes() {
-            return buffer.toByteArray();
-        }
-
-        @Override
-        public void release() {}
-
-        @Override
-        protected OutputStream getOutputStream() {
-            return buffer;
-        }
-
-        @Override
-        protected SizedInputStream getInputStream() {
-            byte[] data = buffer.toByteArray();
-            return SizedInputStream.forInputStream(new ByteArrayInputStream(data), data.length);
-        }
-
-        @Override
-        protected void onPopulate(boolean success) {
-            this.populated = success;
-        }
-
-        @Override
-        protected void onConsume(boolean success) {}
-
-    }
-
-    /** A minimal ResultProvider that produces ByteArrayResult instances. */
     static final class ByteArrayResultProvider implements ResultProvider {
         @Override
         public Result getEmptyResult() {
@@ -115,7 +81,9 @@ public final class ProcessingUtilTest {
         }
     }
 
-    /** A minimal Producer that writes a fixed string. */
+    /**
+     * A minimal Producer that writes a fixed string.
+     */
     static final class StringProducer implements Producer<IOException> {
 
         private final String content;
@@ -173,7 +141,9 @@ public final class ProcessingUtilTest {
     // getResultFromChainedProcessors
     // =====================================================================
 
-    /** A Processor that uppercases input. */
+    /**
+     * A Processor that uppercases input.
+     */
     static final class UpperCaseProcessor implements Processor<IOException> {
 
         @Override
@@ -192,9 +162,7 @@ public final class ProcessingUtilTest {
     @Test
     void getResultFromChainedProcessors_noProcessors_returnsOriginalContent() throws IOException {
         StringProducer producer = new StringProducer("hello");
-        Result result = ProcessingUtil.getResultFromChainedProcessors(
-            producer, Collections.<Processor<IOException>>emptyList().iterator()
-        );
+        Result result = ProcessingUtil.getResultFromChainedProcessors(producer, Collections.emptyIterator());
         assertNotNull(result);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();

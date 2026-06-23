@@ -29,9 +29,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -203,6 +209,238 @@ public final class CompressionUtilTest {
     void filePathNamer_returnsFilePath() {
         File f = new File("/some/path/file.txt");
         assertEquals(f.getPath(), CompressionUtil.FILE_PATH_ZIP_ENTRY_NAMER.getName(f));
+    }
+
+    // =====================================================================
+    // decompress - real success path
+    // =====================================================================
+
+    @Test
+    void decompress_zipFile_extractsContentAndDeletesOriginal() throws IOException {
+        // Use a file with no extension so the compressed zip's single entry name (after stripping
+        // ".zip") exactly matches the destination path that decompress() expects.
+        Path original = tempDir.resolve("payload");
+        Files.writeString(original, "payload content");
+
+        File zipFile = CompressionUtil.compress(original.toFile());
+        assertNotNull(zipFile);
+        assertTrue(zipFile.getName().endsWith(".zip"));
+
+        File result = CompressionUtil.decompress(zipFile);
+        assertNotNull(result);
+        assertEquals("payload", result.getName());
+        assertTrue(result.exists());
+        assertEquals("payload content", Files.readString(result.toPath()));
+
+        // the .zip file itself should have been deleted after successful decompression
+        assertFalse(zipFile.exists());
+    }
+
+    // =====================================================================
+    // compress - overwriting an existing destination
+    // =====================================================================
+
+    @Test
+    void compress_destinationAlreadyExists_overwritesIt() throws IOException {
+        Path original = tempDir.resolve("overwrite-me.txt");
+        Files.writeString(original, "new content");
+
+        Path preexistingZip = tempDir.resolve("overwrite-me.txt.zip");
+        Files.writeString(preexistingZip, "stale placeholder content that will be overwritten");
+
+        File result = CompressionUtil.compress(original.toFile());
+        assertNotNull(result);
+        assertEquals(preexistingZip.toFile(), result);
+
+        try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(preexistingZip))) {
+            ZipEntry entry = zin.getNextEntry();
+            assertNotNull(entry);
+            assertEquals("overwrite-me.txt", entry.getName());
+            assertEquals("new content", new String(zin.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    // =====================================================================
+    // unzip - directory entries and path-traversal protection
+    // =====================================================================
+
+    @Test
+    void unzip_directoryEntry_createsDirectory() throws IOException {
+        Path zipPath = tempDir.resolve("withdir.zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            ZipEntry dirEntry = new ZipEntry("subdir/");
+            zos.putNextEntry(dirEntry);
+            zos.closeEntry();
+        }
+
+        Path destDir = tempDir.resolve("unzipped-dir-test");
+        Files.createDirectories(destDir);
+        CompressionUtil.unzip(zipPath.toFile(), destDir.toFile());
+
+        assertTrue(Files.isDirectory(destDir.resolve("subdir")));
+    }
+
+    @Test
+    void unzip_entryOutsideTargetDirectory_skipped() throws IOException {
+        Path zipPath = tempDir.resolve("traversal.zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
+            ZipEntry entry = new ZipEntry("../escaped.txt");
+            zos.putNextEntry(entry);
+            zos.write("should not escape".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        Path destDir = tempDir.resolve("unzip-target");
+        Files.createDirectories(destDir);
+        CompressionUtil.unzip(zipPath.toFile(), destDir.toFile());
+
+        // the entry should have been skipped rather than written outside destDir
+        assertFalse(Files.exists(destDir.resolveSibling("escaped.txt")));
+        try (var stream = Files.list(destDir)) {
+            assertEquals(0, stream.count());
+        }
+    }
+
+    // =====================================================================
+    // zip(Collection, ZipOutputStream) - direct 2-arg overload
+    // =====================================================================
+
+    @Test
+    void zip_toZipOutputStream_directOverload_writesEntries() throws IOException {
+        Path src = tempDir.resolve("direct.txt");
+        Files.writeString(src, "direct content");
+
+        Path zipPath = tempDir.resolve("direct.zip");
+        try (OutputStream fileOut = Files.newOutputStream(zipPath);
+             ZipOutputStream zos = new ZipOutputStream(fileOut)) {
+            // zip(Collection, ZipOutputStream) does not call finish()/flush() itself; relies on
+            // ZipOutputStream auto-finishing when closed.
+            CompressionUtil.zip(List.of(src.toFile()), zos);
+        }
+
+        try (ZipInputStream zin = new ZipInputStream(Files.newInputStream(zipPath))) {
+            ZipEntry entry = zin.getNextEntry();
+            assertNotNull(entry);
+            assertEquals("direct.txt", entry.getName());
+            assertEquals("direct content", new String(zin.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    // =====================================================================
+    // jar family
+    // =====================================================================
+
+    @Test
+    void jar_createAndRead_roundTrips() throws IOException {
+        Path src = tempDir.resolve("jarred.txt");
+        Files.writeString(src, "jar content");
+
+        Path jarFile = tempDir.resolve("archive.jar");
+        CompressionUtil.jar(List.of(src.toFile()), jarFile.toFile());
+
+        assertTrue(Files.exists(jarFile));
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarFile))) {
+            JarEntry entry = jin.getNextJarEntry();
+            assertNotNull(entry);
+            assertEquals("jarred.txt", entry.getName());
+            assertEquals("jar content", new String(jin.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void jar_withManifest_includesManifestEntry() throws IOException {
+        Path src = tempDir.resolve("withmanifest.txt");
+        Files.writeString(src, "data");
+
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        manifest.getMainAttributes().put(Attributes.Name.MAIN_CLASS, "com.example.Main");
+
+        Path jarFile = tempDir.resolve("withmanifest.jar");
+        CompressionUtil.jar(List.of(src.toFile()), jarFile.toFile(), manifest);
+
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarFile))) {
+            Manifest readManifest = jin.getManifest();
+            assertNotNull(readManifest);
+            assertEquals("com.example.Main", readManifest.getMainAttributes().getValue(Attributes.Name.MAIN_CLASS));
+        }
+    }
+
+    @Test
+    void jar_withNamer_usesCustomEntryNames() throws IOException {
+        Path src = tempDir.resolve("custom.txt");
+        Files.writeString(src, "data");
+
+        Path jarFile = tempDir.resolve("customnamed.jar");
+        CompressionUtil.ZipEntryNameProvider namer = file -> "renamed-" + file.getName();
+        CompressionUtil.jar(List.of(src.toFile()), jarFile.toFile(), namer);
+
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarFile))) {
+            JarEntry entry = jin.getNextJarEntry();
+            assertNotNull(entry);
+            assertEquals("renamed-custom.txt", entry.getName());
+        }
+    }
+
+    @Test
+    void jar_toJarOutputStream_2argOverload_writesEntries() throws IOException {
+        Path src = tempDir.resolve("direct.txt");
+        Files.writeString(src, "jar direct content");
+
+        Path jarPath = tempDir.resolve("direct.jar");
+        try (JarOutputStream jos = CompressionUtil.getJarOutputStream(jarPath.toFile(), null)) {
+            CompressionUtil.jar(List.of(src.toFile()), jos);
+            jos.finish();
+            jos.flush();
+        }
+
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarPath))) {
+            JarEntry entry = jin.getNextJarEntry();
+            assertNotNull(entry);
+            assertEquals("direct.txt", entry.getName());
+        }
+    }
+
+    // =====================================================================
+    // addJarEntry
+    // =====================================================================
+
+    @Test
+    void addJarEntry_fileOverload_addsEntryNamedAfterFile() throws IOException {
+        Path src = tempDir.resolve("entrysource.txt");
+        Files.writeString(src, "entry content");
+
+        Path jarPath = tempDir.resolve("manual.jar");
+        try (JarOutputStream jos = CompressionUtil.getJarOutputStream(jarPath.toFile(), null)) {
+            CompressionUtil.addJarEntry(jos, src.toFile());
+            jos.finish();
+            jos.flush();
+        }
+
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarPath))) {
+            JarEntry entry = jin.getNextJarEntry();
+            assertNotNull(entry);
+            assertEquals("entrysource.txt", entry.getName());
+            assertEquals("entry content", new String(jin.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void addJarEntry_entryAndInputStreamOverload_addsGivenEntry() throws IOException {
+        Path jarPath = tempDir.resolve("manual-entry.jar");
+        byte[] content = "raw entry bytes".getBytes(StandardCharsets.UTF_8);
+        try (JarOutputStream jos = CompressionUtil.getJarOutputStream(jarPath.toFile(), null)) {
+            CompressionUtil.addJarEntry(jos, new JarEntry("custom-name.bin"), new ByteArrayInputStream(content));
+            jos.finish();
+            jos.flush();
+        }
+
+        try (JarInputStream jin = new JarInputStream(Files.newInputStream(jarPath))) {
+            JarEntry entry = jin.getNextJarEntry();
+            assertNotNull(entry);
+            assertEquals("custom-name.bin", entry.getName());
+            assertArrayEquals(content, jin.readAllBytes());
+        }
     }
 
 }

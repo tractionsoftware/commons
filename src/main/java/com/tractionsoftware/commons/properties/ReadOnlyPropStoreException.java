@@ -78,7 +78,7 @@ public class ReadOnlyPropStoreException extends PropStoreCommitException {
      *     the underlying cause.
      */
     public ReadOnlyPropStoreException(String message, Throwable cause) {
-        super(cause);
+        super(message, cause);
     }
 
     @Override

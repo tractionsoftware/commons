@@ -77,7 +77,7 @@ public class InvalidPropStoreChangesException extends PropStoreCommitException {
      *     the underlying cause.
      */
     public InvalidPropStoreChangesException(String message, Throwable cause) {
-        super(cause);
+        super(message, cause);
     }
 
     @Override

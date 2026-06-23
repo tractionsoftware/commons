@@ -1186,14 +1186,6 @@ public final class MailUtilTest {
         assertEquals("to@example.com", ((InternetAddress) recipients.getFirst()).getAddress());
     }
 
-    // =====================================================================
-    // BUG: headerLineToHeader(String, boolean) (and therefore encodedHeaderLineToHeader(String)) ignores its
-    // tryToDecode parameter -- it always calls parseHeaderLine(headerLine, false, ...). The decoding logic in
-    // parseHeaderLine itself works fine when invoked directly with tryToDecode=true (first test below); but the
-    // only public entry points meant to expose that behavior never actually apply it (second test below documents
-    // the current, broken behavior).
-    // =====================================================================
-
     @Test
     void parseHeaderLine_tryToDecodeTrue_decodesRfc2047EncodedSubjectLine() {
         Header h = MailUtil.parseHeaderLine("Subject: =?UTF-8?B?SGVsbG8=?=", true, null);

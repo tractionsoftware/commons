@@ -32,7 +32,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -81,7 +80,7 @@ public abstract class LocalTempFileService {
             File temp = FileUtil.createSystemTempFile("temp-", metadata.getExtension());
             try {
                 updatedMetadata.setURI(getURIImpl(temp));
-                updatedMetadata.ensureValidFilename();
+                updatedMetadata.ensureGoodFilename();
             }
             catch (RuntimeException e) {
                 FileUtil.deleteOrDeleteOnExit(temp);

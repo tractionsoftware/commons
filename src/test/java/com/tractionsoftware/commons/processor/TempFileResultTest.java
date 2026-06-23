@@ -20,8 +20,11 @@
 
 package com.tractionsoftware.commons.processor;
 
+import com.tractionsoftware.commons.io.ErrorTempFileResource;
 import com.tractionsoftware.commons.io.LocalTempFileService;
+import com.tractionsoftware.commons.io.SimpleMutableFileMetadata;
 import com.tractionsoftware.commons.io.TempFileResource;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +46,24 @@ public final class TempFileResultTest {
     // =====================================================================
 
     @Test
+    void getInstanceForExistingTempFile_null_throwsNullPointerException() {
+        assertThrows(
+            NullPointerException.class,
+            () -> TempFileResult.getInstanceForExistingTempFile(null, LOGGER)
+        );
+    }
+
+    @Test
     void getInstanceForExistingTempFile_null_throwsRuntimeException() {
-        assertThrows(RuntimeException.class,
-            () -> TempFileResult.getInstanceForExistingTempFile(null, LOGGER));
+        assertThrows(
+            RuntimeException.class,
+            () -> TempFileResult.getInstanceForExistingTempFile(
+                ErrorTempFileResource.createInstance(
+                    SimpleMutableFileMetadata.createFromFileName("no-such-file.txt"), new Exception("Boom")
+                ),
+                LOGGER
+            )
+        );
     }
 
     // =====================================================================
@@ -54,10 +72,26 @@ public final class TempFileResultTest {
 
     private static TempFileResult.Helper makeHelper(String name) {
         return new TempFileResult.Helper() {
-            @Override public TempFileResource.Factory tempFiles() { return LocalTempFileService.DEFAULT_FACTORY; }
-            @Override public String getName() { return name; }
-            @Override public String getSuggestedTempFileExtension() { return "xml"; }
-            @Override public Logger getLogger() { return LOGGER; }
+            @Nonnull
+            @Override
+            public TempFileResource.Factory tempFiles() {
+                return LocalTempFileService.DEFAULT_FACTORY;
+            }
+
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public String getSuggestedTempFileExtension() {
+                return "xml";
+            }
+
+            @Override
+            public Logger getLogger() {
+                return LOGGER;
+            }
         };
     }
 

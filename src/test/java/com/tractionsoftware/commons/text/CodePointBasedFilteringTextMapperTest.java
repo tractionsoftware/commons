@@ -173,7 +173,7 @@ class CodePointBasedFilteringTextMapperTest {
 
     @Test
     void replaceCodePointMapper_null_returnsNull() {
-        assertNull(CodePointBasedFilteringTextMapper.replace((CharSequence) null, (StringUtil.CodePointMapper) cp -> cp));
+        assertNull(CodePointBasedFilteringTextMapper.replace(null, (StringUtil.CodePointMapper) cp -> cp));
     }
 
     @Test
@@ -189,23 +189,23 @@ class CodePointBasedFilteringTextMapperTest {
 
     @Test
     void replaceCodePointMapper_uppercaseAll() {
-        String result = CodePointBasedFilteringTextMapper.replace("hello",
-            (StringUtil.CodePointMapper) Character::toUpperCase);
+        String result =
+            CodePointBasedFilteringTextMapper.replace("hello", (StringUtil.CodePointMapper) Character::toUpperCase);
         assertEquals("HELLO", result);
     }
 
     @Test
     void replaceCodePointMapper_partialChange() {
-        String result = CodePointBasedFilteringTextMapper.replace("hello",
-            (StringUtil.CodePointMapper) cp -> cp == 'l' ? 'r' : cp);
+        String result =
+            CodePointBasedFilteringTextMapper.replace("hello", (StringUtil.CodePointMapper) cp -> cp == 'l' ? 'r' : cp);
         assertEquals("herro", result);
     }
 
     @Test
     void replaceCodePointMapper_nonBmpReplaced() {
         // Replace emoji with 'X'
-        String result = CodePointBasedFilteringTextMapper.replace(MIXED,
-            (StringUtil.CodePointMapper) cp -> cp > 0xFFFF ? 'X' : cp);
+        String result =
+            CodePointBasedFilteringTextMapper.replace(MIXED, (StringUtil.CodePointMapper) cp -> cp > 0xFFFF ? 'X' : cp);
         assertEquals("aXb", result);
     }
 
@@ -215,50 +215,60 @@ class CodePointBasedFilteringTextMapperTest {
 
     @Test
     void replaceIntFunction_null_returnsNull() {
-        assertNull(CodePointBasedFilteringTextMapper.replace((CharSequence) null,
-            (IntFunction<CharSequence>) cp -> null));
+        assertNull(CodePointBasedFilteringTextMapper.replace(null, (IntFunction<CharSequence>) _ -> null));
     }
 
     @Test
     void replaceIntFunction_emptyString_returnsEmpty() {
-        assertEquals("", CodePointBasedFilteringTextMapper.replace("",
-            (IntFunction<CharSequence>) cp -> null));
+        assertEquals("", CodePointBasedFilteringTextMapper.replace("", (IntFunction<CharSequence>) _ -> null));
     }
 
     @Test
     void replaceIntFunction_nullMeansKeep() {
-        String result = CodePointBasedFilteringTextMapper.replace("abc",
-            (IntFunction<CharSequence>) cp -> null);
+        String result = CodePointBasedFilteringTextMapper.replace("abc", (IntFunction<CharSequence>) _ -> null);
         assertEquals("abc", result);
     }
 
     @Test
     void replaceIntFunction_emptyMeansRemove() {
-        String result = CodePointBasedFilteringTextMapper.replace("a1b2c",
-            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "" : null);
+        String result = CodePointBasedFilteringTextMapper.replace(
+            "a1b2c",
+            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "" : null
+        );
         assertEquals("abc", result);
     }
 
     @Test
     void replaceIntFunction_expansionReplacement() {
-        String result = CodePointBasedFilteringTextMapper.replace("a1b2",
-            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "(" + (char) cp + ")" : null);
+        String result = CodePointBasedFilteringTextMapper.replace(
+            "a1b2",
+            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "(" +
+                                                                      (char) cp +
+                                                                      ")" : null
+        );
         assertEquals("a(1)b(2)", result);
     }
 
     @Test
     void replaceIntFunction_nonBmpExpanded() {
-        String result = CodePointBasedFilteringTextMapper.replace(MIXED,
-            (IntFunction<CharSequence>) cp -> cp > 0xFFFF ? "[emoji]" : null);
+        String result = CodePointBasedFilteringTextMapper.replace(
+            MIXED,
+            (IntFunction<CharSequence>) cp -> cp >
+                                              0xFFFF ? "[emoji]" : null
+        );
         assertEquals("a[emoji]b", result);
     }
 
     @Test
     void replaceIntFunction_toStringBuilder() {
         StringBuilder sb = new StringBuilder();
-        CodePointBasedFilteringTextMapper.replace("a1b",
+        CodePointBasedFilteringTextMapper.replace(
+            "a1b",
             sb,
-            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" + (char) cp + "]" : null);
+            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" +
+                                                                      (char) cp +
+                                                                      "]" : null
+        );
         assertEquals("a[1]b", sb.toString());
     }
 
@@ -266,9 +276,13 @@ class CodePointBasedFilteringTextMapperTest {
     void replaceIntFunction_toPrintWriter() {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
-        CodePointBasedFilteringTextMapper.replace("a1b",
+        CodePointBasedFilteringTextMapper.replace(
+            "a1b",
             pw,
-            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" + (char) cp + "]" : null);
+            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" +
+                                                                      (char) cp +
+                                                                      "]" : null
+        );
         pw.flush();
         assertEquals("a[1]b", sw.toString());
     }
@@ -276,9 +290,13 @@ class CodePointBasedFilteringTextMapperTest {
     @Test
     void replaceIntFunction_fromReader() throws IOException {
         StringWriter sw = new StringWriter();
-        CodePointBasedFilteringTextMapper.replace(new StringReader("a1b"),
+        CodePointBasedFilteringTextMapper.replace(
+            new StringReader("a1b"),
             sw,
-            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" + (char) cp + "]" : null);
+            (IntFunction<CharSequence>) cp -> Character.isDigit(cp) ? "[" +
+                                                                      (char) cp +
+                                                                      "]" : null
+        );
         assertEquals("a[1]b", sw.toString());
     }
 
@@ -302,17 +320,289 @@ class CodePointBasedFilteringTextMapperTest {
 
     @Test
     void createReplacingTransformer_codePointMapper() {
-        TextTransformer t = CodePointBasedFilteringTextMapper.createReplacingTransformer(
-            (StringUtil.CodePointMapper) Character::toUpperCase);
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((StringUtil.CodePointMapper) Character::toUpperCase);
         CharSequence result = t.transform("hello");
         assertEquals("HELLO", result.toString());
     }
 
     @Test
     void createReplacingTransformer_intFunctionMapper() {
-        TextTransformer t = CodePointBasedFilteringTextMapper.createReplacingTransformer(
-            (IntFunction<CharSequence>) cp -> cp == 'x' ? "XX" : null);
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((IntFunction<CharSequence>) cp -> cp ==
+                                                                                                           'x' ? "XX" : null);
         CharSequence result = t.transform("axb");
         assertEquals("aXXb", result.toString());
     }
+
+    // ---------------------------------------------------------------------------
+    // TextTransformer factory methods - transform(CharSequence, Appendable) overload
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createRemovingTransformer_toAppendable_removesMatchingCodePoints()
+        throws IOException, TextTransformationException {
+        TextTransformer t = CodePointBasedFilteringTextMapper.createRemovingTransformer(IS_DIGIT);
+        StringBuilder sb = new StringBuilder();
+        t.transform("a1b2c", sb);
+        assertEquals("abc", sb.toString());
+    }
+
+    @Test
+    void createRetainingTransformer_toAppendable_retainsMatchingCodePoints()
+        throws IOException, TextTransformationException {
+        TextTransformer t = CodePointBasedFilteringTextMapper.createRetainingTransformer(IS_DIGIT);
+        StringBuilder sb = new StringBuilder();
+        t.transform("a1b2c", sb);
+        assertEquals("12", sb.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_codePointMapper_toAppendable() throws IOException, TextTransformationException {
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((StringUtil.CodePointMapper) Character::toUpperCase);
+        StringBuilder sb = new StringBuilder();
+        t.transform("hello", sb);
+        assertEquals("HELLO", sb.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_intFunctionMapper_toAppendable() throws IOException, TextTransformationException {
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((IntFunction<CharSequence>) cp -> cp ==
+                                                                                                           'x' ? "XX" : null);
+        StringBuilder sb = new StringBuilder();
+        t.transform("axb", sb);
+        assertEquals("aXXb", sb.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // TextTransformer factory methods - transform(Reader, Writer) overload
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void createRemovingTransformer_readerWriter_removesMatchingCodePoints()
+        throws IOException, TextTransformationException {
+        TextTransformer t = CodePointBasedFilteringTextMapper.createRemovingTransformer(IS_DIGIT);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("a1b2c"), sw);
+        assertEquals("abc", sw.toString());
+    }
+
+    @Test
+    void createRetainingTransformer_readerWriter_retainsMatchingCodePoints()
+        throws IOException, TextTransformationException {
+        TextTransformer t = CodePointBasedFilteringTextMapper.createRetainingTransformer(IS_DIGIT);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("a1b2c"), sw);
+        assertEquals("12", sw.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_codePointMapper_readerWriter() throws IOException, TextTransformationException {
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((StringUtil.CodePointMapper) Character::toUpperCase);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("hello"), sw);
+        assertEquals("HELLO", sw.toString());
+    }
+
+    @Test
+    void createReplacingTransformer_intFunctionMapper_readerWriter() throws IOException, TextTransformationException {
+        TextTransformer t =
+            CodePointBasedFilteringTextMapper.createReplacingTransformer((IntFunction<CharSequence>) cp -> cp ==
+                                                                                                           'x' ? "XX" : null);
+        StringWriter sw = new StringWriter();
+        t.transform(new StringReader("axb"), sw);
+        assertEquals("aXXb", sw.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // createInstanceForGenericAppend - instanceof branches (PrintWriter / StringBuilder / generic Appendable)
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void removeIf_appendableStaticType_runtimeStringBuilder_usesStringBuilderBranch() {
+        StringBuilder sb = new StringBuilder();
+        Appendable out = sb;
+        CodePointBasedFilteringTextMapper.removeIf("a1b2c", out, IS_DIGIT);
+        assertEquals("abc", sb.toString());
+    }
+
+    @Test
+    void removeIf_appendableStaticType_runtimePrintWriter_usesPrintWriterBranch() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        Appendable out = pw;
+        CodePointBasedFilteringTextMapper.removeIf("a1b2c", out, IS_DIGIT);
+        pw.flush();
+        assertEquals("abc", sw.toString());
+    }
+
+    @Test
+    void removeIf_genericAppendable_notPrintWriterOrStringBuilder_usesGenericWriter() {
+        StringBuilder backing = new StringBuilder();
+        Appendable customAppendable = new Appendable() {
+
+            @Override
+            public Appendable append(CharSequence csq) {
+                backing.append(csq);
+                return this;
+            }
+
+            @Override
+            public Appendable append(CharSequence csq, int start, int end) {
+                backing.append(csq, start, end);
+                return this;
+            }
+
+            @Override
+            public Appendable append(char c) {
+                backing.append(c);
+                return this;
+            }
+
+        };
+        CodePointBasedFilteringTextMapper.removeIf("a1b2c", customAppendable, IS_DIGIT);
+        assertEquals("abc", backing.toString());
+    }
+
+    // ---------------------------------------------------------------------------
+    // manual iteration via next() / CodePointValue - covers FilteringTextMapper.Value and CodePointValue
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void manualIteration_removeAndKeep() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("hello");
+        StringBuilder seen = new StringBuilder();
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            seen.appendCodePoint(value.codePoint);
+            if (value.codePoint == 'l') {
+                value.remove();
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("hello", seen.toString());
+        assertEquals("heo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_removeOrKeepIf() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            value.removeOrKeepIf(value.codePoint == 'l');
+        }
+        assertEquals("heo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceChar() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.codePoint == 'l') {
+                value.replace('L');
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("heLLo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceString() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.codePoint == 'l') {
+                value.replace("LL");
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("heLLLLo", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceStringVarargs() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("hello");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.codePoint == 'l') {
+                value.replace("[", "L", "]");
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("he[L][L]o", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_replaceWithCodePoint_nonBmp() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("a-b");
+        int emoji = 0x1F600;
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.codePoint == '-') {
+                value.replaceWithCodePoint(emoji);
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("a" + new String(Character.toChars(emoji)) + "b", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_appendReplacement() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("a-b");
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            if (value.codePoint == '-') {
+                value.appendReplacement(sb -> sb.append("<<>>"));
+            }
+            else {
+                value.keep();
+            }
+        }
+        assertEquals("a<<>>b", mapper.finish());
+    }
+
+    @Test
+    void manualIteration_overNonBmpInput_codePointFieldReflectsFullCodePoint() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance(MIXED);
+        StringBuilder seenCodePoints = new StringBuilder();
+        while (mapper.hasNext()) {
+            var value = mapper.next();
+            seenCodePoints.append(value.codePoint).append(',');
+            value.keep();
+        }
+        assertEquals("97,128512,98,", seenCodePoints.toString());
+        assertEquals(MIXED, mapper.finish());
+    }
+
+    @Test
+    void manualIteration_consumingTwice_throwsIllegalStateException() {
+        CodePointBasedFilteringTextMapper<StringBuilder,String> mapper =
+            CodePointBasedFilteringTextMapper.createDefaultInstance("a");
+        var value = mapper.next();
+        value.keep();
+        assertThrows(IllegalStateException.class, value::remove);
+    }
+
 }

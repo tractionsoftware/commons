@@ -27,7 +27,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -68,12 +67,12 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         }
 
         @Override
-        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
             removeIf(text, out, operator);
         }
 
         @Override
-        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
             removeIf(in, out, operator);
         }
 
@@ -92,12 +91,12 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         }
 
         @Override
-        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
             retainIf(text, out, operator);
         }
 
         @Override
-        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
             retainIf(in, out, operator);
         }
 
@@ -116,12 +115,12 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         }
 
         @Override
-        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
             replace(text, out, operator);
         }
 
         @Override
-        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
             replace(in, out, operator);
         }
 
@@ -141,12 +140,12 @@ public class CharBasedFilteringTextMapper<T, R> extends FilteringTextMapper<T,R>
         }
 
         @Override
-        protected final void transformImpl(@Nonnull CharSequence text, @NonNull Appendable out) {
+        protected final void transformImpl(@Nonnull CharSequence text, @Nonnull Appendable out) {
             replace(text, out, operator);
         }
 
         @Override
-        protected final void transformImpl(@NonNull Reader in, @NonNull Writer out) throws IOException {
+        protected final void transformImpl(@Nonnull Reader in, @Nonnull Writer out) throws IOException {
             replace(in, out, operator);
         }
 

@@ -243,31 +243,31 @@ public final class StringUtil {
 
     public static interface IndexRange {
 
-        int start();
+        public int start();
 
-        int end();
+        public int end();
 
-        int length();
+        public int length();
 
-        default boolean is(int start, int end) {
+        public default boolean is(int start, int end) {
             if (start() == start && end() == end) {
                 return true;
             }
             return false;
         }
 
-        default boolean is(IndexRange range) {
+        public default boolean is(IndexRange range) {
             if (start() == range.start() && end() == range.end()) {
                 return true;
             }
             return false;
         }
 
-        default boolean isEmpty() {
+        public default boolean isEmpty() {
             return (length() == 0);
         }
 
-        default CharSequence apply(@Nonnull CharSequence sequence) {
+        public default CharSequence apply(@Nonnull CharSequence sequence) {
             if (isEmpty()) {
                 return StringUtils.EMPTY;
             }
@@ -277,11 +277,11 @@ public final class StringUtil {
             return sequence.subSequence(start(), end()).toString();
         }
 
-        default String applyAsString(@Nonnull CharSequence sequence) {
+        public default String applyAsString(@Nonnull CharSequence sequence) {
             return apply(sequence).toString();
         }
 
-        default void append(StringBuilder buff, CharSequence sequence) {
+        public default void append(@Nonnull StringBuilder buff, @Nonnull CharSequence sequence) {
             if (isEmpty()) {
                 return;
             }
@@ -292,7 +292,7 @@ public final class StringUtil {
             buff.append(sequence, start(), end());
         }
 
-        default void print(PrintWriter out, CharSequence sequence) {
+        public default void print(PrintWriter out, CharSequence sequence) {
             if (isEmpty()) {
                 return;
             }
@@ -309,7 +309,7 @@ public final class StringUtil {
             }
         }
 
-        default void append(Appendable out, CharSequence sequence) throws IOException {
+        public default void append(Appendable out, CharSequence sequence) throws IOException {
             if (isEmpty()) {
                 return;
             }
@@ -324,7 +324,7 @@ public final class StringUtil {
 
     public static interface AnalyzableIndexRange extends IndexRange {
 
-        boolean containsNonBmpCodePoints();
+        public boolean containsNonBmpCodePoints();
 
     }
 
@@ -536,21 +536,21 @@ public final class StringUtil {
     @FunctionalInterface
     private static interface KnownLengthCharSequenceCharExtractor {
 
-        char getChar(@Nonnull CharSequence str, int len);
+        public char getChar(@Nonnull CharSequence str, int len);
 
     }
 
     @FunctionalInterface
     private static interface KnownLengthStringCodePointExtractor {
 
-        int getCodePoint(@Nonnull String str, int len);
+        public int getCodePoint(@Nonnull String str, int len);
 
     }
 
     @FunctionalInterface
     private static interface CharIndexFinder {
 
-        int indexOf(@Nonnull String str, char c, int startIndex);
+        public int indexOf(@Nonnull String str, char c, int startIndex);
 
     }
 
@@ -667,7 +667,7 @@ public final class StringUtil {
     /**
      * Join the elements of a {@link Iterable} using the given separator character. null values are skipped.
      */
-    public static final String join(Iterable<?> coll, char separator) {
+    public static final String join(@Nullable Iterable<?> coll, char separator) {
         if (coll == null) {
             return "";
         }
@@ -698,7 +698,7 @@ public final class StringUtil {
     /**
      * Join the elements of an array using the given separator {@link String}.
      */
-    public static final String join(@Nullable String[] arr, String separator) {
+    public static final String join(@Nullable String[] arr, @Nullable String separator) {
         if (arr == null) {
             return "";
         }
@@ -720,7 +720,7 @@ public final class StringUtil {
      * @return a truncated version of the input text which is as long as possible while still fitting into the requested
      *     maximum length.
      */
-    public static final String truncate(String text, int maximumLength) {
+    public static final String truncate(@Nullable String text, int maximumLength) {
         return truncate(text, maximumLength, "");
     }
 
@@ -744,7 +744,7 @@ public final class StringUtil {
      * @return a truncated version of the input text which is as long as possible while still fitting into the requested
      *     maximum length, including any ellipses.
      */
-    public static final String truncate(String text, int maximumLength, String ellipses) {
+    public static final String truncate(@Nullable String text, int maximumLength, @Nullable String ellipses) {
         return truncate(text, maximumLength, Suppliers.ofInstance(ellipses));
     }
 
@@ -768,7 +768,7 @@ public final class StringUtil {
      * @return a truncated version of the input text which is as long as possible while still fitting into the requested
      *     maximum length, including any ellipses.
      */
-    public static final String truncate(String text, int requestedMaximumLength, Supplier<String> ellipsesProvider) {
+    public static final String truncate(@Nullable String text, int requestedMaximumLength, @Nonnull Supplier<String> ellipsesProvider) {
 
         if (requestedMaximumLength <= 0) {
             return "";

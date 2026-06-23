@@ -46,7 +46,7 @@ public final class LocaleUtil {
         public Locale getLocale();
 
         @Nonnull
-        public default Locale getDefaultEnvironmentZone() {
+        public default Locale getDefaultEnvironmentLocale() {
             return getLocale();
         }
 
@@ -61,7 +61,7 @@ public final class LocaleUtil {
     }
 
     public static final Locale getDefaultLocale() {
-        return currentLocaleProvider.get().getDefaultEnvironmentZone();
+        return currentLocaleProvider.get().getDefaultEnvironmentLocale();
     }
 
 }

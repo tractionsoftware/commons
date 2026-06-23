@@ -176,4 +176,69 @@ class ForwardingTempFileResourceTest {
         assertEquals(delegate.getType(), forwarding.getType());
     }
 
+    @Test
+    void getDescription_delegatesToDelegate() {
+        assertEquals(delegate.getDescription(), forwarding.getDescription());
+    }
+
+    @Test
+    void getContentId_delegatesToDelegate() {
+        assertEquals(delegate.getContentId(), forwarding.getContentId());
+    }
+
+    @Test
+    void getMetadata_delegatesToDelegate() {
+        assertEquals(delegate.getMetadata(), forwarding.getMetadata());
+    }
+
+    @Test
+    void isPersistent_delegatesToDelegate() {
+        assertEquals(delegate.isPersistent(), forwarding.isPersistent());
+    }
+
+    @Test
+    void getImage_delegatesToDelegate() {
+        var maxDimensions = com.tractionsoftware.commons.util.Dimensions.getInstanceInPixels(100, 100);
+        assertEquals(delegate.getImage(maxDimensions), forwarding.getImage(maxDimensions));
+    }
+
+    @Test
+    void getURI_afterWriteAndSave_delegatesToDelegate() throws IOException {
+        writeAndSave("uri content");
+        assertEquals(delegate.getURI(), forwarding.getURI());
+    }
+
+    @Test
+    void getInputStream_afterWriteAndSave_delegatesContent() throws IOException {
+        writeAndSave("stream content");
+        try (InputStream in = forwarding.getInputStream()) {
+            assertEquals("stream content", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void getByteSize_afterWriteAndSave_delegatesToDelegate() throws IOException {
+        writeAndSave("size content");
+        assertEquals(delegate.getByteSize(), forwarding.getByteSize());
+    }
+
+    @Test
+    void getFormattedSize_afterWriteAndSave_delegatesToDelegate() throws IOException {
+        writeAndSave("formatted size content");
+        assertEquals(delegate.getFormattedSize(), forwarding.getFormattedSize());
+    }
+
+    @Test
+    void getLastModified_afterWriteAndSave_delegatesToDelegate() throws IOException {
+        writeAndSave("last modified content");
+        assertEquals(delegate.getLastModified(), forwarding.getLastModified());
+    }
+
+    private void writeAndSave(String content) throws IOException {
+        try (OutputStream os = forwarding.getOutputStream()) {
+            os.write(content.getBytes(StandardCharsets.UTF_8));
+        }
+        forwarding.save();
+    }
+
 }

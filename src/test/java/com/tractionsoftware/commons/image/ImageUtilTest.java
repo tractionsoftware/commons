@@ -465,7 +465,7 @@ public class ImageUtilTest {
     }
 
     // ---------------------------------------------------------------------------
-    // ImageCreationResult.hadFailure() — inverted-logic bug
+    // ImageCreationResult.hadFailure()
     // ---------------------------------------------------------------------------
 
     @Test
@@ -485,8 +485,6 @@ public class ImageUtilTest {
 
     @Test
     public void hadFailure_onFailedResult_returnsTrue() throws Exception {
-        // BUG: see hadFailure_onSuccessfulResult_bugReturnsTrueInsteadOfFalse above -- a genuinely failed
-        // result reports hadFailure() == false here, again the opposite of what is documented.
         File originalFile = new File("/does/not/exist-" + System.nanoTime() + ".png");
         File scaledFile = File.createTempFile("scaled-failure", ".png");
         assertTrue(scaledFile.delete());

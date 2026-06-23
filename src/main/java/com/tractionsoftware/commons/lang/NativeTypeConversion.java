@@ -512,7 +512,7 @@ public final class NativeTypeConversion {
             @Override
             public final Pattern apply(T input) {
                 try {
-                    Pattern.compile(wrapped.apply(input));
+                    return Pattern.compile(wrapped.apply(input));
                 }
                 catch (PatternSyntaxException e) {
                     // ignore

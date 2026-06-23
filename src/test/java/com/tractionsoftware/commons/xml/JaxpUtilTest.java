@@ -21,6 +21,7 @@
 package com.tractionsoftware.commons.xml;
 
 import com.tractionsoftware.commons.io.SizedInputStream;
+import com.tractionsoftware.commons.processor.ByteArrayResult;
 import com.tractionsoftware.commons.processor.Result;
 import com.tractionsoftware.commons.properties.GetPutProperty;
 import org.junit.jupiter.api.Test;
@@ -537,45 +538,10 @@ public final class JaxpUtilTest {
 
     // =====================================================================
     // getTransformer(Result, ErrorListener) / getTemplates(Result) / getDocument(Result)
+    //
+    // Uses the shared com.tractionsoftware.commons.processor.ByteArrayResult test double (constructed in
+    // pre-populated mode from a String) rather than a locally-defined class.
     // =====================================================================
-
-    /**
-     * Minimal test double for the abstract {@link Result} class, backed by an in-memory byte array.
-     * Mirrors the FakeURLBuilder pattern used in URLUtilTest - the production TempFileResult
-     * implementation requires too much infrastructure (Helper, TempFileResource.Factory, etc.)
-     * to be practical for a focused unit test.
-     */
-    private static final class ByteArrayResult extends Result {
-
-        private final byte[] data;
-
-        ByteArrayResult(String content) {
-            this.data = content.getBytes(StandardCharsets.UTF_8);
-        }
-
-        @Override
-        public void release() {
-        }
-
-        @Override
-        protected OutputStream getOutputStream() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        protected SizedInputStream getInputStream() {
-            return SizedInputStream.forInputStream(new ByteArrayInputStream(data), data.length);
-        }
-
-        @Override
-        protected void onPopulate(boolean success) {
-        }
-
-        @Override
-        protected void onConsume(boolean success) {
-        }
-
-    }
 
     @Test
     void getTransformer_fromResult_validXsl_returnsTransformer() throws Exception {

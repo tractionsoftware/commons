@@ -20,19 +20,23 @@
 
 package com.tractionsoftware.commons.io;
 
+import com.google.common.annotations.Beta;
+import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.tractionsoftware.commons.net.MediaTypeUtil;
 import com.tractionsoftware.commons.text.CharBasedFilteringTextMapper;
 import com.tractionsoftware.commons.net.URLUtil;
 import com.tractionsoftware.commons.lang.EnhancedCharSequence;
 import com.tractionsoftware.commons.lang.StringUtil;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.util.Objects;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 public final class FileNameUtil {
 
@@ -87,48 +91,12 @@ public final class FileNameUtil {
 
     private static final char INVALID_FILE_NAME_CHARACTER_REPLACEMENT_CHAR = '_';
 
-    /**
-     * Uses {@link #platformSpecificPath(String)} to provide a platform-specific path specification for the given
-     * platform-independent path specification.
-     */
-    public static final UnaryOperator<String> PLATFORM_INDEPENDENT2SPECIFIC_PATH_PROVIDER = new UnaryOperator<>() {
-
-        @Override
-        public String toString() {
-            return "platform-independent-to-platform-specific path";
-        }
-
-        @Override
-        public String apply(String platformIndependentPath) {
-            return platformSpecificPath(platformIndependentPath);
-        }
-
-    };
+    public static final int FILE_NAME_LENGTH_LIMIT = 255;
 
     /**
-     * Uses {@link #platformIndependentPath(String)} to provide a platform-independent path specification for the given
-     * platform-specific path specification.
-     */
-    public static final UnaryOperator<String> PLATFORM_SPECIFIC2INDEPENDENT_PATH_PROVIDER = new UnaryOperator<>() {
-
-        @Override
-        public String toString() {
-            return "platform-specific-to-platform-independent path";
-        }
-
-        @Override
-        public String apply(String platformSpecificPath) {
-            return platformIndependentPath(platformSpecificPath);
-        }
-
-    };
-
-    /**
-     * The following reserved characters are not allowed:
+     * On Windows, these are considered reserved, and are explicitly disallowed in file names:
      *
      * <ul>
-     * <li>Java ISO control characters, including 0x0 through 0x1f (such as NUL, BEL and ESC), as well as 0x7f (DEL)
-     * through 0x9f ()</li>
      * <li>&lt; (less than)</li>
      * <li>&gt; (greater than)</li>
      * <li>: (colon)</li>
@@ -144,22 +112,69 @@ public final class FileNameUtil {
      * <p>
      * See <a href="https://msdn.microsoft.com/en-us/library/aa365247.aspx">Naming Files, Paths, and Namespaces</a>
      */
-    public static final CharMatcher ILLEGAL_OR_DISCOURAGED_FILENAME_CHAR =
-        CharMatcher.javaIsoControl().or(CharMatcher.anyOf(EnhancedCharSequence.getInstance(new char[] {
-            WINDOWS_PATH_SEPARATOR_CHAR, GENERIC_PATH_SEPARATOR_CHAR, ':', '*', '?', '"', '<', '>', '|', ';'
-        })));
+    public static final CharMatcher RESERVED_FILENAME_CHARACTERS = CharMatcher.anyOf(
+        EnhancedCharSequence.getInstance(
+            new char[] {
+                '<', '>', ':', '"', GENERIC_PATH_SEPARATOR_CHAR, WINDOWS_PATH_SEPARATOR_CHAR, '|', '*', '?'
+            }
+        )
+    );
+
+    /**
+     * These characters are dangerous because they are often part of commands on UNIX-like systems.
+     *
+     * <ul>
+     * <li>Java ISO control characters, including 0x0 through 0x1f (such as NUL, BEL and ESC), as well as 0x7f (DEL)
+     * through 0x9f ()</li>
+     * <li>; (semi-colon)</li>
+     * <li>` (backtick)</li>
+     * </ul>
+     */
+    public static final CharMatcher DISCOURAGED_FILENAME_CHARACTERS = CharMatcher.anyOf(
+        EnhancedCharSequence.getInstance(new char[] { ';', '&', '`', Ascii.HT, Ascii.NL, Ascii.CR, Ascii.FF })
+    );
+
+    /**
+     * The following reserved characters are not allowed:
+     *
+     * <ul>
+     * <li>Java ISO control characters, including 0x0 through 0x1f (such as NUL, BEL and ESC), as well as 0x7f through
+     * 0x9f (such as DEL and C1 controls)</li>
+     * <li>&lt; (less than)</li>
+     * <li>&gt; (greater than)</li>
+     * <li>: (colon)</li>
+     * <li>&quot; (double quotation mark)</li>
+     * <li>/ (slash)</li>
+     * <li>/ (backslash)</li>
+     * <li>| (vertical bar or pipe)</li>
+     * <li>? (question mark)</li>
+     * <li>* (asterisk)</li>
+     * </ul>
+     *
+     * <p>
+     * See <a href="https://msdn.microsoft.com/en-us/library/aa365247.aspx">Naming Files, Paths, and Namespaces</a>
+     */
+    public static final CharMatcher ILLEGAL_FILENAME_CHARACTERS = CharMatcher.javaIsoControl()
+        .or(RESERVED_FILENAME_CHARACTERS);
+
+    private static final IntPredicate INVALID_CODE_POINT = cp -> !Character.isValidCodePoint(cp);
+
+    public static final IntPredicate ILLEGAL_FILENAME_CODEPOINTS = INVALID_CODE_POINT;
+
+    public static final IntPredicate DISCOURAGED_FILENAME_CODEPOINTS = StringUtil::isAlternativeWhitespaceCodePoint;
 
     public static final StringUtil.CharMapper ILLEGAL_OR_DISCOURAGED_FILENAME_CHAR_REPLACER =
         new StringUtil.CharMapper() {
 
             @Override
-            public String toString() {
+            public final String toString() {
                 return "Illegal/Discouraged file name character replacer";
             }
 
             @Override
-            public char getReplacement(char c) {
-                if (ILLEGAL_OR_DISCOURAGED_FILENAME_CHAR.matches(c)) {
+            public final char getReplacement(char c) {
+                if (ILLEGAL_FILENAME_CHARACTERS.matches(c) ||
+                    DISCOURAGED_FILENAME_CHARACTERS.matches(c)) {
                     if (Character.isWhitespace(c)) {
                         return ' ';
                     }
@@ -170,29 +185,142 @@ public final class FileNameUtil {
 
         };
 
-    private static final StringUtil.CharMapper GENERIC_TO_PLATFORM_SEPARATOR_REPLACEMENT =
-        (GENERIC_PATH_SEPARATOR_CHAR == File.separatorChar) ? c -> c : c -> {
-            if (GENERIC_PATH_SEPARATOR_CHAR == c) {
-                return File.separatorChar;
-            }
-            return c;
-        };
+    private static enum ProblemClassificationLevel {
+        NONE,
+        DISCOURAGED,
+        ILLEGAL
+    }
 
-    private static final StringUtil.CharMapper PLATFORM_TO_PLATFORM_SEPARATOR_REPLACEMENT =
-        (GENERIC_PATH_SEPARATOR_CHAR == File.separatorChar) ? c -> c : c -> {
-            if (File.separatorChar == c) {
-                return GENERIC_PATH_SEPARATOR_CHAR;
+    @Beta
+    public static enum FileNameCheckResult {
+
+        /**
+         * No illegal or discouraged characters, sequences, or names were found.
+         */
+        NO_PROBLEMS(ProblemClassificationLevel.NONE),
+
+        /**
+         * The file name was empty or blank (or null).
+         */
+        EMPTY_OR_BLANK(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name is too long to be allowed in modern operating environments.
+         */
+        TOO_LONG(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name contains at least one character that is illegal in a modern operating environment.
+         */
+        ILLEGAL_CHARACTERS(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name contains a sequence of at least {@link #CONSECUTIVE_DOTS two consecutive dots}, which is
+         * illegal in most modern operating environments.
+         */
+        ILLEGAL_DOT_SEQUENCE(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name is an illegal name in one or more modern operating environments, such as a name consisting of a
+         * single dot.
+         */
+        ILLEGAL_FILENAME(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name is a
+         * {@link #isSpecialIllegalWindowsFileName(String) special reserved and illegal file name on Windows}.
+         */
+        ILLEGAL_SPECIAL_WINDOWS_FILENAME(ProblemClassificationLevel.ILLEGAL),
+
+        /**
+         * The file name contains at least one discouraged character, such as as semi-colon or backtick.
+         */
+        DISCOURAGED_CHARACTERS(ProblemClassificationLevel.DISCOURAGED),
+
+        /**
+         * The file name contains a discouraged sequence of whitespace characters, such as consecutive space
+         * characters.
+         */
+        DISCOURAGED_WHITESPACE_SEQUENCE(ProblemClassificationLevel.DISCOURAGED),
+
+        /**
+         * The file name ends with the "." extension separator character.
+         */
+        DISCOURAGED_ENDS_WITH_EXTENSION_SEPARATOR(ProblemClassificationLevel.DISCOURAGED),
+
+        /**
+         * The file name is discouraged in UNIX environments because of its tendency to accidentally become part of a
+         * dangerous command, or some other similar reason. See {@link #isDangerousUnixFileName(String)}.
+         */
+        DISCOURAGED_UNIX_FILENAME(ProblemClassificationLevel.DISCOURAGED);
+
+        private final ProblemClassificationLevel level;
+
+        private FileNameCheckResult(ProblemClassificationLevel level) {
+            this.level = level;
+        }
+
+        public final boolean noProblem() {
+            if (level == ProblemClassificationLevel.NONE) {
+                return true;
             }
-            return c;
-        };
+            return false;
+        }
+
+        public final boolean hasProblem() {
+            if (level == ProblemClassificationLevel.NONE) {
+                return false;
+            }
+            return true;
+        }
+
+        public final boolean legal() {
+            if (level == ProblemClassificationLevel.ILLEGAL) {
+                return false;
+            }
+            return true;
+        }
+
+        public final boolean discouraged() {
+            if (level == ProblemClassificationLevel.DISCOURAGED) {
+                return true;
+            }
+            return false;
+        }
+
+        public final boolean illegal() {
+            if (level == ProblemClassificationLevel.ILLEGAL) {
+                return true;
+            }
+            return false;
+        }
+
+    }
 
     /**
-     * File names that are outright illegal, even when followed by extensions, in Windows.
+     * A {@link StringUtil.CharMapper} that can be used to replace the generic or UNIX platform file separator character
+     * with the platform-specific file separator char.
+     */
+    public static final StringUtil.CharMapper GENERIC_TO_WINDOWS_SEPARATOR_REPLACEMENT = c -> {
+        if (GENERIC_PATH_SEPARATOR_CHAR == c) {
+            return File.separatorChar;
+        }
+        return c;
+    };
+
+    /**
+     * Returns true if the given file name is outright illegal, even when followed by extensions, in Windows.
      *
      * <p>
      * See <a href="https://msdn.microsoft.com/en-us/library/aa365247.aspx">Naming Files, Paths, and Namespaces</a>
+     *
+     * @param fileName
+     *     the file name to check.
+     * @return true if the given file name is outright illegal, even when followed by extensions, in Windows.
+     * @throws NullPointerException
+     *     if the given file name is null.
      */
-    private static boolean isIllegalWindowsFilename(String fileName) {
+    public static final boolean isSpecialIllegalWindowsFileName(@Nonnull String fileName) {
         String name = stripExtension(fileName);
         return switch (name.toUpperCase()) {
             case "CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
@@ -200,6 +328,21 @@ public final class FileNameUtil {
                  "LPT9", "LPT¹", "LPT²", "LPT" -> true;
             default -> false;
         };
+    }
+
+    /**
+     * Checks whether the given file name is a dangerous file name in a UNIX-like environment.
+     *
+     * @param fileName
+     *     the file name to check.
+     * @return true the given file name is a dangerous file name in a UNIX-like environment according to the heuristic
+     *     used here; false otherwise.
+     */
+    public static final boolean isDangerousUnixFileName(String fileName) {
+        if (StringUtil.startsWith(fileName, '-')) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -255,7 +398,7 @@ public final class FileNameUtil {
      *     the character to check.
      * @return true if the character represents a file separator for any known platforms or situations; false otherwise.
      */
-    public static boolean isSeparator(char c) {
+    public static final boolean isSeparator(char c) {
         return switch (c) {
             case GENERIC_PATH_SEPARATOR_CHAR, WINDOWS_PATH_SEPARATOR_CHAR -> true;
             default -> false;
@@ -428,31 +571,24 @@ public final class FileNameUtil {
 
     }
 
-    public static final String platformSpecificPath(String path) {
+    public static final String platformSpecificPath(@Nullable String path) {
         if (GENERIC_PATH_SEPARATOR_CHAR == File.separatorChar) {
             return path;
         }
-        return CharBasedFilteringTextMapper.replace(path, GENERIC_TO_PLATFORM_SEPARATOR_REPLACEMENT);
+        return CharBasedFilteringTextMapper.replace(path, GENERIC_TO_WINDOWS_SEPARATOR_REPLACEMENT);
     }
 
-    public static void appendPlatformSpecificPath(Appendable out, CharSequence path) {
+    public static final void appendPlatformSpecificPath(@Nonnull Appendable out, @Nullable CharSequence path) {
+        Objects.requireNonNull(out, "output");
         if (GENERIC_PATH_SEPARATOR_CHAR == File.separatorChar) {
             StringWriteUtil.safeAppend(out, path);
         }
         else {
-            CharBasedFilteringTextMapper.replace(path, out, GENERIC_TO_PLATFORM_SEPARATOR_REPLACEMENT);
+            CharBasedFilteringTextMapper.replace(path, out, GENERIC_TO_WINDOWS_SEPARATOR_REPLACEMENT);
         }
     }
 
-    public static final String filePathToUrlPath(String path) {
-        return platformIndependentPath(path);
-    }
-
-    public static final String urlPathToFilePath(String url) {
-        return platformSpecificPath(url);
-    }
-
-    public static final String platformIndependentPath(String fileNameOrPath) {
+    public static final String platformIndependentPath(@Nullable String fileNameOrPath) {
 
         if (fileNameOrPath == null) {
             return null;
@@ -507,60 +643,68 @@ public final class FileNameUtil {
     }
 
     /**
-     * @return null if the current url is /
+     * Checks whether the given file name is illegal or discouraged. Although the
+     *
+     * @param fileName
+     *     the file name to check.
+     * @return a FileNameValidityCheckResult representing the result of examining the given file name.
      */
-    public static final String getParentUri(String uri) {
+    @Beta
+    @Nonnull
+    public static final FileNameCheckResult checkFileName(@Nullable String fileName) {
 
-        if (uri == null) {
-            return null;
-        }
-
-        // remove any space
-        uri = uri.trim();
-
-        // check for /
-        if (uri.equals(GENERIC_PATH_SEPARATOR)) {
-            return null;
-        }
-        int lastSlash = uri.lastIndexOf(GENERIC_PATH_SEPARATOR_CHAR, uri.length() - 2);
-        return uri.substring(0, lastSlash + 1);
-
-    }
-
-    public static boolean isMinimallyValidFileName(String path) {
-
-        String fileName = stripPath(path);
-
-        /*
-         * Blank (null/empty/whitespace) file names should just use a default.
-         */
         if (StringUtils.isBlank(fileName)) {
-            return false;
+            return FileNameCheckResult.EMPTY_OR_BLANK;
         }
 
-        if (StringUtil.hasAlternativeWhitespaceChar(fileName) ||
-            ILLEGAL_OR_DISCOURAGED_FILENAME_CHAR.matchesAnyOf(fileName) ||
-            fileName.contains(CONSECUTIVE_DOTS)) {
-            return false;
+        if (fileName.length() > FILE_NAME_LENGTH_LIMIT) {
+            return FileNameCheckResult.TOO_LONG;
+        }
+
+        if (ILLEGAL_FILENAME_CHARACTERS.matchesAnyOf(fileName) ||
+            fileName.chars().anyMatch(ILLEGAL_FILENAME_CODEPOINTS)) {
+            return FileNameCheckResult.ILLEGAL_CHARACTERS;
+        }
+
+        if (fileName.equals(CURRENT_PATH_INDICATOR) || fileName.equals(CONSECUTIVE_DOTS)) {
+            return FileNameCheckResult.ILLEGAL_FILENAME;
+        }
+
+        if (isSpecialIllegalWindowsFileName(fileName)) {
+            return FileNameCheckResult.ILLEGAL_SPECIAL_WINDOWS_FILENAME;
+        }
+
+        if (fileName.contains(CONSECUTIVE_DOTS)) {
+            return FileNameCheckResult.ILLEGAL_DOT_SEQUENCE;
+        }
+
+        if (DISCOURAGED_FILENAME_CHARACTERS.matchesAnyOf(fileName) ||
+            fileName.chars().anyMatch(DISCOURAGED_FILENAME_CODEPOINTS)) {
+            return FileNameCheckResult.DISCOURAGED_CHARACTERS;
+        }
+
+        if (StringUtil.hasCollapsableOrNormalizableWhitespace(fileName, false)) {
+            return FileNameCheckResult.DISCOURAGED_WHITESPACE_SEQUENCE;
         }
 
         int lastCodePoint = fileName.codePointBefore(fileName.length());
         if (lastCodePoint == EXTENSION_SEPARATOR_CHAR || Character.isWhitespace(lastCodePoint)) {
-            return false;
+            return FileNameCheckResult.DISCOURAGED_ENDS_WITH_EXTENSION_SEPARATOR;
         }
 
-        if (isIllegalWindowsFilename(fileName)) {
-            return false;
+        if (isDangerousUnixFileName(fileName)) {
+            return FileNameCheckResult.DISCOURAGED_UNIX_FILENAME;
         }
-        return true;
+
+        return FileNameCheckResult.NO_PROBLEMS;
 
     }
 
     /**
-     * Returns a "minimally validated" file name for the given name. Attempts are made to remove or replace illegal
-     * portions of the name so that the result can be as close to the originally supplied version as possible, but as a
-     * last result, a default name will be used based on the given Content-Type specification, if any (generally
-     * "Untitled" followed by a suitable extension if one can be determined).
+     * Returns a "good" file name for the given name. Attempts are made to remove or replace illegal portions of the
+     * name so that the result can be as close to the originally supplied version as possible, but as a last result, a
+     * default name will be used based on the given Content-Type specification, if any (generally "Untitled" followed by
+     * a suitable extension if one can be determined).
      *
      * <p>
      * Specifically, the file name is guaranteed to be a valid name for a file stored in a file system, or in some other
@@ -600,8 +744,8 @@ public final class FileNameUtil {
      * &gt; Desktop &gt; Technologies &gt; Data Access and Storage &gt; Local File Systems &gt; Naming Files, Paths, and
      * Namespaces</a>.
      *
-     * @param fileNameOrPath
-     *     the file name or path from which a validated file name will be determined.
+     * @param fileName
+     *     the file name from which a "good" file name will be determined.
      * @param getDefaultBaseName
      *     an optional Supplier for a preferred base file name in case the supplied name cannot be repaired. The
      *     argument for this parameter may be null, or it may return a null or empty value; in either case, a localized
@@ -610,20 +754,20 @@ public final class FileNameUtil {
      *     the supplied Content-Type or MIME type of the file.
      * @return a file name guaranteed to be a valid name for a file stored in a file system, or in some other sort of
      *     sort of server side repository, and which has been otherwise normalized as applicable.
-     * @see #getValidNormalizedFileName(String, Supplier, String, boolean)
+     * @see #getGoodNormalizedFileName(String, Supplier, String, boolean)
      */
-    public static final String getMinimallyValidFileName(@Nullable String fileNameOrPath, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
-        String validFileName = getMinimallyValidFileNameFromCurrentName(fileNameOrPath);
+    public static final String getGoodFileName(@Nullable String fileName, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
+        String validFileName = getGoodFileNameImpl(fileName);
         if (validFileName == null) {
-            return getDefaultValidFileName(getDefaultBaseName, contentType);
+            return getDefaultGoodFileName(getDefaultBaseName, contentType);
         }
         return validFileName;
     }
 
     /**
-     * A more aggressive alternative to {@link #getMinimallyValidFileName(String, Supplier, String)} that will apply
-     * additional normalizations, such as collapsing consecutive space characters, removing whitespace before the file
-     * extension and optionally ensuring the presence of some sort of file extension.
+     * A more aggressive alternative to {@link #getGoodFileName(String, Supplier, String)} that will apply additional
+     * normalizations, such as collapsing consecutive space characters, removing whitespace before the file extension
+     * and optionally ensuring the presence of some sort of file extension.
      *
      * @param fileNameOrPath
      *     the file name or path from which a validated file name will be determined.
@@ -638,14 +782,14 @@ public final class FileNameUtil {
      *     already be present. This will be ignored for "dot files" (i.e., those whose names start with '.').
      * @return a valid and normalized file name extracted from the given file name or path.
      */
-    public static final String getValidNormalizedFileName(@Nullable String fileNameOrPath, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType, boolean ensureExtension) {
+    public static final String getGoodNormalizedFileName(@Nullable String fileNameOrPath, @Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType, boolean ensureExtension) {
 
-        String fileName = getMinimallyValidFileName(fileNameOrPath, getDefaultBaseName, contentType);
+        String fileName = getGoodFileName(fileNameOrPath, getDefaultBaseName, contentType);
         fileName = StringUtils.trimToNull(StringUtil.collapseAndNormalizeWhitespace(fileName, true));
 
         // Check again for a blank (null/empty/whitespace) file name.
         if (StringUtils.isBlank(fileName)) {
-            return getDefaultValidFileName(contentType);
+            return getDefaultGoodFileName(contentType);
         }
 
         String ext = getExtension(fileName, null);
@@ -668,11 +812,11 @@ public final class FileNameUtil {
 
     }
 
-    public static final String getDefaultValidFileName(@Nullable String contentType) {
-        return getDefaultValidFileName(null, contentType);
+    public static final String getDefaultGoodFileName(@Nullable String contentType) {
+        return getDefaultGoodFileName(null, contentType);
     }
 
-    public static final String getDefaultValidFileName(@Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
+    public static final String getDefaultGoodFileName(@Nullable Supplier<String> getDefaultBaseName, @Nullable String contentType) {
         String ext = MediaTypeUtil.getExtensionFromContentType(contentType);
         String baseName = getDefaultBaseFileName(getDefaultBaseName);
         if (StringUtils.isBlank(ext)) {
@@ -704,7 +848,7 @@ public final class FileNameUtil {
 
     }
 
-    private static String getDefaultBaseFileName() {
+    private static final String getDefaultBaseFileName() {
         return System.getProperty("com.tractionsoftware.commons.io.default_base_file_name", "Untitled");
     }
 
@@ -719,10 +863,7 @@ public final class FileNameUtil {
         return baseName;
     }
 
-    private static String getMinimallyValidFileNameFromCurrentName(String fileNameOrPath) {
-
-        // Note that this removes everything up to and including the last separator "/" or "\" character.
-        String fileName = stripPath(fileNameOrPath);
+    private static final String getGoodFileNameImpl(String fileName) {
 
         if (StringUtils.isBlank(fileName)) {
             return null;
@@ -756,7 +897,7 @@ public final class FileNameUtil {
             fileName = fileName.substring(0, len - removeCharsFromEnd);
         }
 
-        if (isIllegalWindowsFilename(fileName)) {
+        if (isSpecialIllegalWindowsFileName(fileName)) {
             return null;
         }
 

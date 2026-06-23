@@ -195,8 +195,7 @@ public final class PredicateUtil {
         if (second == null) {
             return first;
         }
-        List<Predicate<? super T>> list = ImmutableList.of(first, second);
-        return and(list);
+        return and(ImmutableList.of(first, second));
     }
 
     public static final <T> Predicate<? super T> or(Predicate<? super T> first, Predicate<? super T> second) {
@@ -209,8 +208,7 @@ public final class PredicateUtil {
         if (second == null) {
             return first;
         }
-        List<Predicate<? super T>> list = ImmutableList.of(first, second);
-        return or(list);
+        return or(ImmutableList.of(first, second));
     }
 
     public static final <T> Predicate<? super T> and(Iterable<? extends Predicate<? super T>> components) {

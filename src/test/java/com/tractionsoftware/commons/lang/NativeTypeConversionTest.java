@@ -541,15 +541,10 @@ class NativeTypeConversionTest {
     // ---------------------------------------------------------------------------
 
     @Test
-    void getStringToPatternFunction_alwaysReturnsDefaultValue_evenForValidPattern() {
-        // NOTE: this documents a likely bug. getStringToPatternFunction compiles the pattern via
-        // Pattern.compile(...) inside a try/catch purely to detect a PatternSyntaxException, but it
-        // never uses or returns the compiled Pattern -- it always returns defaultValue, for both
-        // valid and invalid pattern strings. As written, this function cannot ever convert a String
-        // into the Pattern it actually represents.
+    void getStringToPatternFunction_returnsExpectedValidPattern() {
         Pattern defaultPattern = Pattern.compile("default");
         var fn = NativeTypeConversion.getStringToPatternFunction(Object::toString, defaultPattern);
-        assertSame(defaultPattern, fn.apply("[a-z]+"));
+        assertNotEquals(defaultPattern, fn.apply("[a-z]+"));
         assertSame(defaultPattern, fn.apply("[unterminated"));
     }
 

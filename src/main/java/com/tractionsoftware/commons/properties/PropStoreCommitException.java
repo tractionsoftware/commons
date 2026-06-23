@@ -76,7 +76,7 @@ public abstract class PropStoreCommitException extends Exception {
      *     the underlying cause.
      */
     public PropStoreCommitException(String message, Throwable cause) {
-        super(cause);
+        super(message, cause);
     }
 
     public abstract CommitResult.Status getStatus();

@@ -27,11 +27,12 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Objects;
 
 /**
- * A simple Result implementation backed by a {@link TempFileResource}. Instances of this class may be created via its static
- * factory methods, but in general those methods are invoked indirectly via a suitable {@link TempFileResultProvider}
- * instance.
+ * A simple Result implementation backed by a {@link TempFileResource}. Instances of this class may be created via its
+ * static factory methods, but in general those methods are invoked indirectly via a suitable
+ * {@link TempFileResultProvider} instance.
  *
  * @author Dave Shepperton
  * @see TempFileResultProvider
@@ -103,7 +104,7 @@ public final class TempFileResult extends Result {
     public static final TempFileResult getInstance(Helper helper) throws IOException {
 
         String ext = getExtension(helper.getSuggestedTempFileExtension());
-        String fileName = FileNameUtil.getValidNormalizedFileName(
+        String fileName = FileNameUtil.getGoodNormalizedFileName(
             helper.getName() + FileNameUtil.EXTENSION_SEPARATOR_CHAR + ext, null, null, false
         );
         TempFileResource tempFile = helper.tempFiles().create(
@@ -129,9 +130,10 @@ public final class TempFileResult extends Result {
      * @throws RuntimeException
      *     if the given {@link TempFileResource} instance is not valid.
      */
-    public static final TempFileResult getInstanceForExistingTempFile(TempFileResource tempFile, Logger logger)
+    public static final TempFileResult getInstanceForExistingTempFile(@Nonnull TempFileResource tempFile, Logger logger)
         throws RuntimeException {
-        if (tempFile == null || tempFile.hadError()) {
+        Objects.requireNonNull(tempFile, "temp file");
+        if (tempFile.hadError()) {
             throw new RuntimeException("Invalid temp file: " + tempFile);
         }
         return new TempFileResult(tempFile, logger);
@@ -142,8 +144,8 @@ public final class TempFileResult extends Result {
      *
      * @param suggestedExtension
      *     the suggested file extension, or null if no file extension has been suggested.
-     * @return either the concatenation of ".tmp" and the trimmed version of the suggested file extension, or just
-     *     ".tmp" if no suggested file extension was provided.
+     * @return either the concatenation of "tmp" and the trimmed version of the suggested file extension -- e.g.,
+     *     "tmp.txt" -- or just "tmp" if no suggested file extension was provided.
      */
     private static final String getExtension(String suggestedExtension) {
         if (StringUtils.isBlank(suggestedExtension)) {
@@ -169,8 +171,8 @@ public final class TempFileResult extends Result {
     private volatile boolean released;
 
     /**
-     * Constructs a TempFileResult using the given {@link TempFileResource} as the underlying data store or source, and the
-     * given NamedLogWriter as a logger for information about this instance.
+     * Constructs a TempFileResult using the given {@link TempFileResource} as the underlying data store or source, and
+     * the given NamedLogWriter as a logger for information about this instance.
      *
      * @param tempFile
      *     the {@link TempFileResource} to use as the underlying data store or source.
@@ -206,7 +208,8 @@ public final class TempFileResult extends Result {
     }
 
     /**
-     * Returns a TractionOutputStream for the underlying temporary file, which is managed by the {@link TempFileResource}.
+     * Returns a TractionOutputStream for the underlying temporary file, which is managed by the
+     * {@link TempFileResource}.
      */
     @Override
     protected final OutputStream getOutputStream() throws IOException {

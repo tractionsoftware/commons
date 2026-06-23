@@ -25,6 +25,8 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.tractionsoftware.commons.lang.Resource;
 import com.tractionsoftware.commons.lang.ObjectUtil;
 import com.tractionsoftware.commons.text.NumberFormats;
+import com.tractionsoftware.commons.util.AccumulatesCount;
+import com.tractionsoftware.commons.util.MayHaveKnownSize;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.commons.io.IOUtils;
@@ -51,6 +53,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 /**
@@ -105,7 +108,72 @@ public final class IOUtil {
         }
     }
 
-    public static final record CopyResult(long bytesRead, long bytesWritten) {
+    public static final class CopyResult {
+
+        public static final long UNCOPIED_BYTES_WRITTEN = Long.MIN_VALUE;
+
+        public static final CopyResult NOT_COPIED = new CopyResult(0, UNCOPIED_BYTES_WRITTEN, false);
+
+        /**
+         * Returns a {@link CopyResult} representing a "full copy", in which the requested size limit was not exceeded.
+         *
+         * @param bytesCopied
+         *     the number of bytes actually copied. This should always be the actual number of bytes read by the
+         *     transfer operation.
+         * @param bytesWritten
+         *     the number of bytes actually written, based on the best available information. It is possible that the
+         *     {@link OutputStream} is discarding some bytes, particularly if it is size limited, so the accuracy of
+         *     this value isn't guaranteed.
+         * @return a {@link CopyResult} representing a "full copy", in which the requested size limit was not exceeded.
+         */
+        @Nonnull
+        public static final CopyResult getInstanceForFullCopy(long bytesCopied, long bytesWritten) {
+            return new CopyResult(bytesCopied, bytesWritten, false);
+        }
+
+        /**
+         * Returns a {@link CopyResult} representing a "partial copy", in which the requested size limit would have been
+         * exceeded by copying all bytes.
+         *
+         * @param bytesCopied
+         *     the number of bytes actually copied. On a best-efforts basis, this should always be the actual number of
+         *     bytes read by the transfer operation.
+         * @param bytesWritten
+         *     the number of bytes actually written, based on the best available information. It is possible that the
+         *     {@link OutputStream} is discarding some bytes, particularly if it is size limited, so the accuracy of
+         *     this value isn't guaranteed.
+         * @return a {@link CopyResult} representing a "full copy", in which the requested size limit was not exceeded.
+         */
+        @Nonnull
+        public static final CopyResult getInstanceForPartialCopy(long bytesCopied, long bytesWritten) {
+            return new CopyResult(bytesCopied, bytesWritten, true);
+        }
+
+        @Nonnull
+        public static final CopyResult getInstance(long sizeLimit, long bytesCopied, long bytesWritten) {
+            if (bytesCopied < sizeLimit) {
+                return getInstanceForFullCopy(bytesCopied, bytesWritten);
+            }
+            return getInstanceForPartialCopy(bytesCopied, bytesWritten);
+        }
+
+        private final long bytesRead;
+
+        private final long bytesWritten;
+
+        private final boolean inputWasTooLarge;
+
+        private CopyResult(long bytesRead, long bytesWritten, boolean inputWasTooLarge) {
+            if (bytesRead != UNCOPIED_BYTES_WRITTEN && bytesRead < 0) {
+                throw new IllegalArgumentException(String.format("bytes read %s < 0", bytesRead));
+            }
+            if (bytesWritten < 0 && bytesWritten != Long.MIN_VALUE) {
+                throw new IllegalArgumentException(String.format("bytes written %s < 0", bytesWritten));
+            }
+            this.bytesRead = bytesRead;
+            this.bytesWritten = bytesWritten;
+            this.inputWasTooLarge = inputWasTooLarge;
+        }
 
         @Nonnull
         @Override
@@ -125,12 +193,15 @@ public final class IOUtil {
             return bytesWritten;
         }
 
-        public final boolean inputWasTooLarge() {
-            return (bytesWritten == -2L);
+        public final boolean triedToCopy() {
+            if (bytesWritten == UNCOPIED_BYTES_WRITTEN) {
+                return false;
+            }
+            return true;
         }
 
-        public final boolean triedToCopy() {
-            return (bytesWritten == -1L);
+        public final boolean inputWasTooLarge() {
+            return inputWasTooLarge;
         }
 
     }
@@ -291,7 +362,7 @@ public final class IOUtil {
 
         private final SizeLimiter limiter;
 
-        private ByteSizeLimitingInputStream(InputStream in, int sizeLimit, boolean errorOnLimitExceeded) {
+        private ByteSizeLimitingInputStream(InputStream in, long sizeLimit, boolean errorOnLimitExceeded) {
             super(in);
             this.limiter = SizeLimiter.createForInput(sizeLimit, errorOnLimitExceeded);
         }
@@ -341,7 +412,7 @@ public final class IOUtil {
 
         private ByteSizeLimitingOutputStream(OutputStream out, long sizeLimit, boolean errorOnLimitExceeded) {
             super(out);
-            this.limiter = SizeLimiter.createForInput(sizeLimit, errorOnLimitExceeded);
+            this.limiter = SizeLimiter.createForOutput(sizeLimit, errorOnLimitExceeded);
         }
 
         @Override
@@ -551,107 +622,88 @@ public final class IOUtil {
         return buff.toString();
     }
 
-    @CanIgnoreReturnValue
-    public static final void copyContent(InputStream in, Charset charset, Writer writer) throws IOException {
-        if (in == null || writer == null) {
-            return;
+    public static final void copyText(@Nullable InputStream in, @Nullable Charset charset, @Nullable Writer writer)
+        throws IOException {
+        if (in != null && writer != null) {
+            IOUtils.copy(in, writer, Objects.requireNonNullElse(charset, StandardCharsets.UTF_8));
         }
-        charset = ObjectUtils.getIfNull(charset, StandardCharsets.UTF_8);
-        IOUtils.copy(in, writer, charset);
     }
 
     @CanIgnoreReturnValue
-    public static final long copyContent(Reader reader, Writer writer) throws IOException {
+    public static final long copyText(Reader reader, Writer writer) throws IOException {
         if (reader == null || writer == null) {
             return 0;
         }
         return IOUtils.copy(reader, writer);
     }
 
-    @CanIgnoreReturnValue
+    /**
+     * Attempts to copy the given input to the given output, returning a {@link CopyResult} representing the result. If
+     * the argument for either the {@link InputStream} or {@link OutputStream} is null, this method does nothing and
+     * returns {@link CopyResult#NOT_COPIED}. Otherwise, this method will try to take into account how many bytes are
+     * actually read and written when creating the CopyResult on a best-efforts basis. Ideally, this would mean an
+     * OutputStream that implements {@link AccumulatesCount}. Clients that can't benefit from any of this special
+     * handling or the additional information or don't need null-safe conditional copying should probably simply use
+     * {@link InputStream#transferTo(OutputStream)}.
+     *
+     * @param input
+     *     the {@link InputStream} to copy from.
+     * @param output
+     *     the {@link OutputStream} to copy to.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
+     */
     @Nonnull
-    public static final CopyResult copyToEOF(@Nullable InputStream in, @Nullable OutputStream out) throws IOException {
-        if (in == null || out == null) {
-            return new CopyResult(0, -1L);
+    public static final CopyResult copy(@Nullable InputStream input, @Nullable OutputStream output) throws IOException {
+        if (input == null || output == null) {
+            return CopyResult.NOT_COPIED;
         }
-        long readWritten = in.transferTo(out);
-        out.flush();
-        return new CopyResult(readWritten, readWritten);
-    }
-
-    @Nonnull
-    public static final CopyResult copyToEOF(@Nullable InputStream in, @Nullable OutputStream out, long maxBytes)
-        throws IOException {
-
-        if (in == null || out == null) {
-            return new CopyResult(0, -1L);
-        }
-
-        if (maxBytes < 0) {
-            maxBytes = Long.MAX_VALUE;
-        }
-
-        long totalBytesRead = 0;
-        long remainingBytesToWrite = maxBytes;
-        long totalBytesWritten = 0;
-        int bytesRead;
-
-        final byte[] data = new byte[DEFAULT_IO_BUFFER_SIZE];
-
-        while ((bytesRead = in.read(data)) > 0) {
-
-            totalBytesRead += bytesRead;
-
-            // Already maxed on a previous iteration.
-            if (remainingBytesToWrite < 0) {
-                continue;
-            }
-
-            int bytesToWrite;
-
-            // We have enough room left in the max to write all bytes.
-            if (remainingBytesToWrite >= bytesRead) {
-                bytesToWrite = bytesRead;
-                remainingBytesToWrite -= bytesToWrite;
-            }
-            // Will be over the max on this iteration
-            else {
-                bytesToWrite = (int) remainingBytesToWrite;
-                remainingBytesToWrite = -1L;
-            }
-
-            if (bytesToWrite > 0) {
-                out.write(data, 0, bytesToWrite);
-                totalBytesWritten += bytesToWrite;
-            }
-
-        }
-
-        out.flush();
-
-        if (remainingBytesToWrite < 0) {
-            return new CopyResult(totalBytesRead, -2L);
-        }
-
-        return new CopyResult(totalBytesRead, totalBytesWritten);
-
+        return copyFull(input, output);
     }
 
     /**
-     * Copies the streams up to a specified limit.
+     * Attempts to copy the given input to the given output, returning a {@link CopyResult} representing the result. If
+     * the argument for either the {@link InputStream} or {@link OutputStream} is null, this method does nothing and
+     * returns {@link CopyResult#NOT_COPIED}. Otherwise, this method will try to take into account how many bytes are
+     * actually read and written when creating the CopyResult. It also will optimize handling of the size limit if
+     * possible, so for best results, the InputStream should be an instance of {@link MayHaveKnownSize} (e.g.,
+     * {@link ByteSizeLimitingInputStream}) and an OutputStream that implements {@link AccumulatesCount}.
+     *
+     * @param input
+     *     the {@link InputStream} to copy from.
+     * @param output
+     *     the {@link OutputStream} to copy to.
+     * @param sizeLimit
+     *     the upper limit on the number of bytes that should be allowed to be copied. If this value is negative or
+     *     {@link Long#MAX_VALUE}, or if the input is a {@link MayHaveKnownSize} and
+     *     {@link MayHaveKnownSize#size() reports a size} within this limit, no limit will be applied.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
      */
-    public static final long copyContent(InputStream in, OutputStream out, long maxByteCount) throws IOException {
-        byte[] buf = new byte[DEFAULT_IO_BUFFER_SIZE];
-        long remain = maxByteCount;
-        int len;
-        while (remain > 0 && (len = in.read(buf)) != -1) {
-            if (len > remain) {
-                len = (int) remain; // don't write the entire buffer
-            }
-            remain -= len;
-            out.write(buf, 0, len);
+    @CanIgnoreReturnValue
+    @Nonnull
+    public static final CopyResult copy(@Nullable InputStream input, @Nullable OutputStream output, long sizeLimit)
+        throws IOException {
+
+        if (input == null || output == null) {
+            return CopyResult.NOT_COPIED;
         }
-        return maxByteCount - remain;
+
+        if (sizeLimit < 0 || sizeLimit == Long.MAX_VALUE) {
+            return copyFull(input, output);
+        }
+
+        if (input instanceof MayHaveKnownSize sized) {
+            if (sized.hasSizeAtMost(sizeLimit)) {
+                return copyFull(input, output);
+            }
+            return copyPartial(input, output, sizeLimit);
+        }
+
+        return copyLimited(input, output, sizeLimit);
+
     }
 
     /**
@@ -673,8 +725,11 @@ public final class IOUtil {
      *     a simple identifier for the stream source to appear in diagnostic logging as necessary.
      * @return an {@link InputStream} that is identical to the given InputStream, but which will invoke the given
      *     callbacks before and after its {@link InputStream#close()} method.
+     * @throws NullPointerException
+     *     if the argument for the {@link InputStream} is null.
      */
-    public static final InputStream getCloseNotifyingInputStream(InputStream input, IORunnable onBeforeClose, IORunnable onAfterClose, String sourceIdentifier) {
+    @Nonnull
+    public static final InputStream getCloseNotifyingInputStream(@Nonnull InputStream input, @Nullable IORunnable onBeforeClose, @Nullable IORunnable onAfterClose, @Nullable String sourceIdentifier) {
         return new CloseNotifyingInputStream(input, onBeforeClose, onAfterClose, sourceIdentifier);
     }
 
@@ -691,7 +746,7 @@ public final class IOUtil {
      *     the {@link InputStream} to be wrapped.
      * @param sizeLimit
      *     the upper limit on the number of bytes that should be allowed to be read from the stream. If this value is
-     *     negative or {@link Integer#MAX_VALUE}, no limit will be applied.
+     *     negative or {@link Long#MAX_VALUE}, no limit will be applied.
      * @param errorOnLimitExceeded
      *     indicates whether exceeding the limit should cause an {@link IOException} to be thrown.
      * @return an {@link InputStream} which will only permit the given maximum number of bytes to be read from the given
@@ -700,16 +755,15 @@ public final class IOUtil {
      *     if the given {@link InputStream} is null.
      */
     @Nonnull
-    public static final InputStream getSizeLimitingInputStream(@Nonnull InputStream input, int sizeLimit, boolean errorOnLimitExceeded) {
+    public static final InputStream getSizeLimitingInputStream(@Nonnull InputStream input, long sizeLimit, boolean errorOnLimitExceeded) {
         Objects.requireNonNull(input, "input");
-        if (sizeLimit < 0 || sizeLimit == Integer.MAX_VALUE) {
+        if (sizeLimit < 0 || sizeLimit == Long.MAX_VALUE) {
             return input;
         }
-        if (input instanceof SizedInputStream s && !errorOnLimitExceeded) {
-            int size = (int) s.size();
-            if (size > 0 && size < sizeLimit) {
-                return input;
-            }
+        if (!errorOnLimitExceeded &&
+            input instanceof MayHaveKnownSize sized &&
+            sized.hasSizeBetween(1, sizeLimit)) {
+            return input;
         }
         return new ByteSizeLimitingInputStream(input, sizeLimit, errorOnLimitExceeded);
     }
@@ -739,7 +793,22 @@ public final class IOUtil {
         return new ByteSizeLimitingOutputStream(output, sizeLimit, errorOnLimitExceeded);
     }
 
-    public static final InputStream getBufferedInputStream(InputStream input) {
+    /**
+     * Returns a version of the {@link InputStream} that is known to be buffered. This is intended to be used when
+     * performance requires buffering, and therefore <b>is not necessarily the same as creating a
+     * {@link BufferedInputStream}</b>. If the given InputStream is already a BufferedInputStream, or a
+     * {@link ByteArrayInputStream}, or some other type of InputStream from this library or elsewhere that is known to
+     * already be buffered, then the InputStream will be returned as-is. Otherwise, it will return a new
+     * BufferedInputStream wrapping the given InputStream.
+     *
+     * @param input
+     *     the InputStream to buffer.
+     * @return a version of the {@link InputStream} that is known to be buffered
+     * @throws NullPointerException
+     *     if the argument for the {@link InputStream} is null.
+     */
+    @Nonnull
+    public static final InputStream getBufferedInputStream(@Nonnull InputStream input) {
         if (isBufferedInputStream(input)) {
             return input;
         }
@@ -758,8 +827,10 @@ public final class IOUtil {
      * @param getTracker
      *     supplies a {@link Resource} which should be closed when the returned {@link InputStream} is closed.
      * @return a wrapped version of the given {@link InputStream}.
+     * @throws NullPointerException
+     *     if either of the arguments is null.
      */
-    public static final InputStream getTrackedInputStream(InputStream input, Supplier<? extends Resource> getTracker) {
+    public static final InputStream getTrackedInputStream(@Nonnull InputStream input, @Nonnull Supplier<? extends Resource> getTracker) {
         return getTrackedInputStream(input, getTracker, null);
     }
 
@@ -777,9 +848,13 @@ public final class IOUtil {
      * @param sourceIdentifier
      *     a simple identifier for the stream source to appear in diagnostic logging as necessary.
      * @return a wrapped version of the given {@link InputStream}.
+     * @throws NullPointerException
+     *     if the argument for the {@link InputStream} or {@link Resource} {@link Supplier} is null.
      * @see #getCloseNotifyingInputStream(InputStream, IORunnable, IORunnable)
      */
-    public static final InputStream getTrackedInputStream(InputStream input, Supplier<? extends Resource> getTracker, String sourceIdentifier) {
+    public static final InputStream getTrackedInputStream(@Nonnull InputStream input, @Nonnull Supplier<? extends Resource> getTracker, @Nullable String sourceIdentifier) {
+        Objects.requireNonNull(input, "input");
+        Objects.requireNonNull(getTracker, "tracker provider");
         Resource tracker = getTracker.get();
         try {
             return getCloseNotifyingInputStream(input, null, tracker::close, sourceIdentifier);
@@ -800,10 +875,12 @@ public final class IOUtil {
      *     tracking.
      * @throws IOException
      *     if one is raised while attempting to create a {@link FileInputStream}.
+     * @throws NullPointerException
+     *     if either of the arguments is null.
      * @see FileUtil#getBufferedInputStream(File)
      * @see IOUtil#getTrackedInputStream(InputStream, Supplier, String)
      */
-    public static final InputStream getBufferedTrackedInputStream(File file, Supplier<? extends Resource> getTracker)
+    public static final InputStream getBufferedTrackedInputStream(@Nonnull File file, @Nonnull Supplier<? extends Resource> getTracker)
         throws IOException {
         return getTrackedInputStream(FileUtil.getBufferedInputStream(file), getTracker, file.toString());
     }
@@ -825,8 +902,10 @@ public final class IOUtil {
      *     the callback to be invoked after closing the given {@link InputStream}, if any.
      * @return an {@link InputStream} that is identical to the given InputStream, but which will invoke the given
      *     callbacks before and after its {@link InputStream#close()} method.
+     * @throws NullPointerException
+     *     if the argument for the {@link InputStream} is null.
      */
-    public static final InputStream getCloseNotifyingInputStream(InputStream input, IORunnable onBeforeClose, IORunnable onAfterClose) {
+    public static final InputStream getCloseNotifyingInputStream(@Nonnull InputStream input, @Nullable IORunnable onBeforeClose, @Nullable IORunnable onAfterClose) {
         return getCloseNotifyingInputStream(input, onBeforeClose, onAfterClose, null);
     }
 
@@ -835,8 +914,10 @@ public final class IOUtil {
      * @param output
      *     the {@link OutputStream} to be tracked.
      * @return a wrapped version of the given {@link OutputStream}.
+     * @throws NullPointerException
+     *     if either of the arguments is null.
      */
-    public static final OutputStream getTrackedOutputStream(OutputStream output, Supplier<? extends Resource> getTracker) {
+    public static final OutputStream getTrackedOutputStream(@Nonnull OutputStream output, @Nonnull Supplier<? extends Resource> getTracker) {
         return getTrackedOutputStream(output, getTracker, null);
     }
 
@@ -847,8 +928,11 @@ public final class IOUtil {
      * @param sourceIdentifier
      *     a simple identifier for the stream source to appear in diagnostic logging as necessary.
      * @return a wrapped version of the given {@link OutputStream}.
+     * @throws NullPointerException
+     *     if the argument for the {@link OutputStream} or {@link Resource} {@link Supplier} is null.
      */
-    public static final OutputStream getTrackedOutputStream(OutputStream output, Supplier<? extends Resource> getTracker, String sourceIdentifier) {
+    public static final OutputStream getTrackedOutputStream(@Nonnull OutputStream output, @Nonnull Supplier<? extends Resource> getTracker, @Nullable String sourceIdentifier) {
+        Objects.requireNonNull(getTracker, "resource tracker provider");
         Resource tracker = getTracker.get();
         try {
             return getCloseNotifyingOutputStream(output, null, tracker::close, sourceIdentifier);
@@ -1066,23 +1150,23 @@ public final class IOUtil {
 
     }
 
-    public static AutoCloseable createCompoundCloseable(Iterable<? extends AutoCloseable> resources) {
+    public static final AutoCloseable createCompoundCloseable(Iterable<? extends AutoCloseable> resources) {
         Objects.requireNonNull(resources, "resources");
         return new CompoundAutoCloseable(resources);
     }
 
-    public static BufferedReader getBufferedUtf8Reader(InputStream input) {
+    public static final BufferedReader getBufferedUtf8Reader(InputStream input) {
         return getBufferedReader(input, null);
     }
 
-    public static BufferedReader getBufferedReader(InputStream input, Charset charset) {
+    public static final BufferedReader getBufferedReader(InputStream input, Charset charset) {
         Objects.requireNonNull(input, "InputStream");
         return new BufferedReader(
             new InputStreamReader(input, charset == null ? StandardCharsets.UTF_8 : charset)
         );
     }
 
-    public static BufferedReader getBufferedReader(Reader reader) {
+    public static final BufferedReader getBufferedReader(Reader reader) {
         if (reader instanceof BufferedReader alreadyBuffered) {
             return alreadyBuffered;
         }
@@ -1120,7 +1204,7 @@ public final class IOUtil {
      * @throws NullPointerException
      *     if the given {@link OutputStream} is null.
      */
-    public static BufferedWriter getBufferedUtf8Writer(OutputStream out) {
+    public static final BufferedWriter getBufferedUtf8Writer(OutputStream out) {
         Objects.requireNonNull(out, "OutputStream");
         return new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
     }
@@ -1139,7 +1223,7 @@ public final class IOUtil {
      * @throws NullPointerException
      *     if the given {@link OutputStream} is null.
      */
-    public static PrintWriter getFlushInsteadOfClosePrintWriter(OutputStream out) {
+    public static final PrintWriter getFlushInsteadOfClosePrintWriter(OutputStream out) {
         return getFlushInsteadOfClosePrintWriter(out, false);
     }
 
@@ -1160,7 +1244,7 @@ public final class IOUtil {
      * @throws NullPointerException
      *     if the given {@link OutputStream} is null.
      */
-    public static PrintWriter getFlushInsteadOfClosePrintWriter(OutputStream out, boolean autoFlush) {
+    public static final PrintWriter getFlushInsteadOfClosePrintWriter(OutputStream out, boolean autoFlush) {
         Objects.requireNonNull(out, "OutputStream");
         return new FlushInsteadOfClosePrintWriter(out, autoFlush);
     }
@@ -1178,7 +1262,7 @@ public final class IOUtil {
      * @throws NullPointerException
      *     if the given {@link Writer} is null.
      */
-    public static PrintWriter getFlushInsteadOfClosePrintWriter(Writer out) {
+    public static final PrintWriter getFlushInsteadOfClosePrintWriter(Writer out) {
         return getFlushInsteadOfClosePrintWriter(out, false);
     }
 
@@ -1198,7 +1282,7 @@ public final class IOUtil {
      * @throws NullPointerException
      *     if the given {@link Writer} is null.
      */
-    public static PrintWriter getFlushInsteadOfClosePrintWriter(Writer out, boolean autoFlush) {
+    public static final PrintWriter getFlushInsteadOfClosePrintWriter(Writer out, boolean autoFlush) {
         Objects.requireNonNull(out, "Writer");
         return new FlushInsteadOfClosePrintWriter(out, autoFlush);
     }
@@ -1213,12 +1297,12 @@ public final class IOUtil {
         return CloseShieldOutputStream.wrap(out);
     }
 
-    public static Reader getNoCloseReader(Reader reader) {
+    public static final Reader getNoCloseReader(Reader reader) {
         Objects.requireNonNull(reader, "Reader");
         return CloseShieldReader.wrap(reader);
     }
 
-    public static Writer getNoCloseWriter(Writer writer) {
+    public static final Writer getNoCloseWriter(Writer writer) {
         Objects.requireNonNull(writer, "Writer");
         return CloseShieldWriter.wrap(writer);
     }
@@ -1279,7 +1363,7 @@ public final class IOUtil {
         }
     }
 
-    private static boolean isBufferedInputStream(InputStream input) {
+    private static final boolean isBufferedInputStream(InputStream input) {
         if (input instanceof BufferedInputStream || input instanceof ByteArrayInputStream) {
             return true;
         }
@@ -1289,7 +1373,7 @@ public final class IOUtil {
         return false;
     }
 
-    private static boolean isBufferedOutputStream(OutputStream output) {
+    private static final boolean isBufferedOutputStream(OutputStream output) {
         if (output instanceof BufferedOutputStream || output instanceof ByteArrayOutputStream) {
             return true;
         }
@@ -1297,6 +1381,99 @@ public final class IOUtil {
             return custom.isBuffered();
         }
         return false;
+    }
+
+    /**
+     * Copy implementation to use when all bytes can be copied.
+     *
+     * @param input
+     *     the source {@link InputStream}.
+     * @param output
+     *     the destination {@link OutputStream}.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
+     */
+    private static final CopyResult copyFull(@Nonnull InputStream input, @Nonnull OutputStream output)
+        throws IOException {
+        return copyImpl(input, output, CopyResult::getInstanceForFullCopy);
+    }
+
+    /**
+     * Copy implementation to use when it is known that not all bytes will be copied, but the input does not need to be
+     * limited.
+     *
+     * @param input
+     *     the source {@link InputStream}.
+     * @param output
+     *     the destination {@link OutputStream}.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
+     */
+    private static final CopyResult copyPartial(@Nonnull InputStream input, @Nonnull OutputStream output, long sizeLimit)
+        throws IOException {
+//        return copyImpl(
+//            new ByteSizeLimitingInputStream(input, sizeLimit, false),
+//            output,
+//            (bytesCopied, bytesWritten) -> CopyResult.getInstance(sizeLimit, bytesCopied, bytesWritten)
+//        );
+        return copyImpl(
+            new ByteSizeLimitingInputStream(input, sizeLimit, false), output, CopyResult::getInstanceForPartialCopy
+        );
+    }
+
+    /**
+     * Copy implementation to use when it is not known whether all bytes can be copied and still stay within the
+     * requested size limit.
+     *
+     * @param input
+     *     the source {@link InputStream}.
+     * @param output
+     *     the destination {@link OutputStream}.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
+     */
+    private static final CopyResult copyLimited(@Nonnull InputStream input, @Nonnull OutputStream output, long sizeLimit)
+        throws IOException {
+        return copyImpl(
+            new ByteSizeLimitingInputStream(input, sizeLimit, false),
+            output,
+            (bytesCopied, bytesWritten) -> CopyResult.getInstance(sizeLimit, bytesCopied, bytesWritten)
+        );
+    }
+
+    /**
+     * Shared copy implementation.
+     *
+     * @param input
+     *     the source {@link InputStream}.
+     * @param output
+     *     the destination {@link OutputStream}.
+     * @param resultCreator
+     *     to be invoked to create a {@link CopyResult}.
+     * @return a {@link CopyResult} representing the result.
+     * @throws IOException
+     *     if one is raised during the copy operation.
+     */
+    private static final CopyResult copyImpl(@Nonnull InputStream input, @Nonnull OutputStream output, @Nonnull BiFunction<Long,Long,CopyResult> resultCreator)
+        throws IOException {
+
+        AccumulatesCount bytesWritten;
+        if (output instanceof AccumulatesCount alreadyCounting) {
+            bytesWritten = alreadyCounting.startingFromCurrentCount();
+        }
+        else {
+            bytesWritten = null;
+        }
+
+        long copiedBytes = input.transferTo(output);
+        if (bytesWritten == null) {
+            return resultCreator.apply(copiedBytes, copiedBytes);
+        }
+        return resultCreator.apply(copiedBytes, bytesWritten.getCount());
+
     }
 
 }
