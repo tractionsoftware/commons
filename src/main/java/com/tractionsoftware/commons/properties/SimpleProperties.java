@@ -576,7 +576,10 @@ public final class SimpleProperties {
         if (urlDateSpec == null) {
             return defaultValue;
         }
-        return DateFormats.getUrlDateFormat(timeZone).parse(urlDateSpec, new ParsePosition(0));
+        return Objects.requireNonNullElse(
+            DateFormats.getUrlDateFormat(timeZone).parse(urlDateSpec, new ParsePosition(0)),
+            defaultValue
+        );
     }
 
     /**
@@ -1111,6 +1114,9 @@ public final class SimpleProperties {
     }
 
     public static final long loadDurationMillis(GetProperty props, String name, long defaultValue) {
+        if (props == null) {
+            return defaultValue;
+        }
         props = props.getNamespace(name);
         long millis = SimpleProperties.loadLong(props, null, Long.MIN_VALUE);
         if (millis != Long.MIN_VALUE) {
@@ -1120,6 +1126,9 @@ public final class SimpleProperties {
     }
 
     public static final Duration loadDuration(GetProperty props, String name, Duration defaultValue) {
+        if (props == null) {
+            return defaultValue;
+        }
         props = props.getNamespace(name);
         long millis = SimpleProperties.loadLong(props, null, Long.MIN_VALUE);
         if (millis != Long.MIN_VALUE) {

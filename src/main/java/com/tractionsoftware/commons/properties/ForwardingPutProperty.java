@@ -210,7 +210,7 @@ public abstract class ForwardingPutProperty extends ForwardingObject implements 
             if (put.nameMapper.isInverseOf(nameMapper)) {
                 return put.delegate();
             }
-            return new PropertyNameMappingPutProperty(props, put.nameMapper.compose(nameMapper));
+            return new PropertyNameMappingPutProperty(put.delegate(), put.nameMapper.compose(nameMapper));
         }
         return new PropertyNameMappingPutProperty(props, nameMapper);
     }

@@ -44,8 +44,7 @@ public final class PropertyNameMappingGetProperty extends AbstractPropertyNameMa
         if (props == null || nameMapper == null) {
             return props;
         }
-        if (props instanceof PropertyNameMappingGetProperty) {
-            PropertyNameMappingGetProperty nameMappedProps = (PropertyNameMappingGetProperty) props;
+        if (props instanceof PropertyNameMappingGetProperty nameMappedProps) {
             if (nameMappedProps.nameMapper.isInverseOf(nameMapper)) {
                 return nameMappedProps.props;
             }

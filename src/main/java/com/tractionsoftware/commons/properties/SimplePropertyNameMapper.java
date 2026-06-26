@@ -144,95 +144,101 @@ public final class SimplePropertyNameMapper implements PropertyNameMapper {
     }
 
     /**
-     * Returns the prefix concatenated with the given String, separated with the given separator character (if one is
-     * supplied).
+     * Returns the given prefix and its optional namespace separator character (if specified) concatenated with the
+     * given String.
      *
      * <p>
-     * For prefix "foo", and default separator '_':
-     *
+     * Here are some example inputs and outputs:
      * <pre>
-     * "bar" -> "foo_bar"
-     * null  -> "foo"
-     * ""    -> "foo"
-     * </pre>
-     *
-     * <p>
-     * For null or empty prefix (and any separator):
-     *
-     * <pre>
-     * "bar" -> "bar"
-     * null  -> null
-     * ""    -> ""
+     * prefix = null, str = "bar" -> "bar"
+     * prefix = "", str = "bar" -> "bar"
+     * prefix = "foo", str = null -> "foo"
+     * prefix = "foo", str = "" -> "foo"
+     * prefix = "foo", separator = null, str = "bar" -> "foobar"
+     * prefix = "foo", separator = "_", str = "bar" -> "foo_bar"
      * </pre>
      *
      * @return the result of applying the given prefix, with the given separator character, if one is specified, to the
      *     given String.
+     * @see #removePrefix(String, String, Character)
      */
     public static final String addPrefix(String str, String prefix, Character separator) {
 
+        // Nothing to add.
+        // prefix = null, str = "bar" -> "bar"
+        // prefix = "", str = "bar" -> "bar"
         if (StringUtils.isEmpty(prefix)) {
             return str;
         }
 
+        // Nothing to add to.
+        // prefix = "foo", str = null -> "foo"
+        // prefix = "foo", str = "" -> "foo"
         if (StringUtils.isEmpty(str)) {
             return prefix;
         }
 
+        // prefix = "foo", str = "bar" -> "foobar"
         if (separator == null) {
             return prefix + str;
         }
 
+        // prefix = "foo", sep = "_", str = "bar" -> "foo_bar"
         return prefix + separator + str;
 
     }
 
     /**
-     * Attempts to remove the given prefix and separator character, assuming it was applied the same way that
-     * {@link #addPrefix(String, String, Character)} would do, from the given String, and returns the result. This
-     * method returns null if the prefix is not present.
+     * Attempts to remove the given prefix with its optional namespace separator character from the given String, and
+     * returns the result.
      *
      * <p>
-     * For the prefix "foo" and default separator '_':
+     * This method is intended to be the inverse of {@link #addPrefix(String, String, Character)}. But if either the
+     * prefix or the string itself is null or empty, the string is returned as-is.
+     *
+     * <p>
+     * Here are some examples of inputs and outputs:
      *
      * <pre>
-     * "foo_bar" -> "bar"
-     * "foo"     -> ""
-     * "foo_"    -> ""
-     * "baz"     -> null
-     * null      -> null
-     * ""        -> null
+     * str = "" -> ""
+     * str = null -> null
+     * prefix = "", str = "anything" -> "anything"
+     * prefix = null, str = "anything" -> "anything"
+     * prefix = "foo", str = "foobar" -> "bar"; str = "foo" -> ""
+     * prefix = "foo", str = "baz" -> null (?)
+     * prefix = "foo", separator = ".", str = "foo.bar" -> "bar"
+     * prefix = "foo", separator = ".", str = "baz_bar" -> null (?)
      * </pre>
      *
-     * @return the result of removing the prefix, with the given separator character (if one is specified), if they are
-     *     present, from the beginning of the String; null otherwise.
+     * @return the result of attempting to remove the given prefix with its optional namespace separator character, from
+     *     the beginning of the given string, if the prefix is present; a suitable fallback (as described above)
+     *     otherwise.
      */
     public static final String removePrefix(String str, String prefix, Character separator) {
 
-        if (StringUtils.isEmpty(prefix)) {
-            return null;
-        }
-
-        // ""   -> null
-        // null -> null
-        if (StringUtils.isEmpty(str)) {
-            return null;
+        // str = "" -> ""
+        // str = null -> null
+        // prefix = "", str = "anything" -> "anything"
+        // prefix = null, str = "anything" -> "anything"
+        if (StringUtils.isEmpty(prefix) || StringUtils.isEmpty(str)) {
+            return str;
         }
 
         if (separator == null) {
-            // "foobar" -> "bar"
+            // prefix = "foo", str = "foobar" -> "bar"; str = "foo" -> ""
             if (str.startsWith(prefix)) {
                 return str.substring(prefix.length());
             }
-            // "baz" -> null (?)
+            // prefix = "foo", str = "baz" -> null (?)
             return null;
         }
 
-        if (str.startsWith(prefix + separator)) {
-            if (str.length() == prefix.length()) {
-                return "";
-            }
-            return str.substring(prefix.length() + 1);
+        String prefixWithSeparator = prefix + separator;
+        // prefix+sep = "foo_", str = "foo_bar" -> "bar"
+        if (str.startsWith(prefixWithSeparator)) {
+            return str.substring(prefixWithSeparator.length());
         }
+        // prefix+sep = "foo_", str = "baz_bar" -> null (?)
         return null;
 
     }

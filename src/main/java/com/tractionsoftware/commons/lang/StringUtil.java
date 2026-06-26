@@ -45,10 +45,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.function.BooleanSupplier;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -928,8 +925,8 @@ public final class StringUtil {
 
     /**
      * Returns the first index of any of the specified characters. This method is similar to
-     * {@link StringUtils#indexOfAny(CharSequence, char...)}, but with the option of specifying the starting index for
-     * the search.
+     * {@link StringUtils#indexOfAny(CharSequence, int, char...)}, but handles the arguments a little differently. This
+     * method does handle non-BMP code points.
      *
      * @param str
      *     the sequence in which to search.
@@ -941,40 +938,17 @@ public final class StringUtil {
      *     present; -1 otherwise.
      */
     public static final int indexOfAny(CharSequence str, CharSequence searchChars, int fromIndex) {
-
-        if (StringUtils.isEmpty(str) || StringUtils.isEmpty(searchChars)) {
+        if (StringUtils.isEmpty(searchChars)) {
             return StringUtils.INDEX_NOT_FOUND;
         }
-
         int len = str.length();
         if (fromIndex >= len) {
             return StringUtils.INDEX_NOT_FOUND;
         }
-
         if (fromIndex < 0) {
             fromIndex = 0;
         }
-
-        if (hasNonBmpCodePoints(searchChars)) {
-            IntPredicate matcher = codePoint -> ArrayUtils.contains(searchChars.codePoints().toArray(), codePoint);
-            int[] codePoints = str.codePoints().skip(fromIndex).toArray();
-            for (int i = 0; i < codePoints.length; i++) {
-                if (matcher.test(codePoints[i])) {
-                    return i;
-                }
-            }
-        }
-        else {
-            CharMatcher matcher = CharMatcher.anyOf(searchChars);
-            for (int i = fromIndex; i < str.length(); i++) {
-                if (matcher.matches(str.charAt(i))) {
-                    return i;
-                }
-            }
-        }
-
-        return StringUtils.INDEX_NOT_FOUND;
-
+        return StringUtils.indexOfAny(str, fromIndex, searchChars.toString().toCharArray());
     }
 
     /**

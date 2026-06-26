@@ -325,7 +325,7 @@ public class ForwardingPutPropertyTest {
     }
 
     @Test
-    public void wrapInPrefix_nameExactlyEqualToPrefixWithNoSeparator_usesNullKey() {
+    public void wrapInPrefix_nameExactlyEqualToPrefix_usesNullKey() {
         MapPropertyStore<Object> store = newStore();
         PutProperty wrapped = ForwardingPutProperty.wrapInPrefix(store, "px");
         wrapped.putProperty("px", "1");

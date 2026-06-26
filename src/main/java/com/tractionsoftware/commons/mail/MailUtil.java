@@ -319,10 +319,14 @@ public final class MailUtil {
         }
 
         public static final InputStreamDataSource createInstance(FileResource file) {
+            Objects.requireNonNull(file, "file");
             return new InputStreamDataSource(file.getFilename(), fileToInputStreamCreator(file), file.getContentType());
         }
 
         public static final InputStreamDataSource createInstance(String name, Supplier<? extends InputStream> input, String type) {
+            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(input, "input");
+            Objects.requireNonNull(type, "type");
             return new InputStreamDataSource(name, input::get, type);
         }
 
@@ -336,7 +340,7 @@ public final class MailUtil {
             Objects.requireNonNull(input, "InputStream creator");
             this.name = name;
             this.input = input;
-            this.type = type;
+            this.type = Objects.requireNonNullElseGet(type, MediaType.OCTET_STREAM::toString);
         }
 
         @Override
@@ -552,7 +556,7 @@ public final class MailUtil {
      *     the raw header lines, which have not yet had any required RFC 2047 decoding applied.
      * @return an {@link EmailHeaders} objects based upon the given raw header lines.
      */
-    public static final EmailHeaders createEmailHeadersFromRawLines(Iterable<String> rawHeaderLines) {
+    public static final EmailHeaders createEmailHeadersFromRawLines(@Nullable Iterable<String> rawHeaderLines) {
         return new SimpleDecodedEmailHeaders(headerLinesToDecodedHeaderMap(rawHeaderLines), rawHeaderLines);
     }
 
@@ -566,7 +570,10 @@ public final class MailUtil {
      *     indicates whether RFC 2047 decoding should be applied to each header value.
      * @return an {@link EmailHeaders} object based upon the given {@link Header}s.
      */
-    public static final EmailHeaders createEmailHeaders(Multimap<String,Header> headers, boolean tryToDecode) {
+    public static final EmailHeaders createEmailHeaders(@Nullable Multimap<String,Header> headers, boolean tryToDecode) {
+        if (CollectionUtil.isEmpty(headers)) {
+            return EmailHeaders.NONE;
+        }
         ImmutableList.Builder<String> rawHeaderLines = ImmutableList.builder();
         headers.values()
             .forEach((Header header) -> rawHeaderLines.add(StringUtils.defaultString(headerToString(header))));
@@ -576,11 +583,11 @@ public final class MailUtil {
         return new SimpleDecodedEmailHeaders(headers, rawHeaderLines.build());
     }
 
-    public static final EmailHeaders createEmailHeaders(Iterable<Header> headers, boolean tryToDecode) {
+    public static final EmailHeaders createEmailHeaders(@Nullable Iterable<Header> headers, boolean tryToDecode) {
         return createEmailHeaders(MailUtil.headersToHeaderMap(headers), tryToDecode);
     }
 
-    public static final EmailHeaders createEmailHeaders(MimeMessage message) throws MessagingException {
+    public static final EmailHeaders createEmailHeaders(@Nullable MimeMessage message) throws MessagingException {
         return createEmailHeadersFromRawLines(getRawHeaderLines(message));
     }
 
@@ -1364,9 +1371,12 @@ public final class MailUtil {
      *     representing the file resource to be used.
      * @return a DataSource based upon the content of the given file resource.
      */
-    public static final DataSource getDataSource(FileResource file) {
-        Objects.requireNonNull(file, "file");
+    public static final DataSource getDataSource(@Nonnull FileResource file) {
         return InputStreamDataSource.createInstance(file);
+    }
+
+    public static final DataSource getDataSource(@Nonnull String name, @Nonnull Supplier<? extends InputStream> input, @Nonnull String type) {
+        return InputStreamDataSource.createInstance(name, input, type);
     }
 
     private static final boolean headerLineRequiresRfc2047Decoding(String headerLine) {
@@ -1402,11 +1412,14 @@ public final class MailUtil {
     }
 
     private static final Iterable<String> getEmailAddressTokens(String emailAddressesSpec) {
+        if (StringUtils.isEmpty(emailAddressesSpec)) {
+            return Collections.emptyList();
+        }
         return () -> new EmailAddressesSpecTokenizer(emailAddressesSpec);
     }
 
-    private static final void addIfNotInToOrCc(List<? extends Address> addresses, Set<? super Address> toAndCc, Set<? super Address> addTo) {
-        if (addresses == null) {
+    private static final void addIfNotInToOrCc(@Nullable List<? extends Address> addresses, @Nonnull Set<? super Address> toAndCc, @Nonnull Set<? super Address> addTo) {
+        if (CollectionUtil.isEmpty(addresses)) {
             return;
         }
         for (Address address : addresses) {

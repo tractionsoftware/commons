@@ -25,7 +25,14 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -2710,6 +2717,925 @@ public final class StringUtilTest {
     @Test
     public void getTrimmedString_allWhitespace_returnsEmpty() {
         assertEquals("", StringUtil.getTrimmedString("   ".toCharArray(), 0, 3));
+    }
+
+    // -------------------------------------------------------------------------
+    // AbstractGrowableIndexRange
+    //
+    // The only production concrete subclass (FilteringTextMapper.IndexRangeImpl) is package-private and not
+    // visible from this test package, so we use a minimal test-local subclass to exercise the abstract class's
+    // protected members directly.
+    // -------------------------------------------------------------------------
+
+    private static final class TestGrowableIndexRange extends StringUtil.AbstractGrowableIndexRange {
+
+        TestGrowableIndexRange(int index) {
+            super(index);
+        }
+
+        TestGrowableIndexRange(int start, int end, boolean containsNonBmpCodePoints) {
+            super(start, end, containsNonBmpCodePoints);
+        }
+
+        void expand() {
+            expandImpl();
+        }
+
+        void expand(int bySize) {
+            expandImpl(bySize);
+        }
+
+        void markContainsNonBmpCodePoints() {
+            setContainsNonBmpCodePoints();
+        }
+
+        void markContainsNonBmpCodePointIfTrue(BooleanSupplier supplier) {
+            setContainsNonBmpCodePoint(supplier);
+        }
+
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_singleIndexConstructor_startEqualsEnd() {
+        TestGrowableIndexRange range = new TestGrowableIndexRange(5);
+        assertEquals(5, range.start());
+        assertEquals(5, range.end());
+        assertEquals(0, range.length());
+        assertFalse(range.containsNonBmpCodePoints());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_toString_singleIndex() {
+        assertEquals("[5]", new TestGrowableIndexRange(5).toString());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_toString_range() {
+        assertEquals("[2-7]", new TestGrowableIndexRange(2, 7, false).toString());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_expandImpl_incrementsEndByOne() {
+        TestGrowableIndexRange range = new TestGrowableIndexRange(5);
+        range.expand();
+        assertEquals(5, range.start());
+        assertEquals(6, range.end());
+        assertEquals(1, range.length());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_expandImplWithSize_incrementsEndBySize() {
+        TestGrowableIndexRange range = new TestGrowableIndexRange(5);
+        range.expand(3);
+        assertEquals(8, range.end());
+        assertEquals(3, range.length());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_setContainsNonBmpCodePoints_setsTrue() {
+        TestGrowableIndexRange range = new TestGrowableIndexRange(0);
+        assertFalse(range.containsNonBmpCodePoints());
+        range.markContainsNonBmpCodePoints();
+        assertTrue(range.containsNonBmpCodePoints());
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_setContainsNonBmpCodePoint_evaluatesSupplierOnlyIfNotAlreadyTrue() {
+        TestGrowableIndexRange range = new TestGrowableIndexRange(0);
+        int[] callCount = { 0 };
+        range.markContainsNonBmpCodePointIfTrue(() -> {
+            callCount[0]++;
+            return true;
+        });
+        assertTrue(range.containsNonBmpCodePoints());
+        assertEquals(1, callCount[0]);
+
+        // Once already true, the supplier should not be invoked again.
+        range.markContainsNonBmpCodePointIfTrue(() -> {
+            callCount[0]++;
+            return false;
+        });
+        assertTrue(range.containsNonBmpCodePoints());
+        assertEquals(1, callCount[0]);
+    }
+
+    @Test
+    public void abstractGrowableIndexRange_equalsAndHashCode() {
+        TestGrowableIndexRange a = new TestGrowableIndexRange(1, 5, false);
+        TestGrowableIndexRange b = new TestGrowableIndexRange(1, 5, false);
+        TestGrowableIndexRange differentEnd = new TestGrowableIndexRange(1, 6, false);
+        TestGrowableIndexRange differentBmp = new TestGrowableIndexRange(1, 5, true);
+
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, differentEnd);
+        assertNotEquals(a, differentBmp);
+        assertNotNull(a);
+    }
+
+    // -------------------------------------------------------------------------
+    // SimpleImmutableIndexRange
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void simpleImmutableIndexRange_empty_isSharedInstance() {
+        assertSame(StringUtil.SimpleImmutableIndexRange.EMPTY, StringUtil.SimpleImmutableIndexRange.getInstance(0, 0));
+        assertTrue(StringUtil.SimpleImmutableIndexRange.EMPTY.isEmpty());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_getInstance_negativeStart_throws() {
+        assertThrows(IndexOutOfBoundsException.class, () -> StringUtil.SimpleImmutableIndexRange.getInstance(-1, 5));
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_getInstance_negativeEnd_throws() {
+        assertThrows(IndexOutOfBoundsException.class, () -> StringUtil.SimpleImmutableIndexRange.getInstance(0, -1));
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_getInstance_nonEmpty_returnsNewInstance() {
+        StringUtil.SimpleImmutableIndexRange range = StringUtil.SimpleImmutableIndexRange.getInstance(2, 5);
+        assertEquals(2, range.start());
+        assertEquals(5, range.end());
+        assertEquals(3, range.length());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_apply_empty_returnsEmptyString() {
+        assertEquals("", StringUtil.SimpleImmutableIndexRange.EMPTY.apply("hello"));
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_apply_fullRange_returnsSameSequence() {
+        String text = "hello";
+        StringUtil.SimpleImmutableIndexRange range = StringUtil.SimpleImmutableIndexRange.getInstance(0, text.length());
+        assertSame(text, range.apply(text));
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_apply_partialRange_returnsSubSequence() {
+        StringUtil.SimpleImmutableIndexRange range = StringUtil.SimpleImmutableIndexRange.getInstance(1, 3);
+        assertEquals("el", range.apply("hello"));
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_append_empty_doesNothing() {
+        StringBuilder buff = new StringBuilder("x");
+        StringUtil.SimpleImmutableIndexRange.EMPTY.append(buff, "hello");
+        assertEquals("x", buff.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_append_fullRange_appendsWholeSequence() {
+        StringBuilder buff = new StringBuilder();
+        String text = "hello";
+        StringUtil.SimpleImmutableIndexRange.getInstance(0, text.length()).append(buff, text);
+        assertEquals("hello", buff.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_append_partialRange_appendsSubrange() {
+        StringBuilder buff = new StringBuilder();
+        StringUtil.SimpleImmutableIndexRange.getInstance(1, 3).append(buff, "hello");
+        assertEquals("el", buff.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_print_empty_doesNothing() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        StringUtil.SimpleImmutableIndexRange.EMPTY.print(pw, "hello");
+        pw.flush();
+        assertEquals("", sw.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_print_fullRange_printsWholeSequence() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        String text = "hello";
+        StringUtil.SimpleImmutableIndexRange.getInstance(0, text.length()).print(pw, text);
+        pw.flush();
+        assertEquals("hello", sw.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_print_partialRange_stringFastPath() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        StringUtil.SimpleImmutableIndexRange.getInstance(1, 3).print(pw, "hello");
+        pw.flush();
+        assertEquals("el", sw.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_print_partialRange_nonStringCharSequence() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        StringUtil.SimpleImmutableIndexRange.getInstance(1, 3).print(pw, new StringBuilder("hello"));
+        pw.flush();
+        assertEquals("el", sw.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_appendAppendable_empty_doesNothing() throws IOException {
+        StringBuilder buff = new StringBuilder("x");
+        StringUtil.SimpleImmutableIndexRange.EMPTY.append((Appendable) buff, "hello");
+        assertEquals("x", buff.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_appendAppendable_fullRange_appendsWholeSequence() throws IOException {
+        StringBuilder buff = new StringBuilder();
+        String text = "hello";
+        StringUtil.SimpleImmutableIndexRange.getInstance(0, text.length()).append((Appendable) buff, text);
+        assertEquals("hello", buff.toString());
+    }
+
+    @Test
+    public void simpleImmutableIndexRange_appendAppendable_partialRange_appendsSubrange() throws IOException {
+        StringBuilder buff = new StringBuilder();
+        StringUtil.SimpleImmutableIndexRange.getInstance(1, 3).append((Appendable) buff, "hello");
+        assertEquals("el", buff.toString());
+    }
+
+    // -------------------------------------------------------------------------
+    // IndexRange interface default methods
+    //
+    // SimpleImmutableIndexRange and AbstractGrowableIndexRange both override apply/append/print/append(Appendable),
+    // so we use a minimal test-local implementation that relies on the interface's default method bodies.
+    // -------------------------------------------------------------------------
+
+    private static final class TestIndexRange implements StringUtil.IndexRange {
+
+        private final int start;
+
+        private final int end;
+
+        TestIndexRange(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public int start() {
+            return start;
+        }
+
+        @Override
+        public int end() {
+            return end;
+        }
+
+        @Override
+        public int length() {
+            return end - start;
+        }
+
+    }
+
+    @Test
+    public void indexRange_is_matchingStartEnd_returnsTrue() {
+        StringUtil.IndexRange range = new TestIndexRange(2, 5);
+        assertTrue(range.is(2, 5));
+        assertFalse(range.is(2, 6));
+    }
+
+    @Test
+    public void indexRange_isRange_matchingOtherRange_returnsTrue() {
+        StringUtil.IndexRange a = new TestIndexRange(2, 5);
+        StringUtil.IndexRange b = new TestIndexRange(2, 5);
+        StringUtil.IndexRange c = new TestIndexRange(2, 6);
+        assertTrue(a.is(b));
+        assertFalse(a.is(c));
+    }
+
+    @Test
+    public void indexRange_isEmpty_trueWhenLengthZero() {
+        assertTrue(new TestIndexRange(3, 3).isEmpty());
+        assertFalse(new TestIndexRange(3, 4).isEmpty());
+    }
+
+    @Test
+    public void indexRange_apply_empty_returnsEmptyString() {
+        assertEquals("", new TestIndexRange(2, 2).apply("hello"));
+    }
+
+    @Test
+    public void indexRange_apply_fullRange_returnsToString() {
+        String text = "hello";
+        assertEquals("hello", new TestIndexRange(0, text.length()).apply(text));
+    }
+
+    @Test
+    public void indexRange_apply_partialRange_returnsSubSequence() {
+        assertEquals("el", new TestIndexRange(1, 3).apply("hello"));
+    }
+
+    @Test
+    public void indexRange_applyAsString_delegatesToApply() {
+        assertEquals("el", new TestIndexRange(1, 3).applyAsString("hello"));
+    }
+
+    @Test
+    public void indexRange_append_empty_doesNothing() {
+        StringBuilder buff = new StringBuilder("x");
+        new TestIndexRange(2, 2).append(buff, "hello");
+        assertEquals("x", buff.toString());
+    }
+
+    @Test
+    public void indexRange_append_fullRange_appendsWholeSequence() {
+        StringBuilder buff = new StringBuilder();
+        String text = "hello";
+        new TestIndexRange(0, text.length()).append(buff, text);
+        assertEquals("hello", buff.toString());
+    }
+
+    @Test
+    public void indexRange_append_partialRange_appendsSubrange() {
+        StringBuilder buff = new StringBuilder();
+        new TestIndexRange(1, 3).append(buff, "hello");
+        assertEquals("el", buff.toString());
+    }
+
+    @Test
+    public void indexRange_print_empty_doesNothing() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        new TestIndexRange(2, 2).print(pw, "hello");
+        pw.flush();
+        assertEquals("", sw.toString());
+    }
+
+    @Test
+    public void indexRange_print_fullRange_printsWholeSequence() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        String text = "hello";
+        new TestIndexRange(0, text.length()).print(pw, text);
+        pw.flush();
+        assertEquals("hello", sw.toString());
+    }
+
+    @Test
+    public void indexRange_print_partialRange_stringFastPath() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        new TestIndexRange(1, 3).print(pw, "hello");
+        pw.flush();
+        assertEquals("el", sw.toString());
+    }
+
+    @Test
+    public void indexRange_print_partialRange_nonStringCharSequence() {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        new TestIndexRange(1, 3).print(pw, new StringBuilder("hello"));
+        pw.flush();
+        assertEquals("el", sw.toString());
+    }
+
+    @Test
+    public void indexRange_appendAppendable_empty_doesNothing() throws IOException {
+        StringBuilder buff = new StringBuilder("x");
+        new TestIndexRange(2, 2).append((Appendable) buff, "hello");
+        assertEquals("x", buff.toString());
+    }
+
+    @Test
+    public void indexRange_appendAppendable_fullRange_appendsWholeSequence() throws IOException {
+        StringBuilder buff = new StringBuilder();
+        String text = "hello";
+        new TestIndexRange(0, text.length()).append((Appendable) buff, text);
+        assertEquals("hello", buff.toString());
+    }
+
+    @Test
+    public void indexRange_appendAppendable_partialRange_appendsSubrange() throws IOException {
+        StringBuilder buff = new StringBuilder();
+        new TestIndexRange(1, 3).append((Appendable) buff, "hello");
+        assertEquals("el", buff.toString());
+    }
+
+    // -------------------------------------------------------------------------
+    // join(Stream...) and join(String[], char)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void join_stream_charSeparator_joinsAndSkipsNulls() {
+        assertEquals("a,b,c", StringUtil.join(Stream.of("a", null, "b", "c"), ','));
+    }
+
+    @Test
+    public void join_stream_charSeparator_nullStream_returnsEmptyString() {
+        assertEquals("", StringUtil.join((Stream<?>) null, ','));
+    }
+
+    @Test
+    public void join_stream_stringSeparator_joinsAndSkipsNulls() {
+        assertEquals("a, b, c", StringUtil.join(Stream.of("a", null, "b", "c"), ", "));
+    }
+
+    @Test
+    public void join_stream_stringSeparator_nullStream_returnsEmptyString() {
+        assertEquals("", StringUtil.join((Stream<?>) null, ", "));
+    }
+
+    @Test
+    public void join_stringArray_charSeparator_joinsElements() {
+        assertEquals("a,b,c", StringUtil.join(new String[] { "a", "b", "c" }, ','));
+    }
+
+    @Test
+    public void join_stringArray_charSeparator_nullArray_returnsEmptyString() {
+        assertEquals("", StringUtil.join((String[]) null, ','));
+    }
+
+    // -------------------------------------------------------------------------
+    // getNullSkippingJoiner
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_comma() {
+        assertEquals("a,b", StringUtil.getNullSkippingJoiner(',').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_space() {
+        assertEquals("a b", StringUtil.getNullSkippingJoiner(' ').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_ampersand() {
+        assertEquals("a&b", StringUtil.getNullSkippingJoiner('&').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_slash() {
+        assertEquals("a/b", StringUtil.getNullSkippingJoiner('/').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_backslash() {
+        assertEquals("a\\b", StringUtil.getNullSkippingJoiner('\\').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_charSeparator_default() {
+        assertEquals("a;b", StringUtil.getNullSkippingJoiner(';').join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_commaWithSpace() {
+        assertEquals("a, b", StringUtil.getNullSkippingJoiner(", ").join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_infixOr() {
+        assertEquals("a OR b", StringUtil.getNullSkippingJoiner(" OR ").join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_infixAnd() {
+        assertEquals("a AND b", StringUtil.getNullSkippingJoiner(" AND ").join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_emptyString_isNoSeparator() {
+        assertEquals("ab", StringUtil.getNullSkippingJoiner("").join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_null_isNoSeparator() {
+        assertEquals("ab", StringUtil.getNullSkippingJoiner(null).join("a", "b"));
+    }
+
+    @Test
+    public void getNullSkippingJoiner_stringSeparator_default() {
+        assertEquals("a;b", StringUtil.getNullSkippingJoiner(";").join("a", "b"));
+    }
+
+    // -------------------------------------------------------------------------
+    // containsAny / indexOfAny(CharSequence, CharSequence, int)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void containsAny_found_returnsTrue() {
+        assertTrue(StringUtil.containsAny("hello world", "xyz w", 0));
+    }
+
+    @Test
+    public void containsAny_notFound_returnsFalse() {
+        assertFalse(StringUtil.containsAny("hello", "xyz", 0));
+    }
+
+    @Test
+    public void containsAny_respectsFromIndex() {
+        assertFalse(StringUtil.containsAny("hello", "h", 1));
+        assertTrue(StringUtil.containsAny("hello", "l", 1));
+    }
+
+    @Test
+    public void indexOfAny_charSequence_notFoundAfterFullScan_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAny("hello", "xyz", 0));
+    }
+
+    @Test
+    public void indexOfAny_charSequence_nonBmpSearchChars_notFound() {
+        String text = "abcdef";
+        String searchChars = "😂"; // U+1F602
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAny(text, searchChars, 0));
+    }
+
+    @Test
+    public void indexOfAny_charSequence_nonBmpSearchChars_foundWithNoPrecedingSupplementaryChars() {
+        // U+1F602 FACE WITH TEARS OF JOY
+        String text = "abc😂def";
+        String searchChars = "😂";
+        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 0));
+    }
+
+    @Test
+    public void indexOfAny_charSequence_nonBmpSearchChars_returnsCorrectIndex() {
+        String text = "😀x😂y"; // U+1F600 'x' U+1F602 'y'
+        String searchChars = "😂"; // U+1F602
+        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 0));
+    }
+
+    @Test
+    public void indexOfAny_charSequence_withOffset_nonBmpSearchChars_returnsCorrectIndex() {
+        String text = "😂x😂y"; // U+1F602 'x' U+1F602 'y'
+        String searchChars = "😂"; // U+1F602
+        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 2));
+    }
+
+    // -------------------------------------------------------------------------
+    // indexOfNotEscaped
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void indexOfNotEscaped_oneArg_findsUnescapedChar() {
+        assertEquals(3, StringUtil.indexOfNotEscaped("foo\"bar", '"'));
+    }
+
+    @Test
+    public void indexOfNotEscaped_oneArg_skipsEscapedChar() {
+        // chars: f(0) o(1) o(2) \(3) "(4) b(5) a(6) r(7) "(8) b(9) a(10) z(11)
+        // the '"' at index 4 is escaped (preceded by '\' at index 3); the next '"' at index 8 is not.
+        assertEquals(8, StringUtil.indexOfNotEscaped("foo\\\"bar\"baz", '"'));
+    }
+
+    @Test
+    public void indexOfNotEscaped_oneArg_notFound_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfNotEscaped("foobar", '"'));
+    }
+
+    @Test
+    public void indexOfNotEscaped_threeArg_respectsStartIndex() {
+        String str = "\"a\"b\"";
+        assertEquals(0, StringUtil.indexOfNotEscaped(str, '"', 0));
+        assertEquals(2, StringUtil.indexOfNotEscaped(str, '"', 1));
+        assertEquals(4, StringUtil.indexOfNotEscaped(str, '"', 3));
+    }
+
+    @Test
+    public void indexOfNotEscaped_charAtStartIndexZero_isNeverConsideredEscaped() {
+        assertEquals(0, StringUtil.indexOfNotEscaped("\"abc", '"', 0));
+    }
+
+    // -------------------------------------------------------------------------
+    // isSingleOrDoubleQuoted / isDoubleQuoted / extractDoubleQuoted / extractSingleQuoted / extractQuotation
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isSingleOrDoubleQuoted_singleQuoted_returnsTrue() {
+        assertTrue(StringUtil.isSingleOrDoubleQuoted("'hello'"));
+    }
+
+    @Test
+    public void isSingleOrDoubleQuoted_doubleQuoted_returnsTrue() {
+        assertTrue(StringUtil.isSingleOrDoubleQuoted("\"hello\""));
+    }
+
+    @Test
+    public void isSingleOrDoubleQuoted_unquoted_returnsFalse() {
+        assertFalse(StringUtil.isSingleOrDoubleQuoted("hello"));
+    }
+
+    @Test
+    public void isDoubleQuoted_doubleQuoted_returnsTrue() {
+        assertTrue(StringUtil.isDoubleQuoted("\"hello\""));
+    }
+
+    @Test
+    public void isDoubleQuoted_singleQuoted_returnsFalse() {
+        assertFalse(StringUtil.isDoubleQuoted("'hello'"));
+    }
+
+    @Test
+    public void extractDoubleQuoted_doubleQuoted_returnsInner() {
+        assertEquals("hello", StringUtil.extractDoubleQuoted("\"hello\""));
+    }
+
+    @Test
+    public void extractDoubleQuoted_notQuoted_returnsOriginal() {
+        assertEquals("hello", StringUtil.extractDoubleQuoted("hello"));
+    }
+
+    @Test
+    public void extractSingleQuoted_singleQuoted_returnsInner() {
+        assertEquals("hello", StringUtil.extractSingleQuoted("'hello'"));
+    }
+
+    @Test
+    public void extractSingleQuoted_doubleQuoted_returnsInner() {
+        assertEquals("hello", StringUtil.extractSingleQuoted("\"hello\""));
+    }
+
+    @Test
+    public void extractQuotation_singleQuoted_returnsInner() {
+        assertEquals("hello", StringUtil.extractQuotation("'hello'"));
+    }
+
+    @Test
+    public void extractQuotation_doubleQuoted_returnsInner() {
+        assertEquals("hello", StringUtil.extractQuotation("\"hello\""));
+    }
+
+    // -------------------------------------------------------------------------
+    // isEnclosed / extractEnclosed edge cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isEnclosed_singleCharacterString_returnsFalse() {
+        assertFalse(StringUtil.isEnclosed("x", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+    }
+
+    @Test
+    public void isEnclosed_singleNonWhitespaceCharSurroundedByWhitespace_returnsFalse() {
+        assertFalse(StringUtil.isEnclosed(" x ", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+    }
+
+    @Test
+    public void extractEnclosed_singleCharacterString_returnsOriginal() {
+        assertEquals("x", StringUtil.extractEnclosed("x", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+    }
+
+    @Test
+    public void extractEnclosed_singleNonWhitespaceCharSurroundedByWhitespace_returnsOriginal() {
+        assertEquals(" x ", StringUtil.extractEnclosed(" x ", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+    }
+
+    // -------------------------------------------------------------------------
+    // Set<Character>/Set<Integer> overloads of startsWithAny/endsWithAny/*CodePoint
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void startsWithAny_setOfChars_matches() {
+        assertTrue(StringUtil.startsWithAny("hello", Set.of('h', 'x')));
+    }
+
+    @Test
+    public void startsWithAny_setOfChars_noMatch() {
+        assertFalse(StringUtil.startsWithAny("hello", Set.of('x', 'y')));
+    }
+
+    @Test
+    public void endsWithAny_setOfChars_matches() {
+        assertTrue(StringUtil.endsWithAny("hello", Set.of('o', 'x')));
+    }
+
+    @Test
+    public void endsWithAny_setOfChars_noMatch() {
+        assertFalse(StringUtil.endsWithAny("hello", Set.of('x', 'y')));
+    }
+
+    @Test
+    public void startsWithAnyCodePoint_setOfCodePoints_matches() {
+        assertTrue(StringUtil.startsWithAnyCodePoint("hello", Set.of((int) 'h', (int) 'x')));
+    }
+
+    @Test
+    public void startsWithAnyCodePoint_setOfCodePoints_noMatch() {
+        assertFalse(StringUtil.startsWithAnyCodePoint("hello", Set.of((int) 'x', (int) 'y')));
+    }
+
+    @Test
+    public void endsWithAnyCodePoint_setOfCodePoints_matches() {
+        assertTrue(StringUtil.endsWithAnyCodePoint("hello", Set.of((int) 'o', (int) 'x')));
+    }
+
+    @Test
+    public void endsWithAnyCodePoint_setOfCodePoints_noMatch() {
+        assertFalse(StringUtil.endsWithAnyCodePoint("hello", Set.of((int) 'x', (int) 'y')));
+    }
+
+    // -------------------------------------------------------------------------
+    // indexOfIgnoringLeadingWhitespace / lastIndexOfIgnoringTrailingWhitespace
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_nullString_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfIgnoringLeadingWhitespace(null));
+    }
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_findsFirstNonWhitespace() {
+        assertEquals(2, StringUtil.indexOfIgnoringLeadingWhitespace("  ab"));
+    }
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_allWhitespace_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfIgnoringLeadingWhitespace("   "));
+    }
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_withLastEligibleIndex_nullString_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfIgnoringLeadingWhitespace(null, 5));
+    }
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_withLastEligibleIndex_outOfRange_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfIgnoringLeadingWhitespace("  ab", 3));
+    }
+
+    @Test
+    public void indexOfIgnoringLeadingWhitespace_withLastEligibleIndex_withinRange_findsNonWhitespace() {
+        assertEquals(2, StringUtil.indexOfIgnoringLeadingWhitespace("  ab", 2));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_nullString_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.lastIndexOfIgnoringTrailingWhitespace(null));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_findsLastNonWhitespace() {
+        assertEquals(1, StringUtil.lastIndexOfIgnoringTrailingWhitespace("ab  "));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_allWhitespace_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.lastIndexOfIgnoringTrailingWhitespace("   "));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_withFirstEligibleIndex_nullString_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.lastIndexOfIgnoringTrailingWhitespace(null, 0));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_withFirstEligibleIndex_negative_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.lastIndexOfIgnoringTrailingWhitespace("ab", -1));
+    }
+
+    @Test
+    public void lastIndexOfIgnoringTrailingWhitespace_withFirstEligibleIndex_withinRange_findsNonWhitespace() {
+        assertEquals(1, StringUtil.lastIndexOfIgnoringTrailingWhitespace("ab  ", 1));
+    }
+
+    // -------------------------------------------------------------------------
+    // truncate edge cases (Supplier-based overload, plus the 2-arg overload entry point)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void truncate_twoArgOverload_usesEmptyEllipses() {
+        assertEquals("hello", StringUtil.truncate("hello world", 5));
+    }
+
+    @Test
+    public void truncate_supplierOverload_ellipsesLengthEqualsMaximum_returnsEllipses() {
+        assertEquals("...", StringUtil.truncate("hello world", 3, () -> "..."));
+    }
+
+    @Test
+    public void truncate_supplierOverload_ellipsesLongerThanMaximum_returnsTruncatedEllipses() {
+        // ellipsesLen(3) > requestedMaximumLength(2) -> returns ellipses.substring(2) = "."
+        assertEquals(".", StringUtil.truncate("hello world", 2, () -> "..."));
+    }
+
+    // -------------------------------------------------------------------------
+    // truncateEncodedBytes edge cases
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void truncateEncodedBytes_nullCharset_defaultsToUtf8() {
+        assertEquals("hello", StringUtil.truncateEncodedBytes("hello", 100, null, ""));
+    }
+
+    @Test
+    public void truncateEncodedBytes_ellipsesLongerThanMaximumByteSize_ellipsesOmitted() {
+        // ellipses "..." is 3 bytes; maximumByteSize 2 is too small even for the ellipses alone, so the ellipses
+        // is dropped (treated as empty) and the full 2-byte budget is used for content instead.
+        String result = StringUtil.truncateEncodedBytes("hello", 2, java.nio.charset.StandardCharsets.UTF_8, "...");
+        assertEquals("he", result);
+    }
+
+    // -------------------------------------------------------------------------
+    // isWhitespaceCodePoint / hasAlternativeWhitespaceChar
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isWhitespaceCodePoint_regularLetter_returnsFalse() {
+        assertFalse(StringUtil.isWhitespaceCodePoint('a', false));
+        assertFalse(StringUtil.isWhitespaceCodePoint('a', true));
+    }
+
+    @Test
+    public void hasAlternativeWhitespaceChar_withNbsp_returnsTrue() {
+        assertTrue(StringUtil.hasAlternativeWhitespaceChar("a b"));
+    }
+
+    @Test
+    public void hasAlternativeWhitespaceChar_withoutAlternativeWhitespace_returnsFalse() {
+        assertFalse(StringUtil.hasAlternativeWhitespaceChar("abc"));
+    }
+
+    // -------------------------------------------------------------------------
+    // caseInsensitiveBinarySearchFirstCodePoint - empty-string-at-midpoint branch
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void caseInsensitiveBinarySearchFirstCodePoint_emptyStringAtMidpoint_treatsEmptyAsCodePointNegativeOne() {
+        List<String> list = ImmutableList.of("", "Zebra");
+        // mid = 0 on the first iteration -> midStr = "" -> treated as code point -1, which is less than 'A', so
+        // the search continues into the right half and ultimately fails to find a match (neither element starts
+        // with 'A').
+        assertEquals(-2, StringUtil.caseInsensitiveBinarySearchFirstCodePoint(list, 'A'));
+    }
+
+    // -------------------------------------------------------------------------
+    // getTrimmedNonEmptyLinesJoinedWithSpaces / lineBreaksToNewlines
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getTrimmedNonEmptyLinesJoinedWithSpaces_joinsTrimmedLines() {
+        String input = "  line one  \n\n  line two  \n   \n line three ";
+        assertEquals("line one line two line three", StringUtil.getTrimmedNonEmptyLinesJoinedWithSpaces(input));
+    }
+
+    @Test
+    public void getTrimmedNonEmptyLinesJoinedWithSpaces_emptyInput_returnsInput() {
+        assertEquals("", StringUtil.getTrimmedNonEmptyLinesJoinedWithSpaces(""));
+    }
+
+    @Test
+    public void getTrimmedNonEmptyLinesJoinedWithSpaces_nullInput_returnsNull() {
+        assertNull(StringUtil.getTrimmedNonEmptyLinesJoinedWithSpaces(null));
+    }
+
+    @Test
+    public void lineBreaksToNewlines_convertsLineBreaksToNewlines() {
+        assertEquals("a\nb\nc", StringUtil.lineBreaksToNewlines("a\r\nb\rc"));
+    }
+
+    @Test
+    public void lineBreaksToNewlines_emptyInput_returnsInput() {
+        assertEquals("", StringUtil.lineBreaksToNewlines(""));
+    }
+
+    @Test
+    public void lineBreaksToNewlines_nullInput_returnsNull() {
+        assertNull(StringUtil.lineBreaksToNewlines(null));
+    }
+
+    // -------------------------------------------------------------------------
+    // randomize(String) / getRandomAlphaNumericSequence
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void randomize_preservesAllOriginalCharacters() {
+        String original = "abcdefghij";
+        String randomized = StringUtil.randomize(original);
+        assertEquals(original.length(), randomized.length());
+        char[] originalSorted = original.toCharArray();
+        char[] randomizedSorted = randomized.toCharArray();
+        Arrays.sort(originalSorted);
+        Arrays.sort(randomizedSorted);
+        assertArrayEquals(originalSorted, randomizedSorted);
+    }
+
+    @Test
+    public void getRandomAlphaNumericSequence_returnsRequestedLength() {
+        String result = StringUtil.getRandomAlphaNumericSequence(20);
+        assertEquals(20, result.length());
+        assertTrue(result.chars().allMatch(Character::isLetterOrDigit));
+    }
+
+    // -------------------------------------------------------------------------
+    // toStringOrNull
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void toStringOrNull_nonNullObject_returnsToString() {
+        assertEquals("42", StringUtil.toStringOrNull(42));
+    }
+
+    @Test
+    public void toStringOrNull_null_returnsNull() {
+        assertNull(StringUtil.toStringOrNull(null));
     }
 
 }

@@ -884,7 +884,8 @@ public final class MailUtilTest {
     @Test
     void getDataSource_fromBytes_nullData_throwsNpe() {
         assertThrows(
-            NullPointerException.class, () -> MailUtil.getDataSource("data.bin", null, "application/octet-stream")
+            NullPointerException.class,
+            () -> MailUtil.getDataSource("data.bin", (byte[]) null, "application/octet-stream")
         );
     }
 
