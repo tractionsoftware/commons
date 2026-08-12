@@ -22,6 +22,8 @@ package com.tractionsoftware.commons.properties;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public final class GenericComplexPropertyTest {
@@ -88,7 +90,7 @@ public final class GenericComplexPropertyTest {
         gcp.putProperty("x", "hello");
         gcp.putProperty("y", "world");
 
-        MapPropertyStore<Void> sink = new MapPropertyStore<>();
+        MapPropertyStore<Void> sink = MapPropertyStore.createDefaultInstance();
         gcp.saveInstance(sink);
 
         assertEquals("hello", sink.getProperty("x"));
@@ -101,7 +103,7 @@ public final class GenericComplexPropertyTest {
         var gcp = new GenericComplexProperty(true);
         gcp.putProperty("k", null);
 
-        MapPropertyStore<Void> sink = new MapPropertyStore<>("s", new java.util.LinkedHashMap<>(), false);
+        MapPropertyStore<Void> sink = MapPropertyStore.createNamedInstance("s", new LinkedHashMap<>(), false);
         gcp.saveInstance(sink);
         assertTrue(sink.hasProperty("k"));
         assertNull(sink.getProperty("k"));
@@ -114,7 +116,7 @@ public final class GenericComplexPropertyTest {
         // putProperty with null on a !writeNull store removes the key
         // so we can't actually store null; check that normal non-null values are written
         gcp.putProperty("k", "v");
-        MapPropertyStore<Void> sink = new MapPropertyStore<>();
+        MapPropertyStore<Void> sink = MapPropertyStore.createDefaultInstance();
         gcp.saveInstance(sink);
         assertEquals("v", sink.getProperty("k"));
     }
@@ -131,7 +133,7 @@ public final class GenericComplexPropertyTest {
 
     @Test
     void genericLoader_namespaceWithLocals_returnsPopulated() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("color", "blue");
         GenericComplexProperty result = GenericComplexProperty.GENERIC_LOADER.loadInstance(store);
         assertNotNull(result);
@@ -140,7 +142,7 @@ public final class GenericComplexPropertyTest {
 
     @Test
     void genericLoader_preservesAllLocalProperties() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("a", "1");
         store.putProperty("b", "2");
         store.putProperty("c", "3");

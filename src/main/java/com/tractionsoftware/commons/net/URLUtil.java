@@ -78,7 +78,11 @@ public final class URLUtil {
 
     public static final String SCHEME_NAME_HTTPS = "https";
 
-    public static final String SCHEME_NAME_TRACTION = "traction";
+    public static final String SCHEME_NAME_FTP = "ftp";
+
+    public static final String SCHEME_NAME_FTPS = "ftps";
+
+    public static final String SCHEME_NAME_SFTP = "sftp";
 
     public static final String SCHEME_NAME_DATA = "data";
 
@@ -98,8 +102,6 @@ public final class URLUtil {
 
     public static final String SCHEME_PREFIX_HTTPS = SCHEME_NAME_HTTPS + SCHEME_QUALIFIER_CHAR;
 
-    public static final String SCHEME_PREFIX_TRACTION = SCHEME_NAME_TRACTION + SCHEME_QUALIFIER_CHAR;
-
     public static final String SCHEME_PREFIX_DATA = SCHEME_NAME_DATA + SCHEME_QUALIFIER_CHAR;
 
     public static final String SCHEME_PREFIX_CID = SCHEME_NAME_CID + SCHEME_QUALIFIER_CHAR;
@@ -113,6 +115,12 @@ public final class URLUtil {
     public static final int DEFAULT_PORT_HTTP = 80;
 
     public static final int DEFAULT_PORT_HTTPS = 443;
+
+    public static final int DEFAULT_PORT_FTP = 21;
+
+    public static final int DEFAULT_PORT_SFTP = 22;
+
+    public static final int DEFAULT_PORT_FTPS = 990;
 
     public static final String USERINFO_SEPARATOR = ":";
 
@@ -146,12 +154,10 @@ public final class URLUtil {
      * any optional parameters (group 4 contains individual parameters). Capture group 5 contains the optional base64
      * encoding marker. Capture group 6 contains the data.
      */
-    // data:[<media type>][;base64],<data>
-    public static final Pattern DATA_URI =
-        Pattern.compile(// optional leading whitespace
-            "\\s*" +
-            // data: scheme name
-            SCHEME_PREFIX_DATA +
+    // data:[opaque-part]
+    // opaque-part -> [<media type>][;base64],<data>
+    private static final Pattern PATTERN_DATA_URI_SCHEME_OPAQUE =
+        Pattern.compile(
             // Group 1: media type
             "(" +
             // Group 2: type/subtype
@@ -367,6 +373,10 @@ public final class URLUtil {
 
     private static final class FailedDataURIParseResult implements DataURIParseResult {
 
+        private static final FailedDataURIParseResult forNonDataURI(String suggestedFileName) {
+            return new FailedDataURIParseResult(suggestedFileName, "not a data URI");
+        }
+
         private final String fileName;
 
         private final String errorMessage;
@@ -418,40 +428,62 @@ public final class URLUtil {
      * @param server
      *     the server will be appended to this buffer
      */
-    public static final String stripServer(String url, StringBuilder server) {
-        if (url == null) {
+    public static final String stripServer(String urlSpec, StringBuilder server) {
+        if (urlSpec == null) {
             return null;
         }
-        if (url.startsWith(PATH_SEPARATOR)) {
-            return url;
+        if (urlSpec.startsWith(PATH_SEPARATOR)) {
+            return urlSpec;
         }
-        int colonSlashSlash = url.indexOf(SCHEME_RELATIVE_PREFIX);
+        int colonSlashSlash = urlSpec.indexOf(SCHEME_RELATIVE_PREFIX);
         if (colonSlashSlash == -1) {
-            return url;
+            return urlSpec;
         }
-        int slash = url.indexOf(PATH_SEPARATOR, colonSlashSlash + 3);
+        int slash = urlSpec.indexOf(PATH_SEPARATOR, colonSlashSlash + 3);
         if (slash != -1) {
             if (server != null) {
-                server.append(url, 0, slash);
+                server.append(urlSpec, 0, slash);
             }
-            return url.substring(slash);
+            return urlSpec.substring(slash);
         }
-        return url;
+        return urlSpec;
+    }
+
+    public static final DataURIParseResult parseDataURISpec(String uriSpec, String suggestedFilename) {
+        if (StringUtils.isBlank(uriSpec)) {
+            return new FailedDataURIParseResult(suggestedFilename, "no candidate data: URI was specified");
+        }
+        URI uri;
+        try {
+            uri = new URI(uriSpec);
+        }
+        catch (URISyntaxException e) {
+            return new FailedDataURIParseResult(suggestedFilename, e.getMessage());
+        }
+        return parseDataURIImpl(uri, suggestedFilename);
     }
 
     public static final DataURIParseResult parseDataURI(URI uri, String suggestedFilename) {
         return parseDataURIImpl(uri, suggestedFilename);
     }
 
-    private static final DataURIParseResult parseDataURIImpl(URI uri, String suggestedFilename) {
+    private static final DataURIParseResult parseDataURIImpl(URI uri, String suggestedFileName) {
 
         if (uri == null) {
-            return new FailedDataURIParseResult(suggestedFilename, "no candidate data: URI was specified");
+            return new FailedDataURIParseResult(suggestedFileName, "no candidate data: URI was specified");
         }
 
-        Matcher m = DATA_URI.matcher(uri.toString());
+        if (!SCHEME_NAME_DATA.equals(uri.getScheme())) {
+            return FailedDataURIParseResult.forNonDataURI(suggestedFileName);
+        }
+
+        String schemeSpecificPart = uri.getSchemeSpecificPart();
+        if (StringUtils.isBlank(schemeSpecificPart)) {
+            return FailedDataURIParseResult.forNonDataURI(suggestedFileName);
+        }
+        Matcher m = PATTERN_DATA_URI_SCHEME_OPAQUE.matcher(schemeSpecificPart);
         if (!m.matches()) {
-            return new FailedDataURIParseResult(suggestedFilename, "not a data URI");
+            return FailedDataURIParseResult.forNonDataURI(suggestedFileName);
         }
 
         // Capture group 1 is the full media type, with any parameters.
@@ -479,27 +511,27 @@ public final class URLUtil {
                 mediaType = MediaType.parse(mediaTypeSpec);
             }
             catch (Exception e) {
-                return new FailedDataURIParseResult(suggestedFilename, e.getMessage());
+                return new FailedDataURIParseResult(suggestedFileName, e.getMessage());
             }
         }
 
         byte[] data;
         if (StringUtils.isBlank(base64)) {
-            data = getUrlDecoded(dataStr).getBytes(mediaType.charset().or(StandardCharsets.US_ASCII));
+            data = dataStr.getBytes(mediaType.charset().or(StandardCharsets.US_ASCII));
         }
         else {
             // Even if this a text/plain type with a charset, if the base64 marker is present, that's how we'll decode
             // the text. There would be no reason to apply a charset encoding from the media type.
             data = Base64Util.getDecodedBytes(dataStr);
             if (data == null) {
-                return new FailedDataURIParseResult(suggestedFilename, "base 64 decoding failed");
+                return new FailedDataURIParseResult(suggestedFileName, "base 64 decoding failed");
             }
         }
 
         // Since there's definitely a media type by now, it's unlikely that we'll need to supply an InputStream to allow
         // the contents to be examined, but there's no reason we can't, just in case.
         SimpleMutableFileMetadata metadata = SimpleMutableFileMetadata.createInstanceForUnnamedResource(
-            suggestedFilename, mediaType.toString(), IOUtil.byteArrayInputStreamSupplier(data)
+            suggestedFileName, mediaType.toString(), IOUtil.byteArrayInputStreamSupplier(data)
         );
         metadata.setContentLocation(uri.toString());
         return new SuccessfulDataURIParseResult(metadata, data);
@@ -543,7 +575,7 @@ public final class URLUtil {
             String[] kv = kvPair.split(PARAMETER_SET, 2);
             if (!kv[0].isEmpty()) {
                 String key = decode ? getUrlDecoded(kv[0]) : kv[0];
-                String value = (kv.length == 2 && kv[1] != null) ? (decode ? getUrlDecoded(kv[1]) : kv[1]) : "";
+                String value = (kv.length == 2) ? (decode ? getUrlDecoded(kv[1]) : kv[1]) : "";
                 callback.accept(key, value);
             }
         }
@@ -606,37 +638,37 @@ public final class URLUtil {
     /**
      * Return the path portion of the URL in the given URL specification, without decoding it.
      *
-     * @param urlSpec
+     * @param uriSpec
      *     the URL specification.
      * @return the path portion of the URL in the given URL specification, or "/" if the given URL is null or blank.
      */
     @Beta
-    public static final String getPath(String urlSpec) {
+    public static final String getRawPath(String uriSpec) {
 
-        if (StringUtils.isBlank(urlSpec)) {
+        if (StringUtils.isBlank(uriSpec)) {
             return PATH_SEPARATOR;
         }
 
         try {
-            return StringUtils.defaultIfEmpty(URI.create(urlSpec).getRawPath(), PATH_SEPARATOR);
+            return StringUtils.defaultIfEmpty(new URI(uriSpec).getRawPath(), PATH_SEPARATOR);
         }
-        catch (RuntimeException e) {
-            // ?
+        catch (URISyntaxException e) {
+            // Ignore and continue.
         }
 
-        int protocolBase = urlSpec.indexOf(PROTOCOL_QUALIFIER_AND_AUTHORITY_MARKER);
+        int protocolBase = uriSpec.indexOf(PROTOCOL_QUALIFIER_AND_AUTHORITY_MARKER);
         if (protocolBase != -1) {
-            urlSpec = urlSpec.substring(protocolBase + 3);
+            uriSpec = uriSpec.substring(protocolBase + 3);
         }
-        int firstSlash = urlSpec.indexOf(PATH_SEPARATOR_CHAR);
+        int firstSlash = uriSpec.indexOf(PATH_SEPARATOR_CHAR);
         if (firstSlash > 0) {
-            urlSpec = urlSpec.substring(firstSlash);
+            uriSpec = uriSpec.substring(firstSlash);
         }
-        int q = urlSpec.indexOf(QUERY_MARKER_CHAR);
+        int q = uriSpec.indexOf(QUERY_MARKER_CHAR);
         if (q != -1) {
-            urlSpec = urlSpec.substring(0, q);
+            uriSpec = uriSpec.substring(0, q);
         }
-        return urlSpec;
+        return uriSpec;
 
     }
 
@@ -664,29 +696,19 @@ public final class URLUtil {
             return port;
         }
 
-        port = getEffectivePort(uri.getScheme());
+        port = getDefaultHttpPort(uri.getScheme());
         if (port != -1) {
             return port;
         }
 
-        URL url;
         try {
-            url = uri.toURL();
+            return getEffectivePort(uri.toURL());
         }
         catch (MalformedURLException | IllegalArgumentException e) {
             LOGGER.warn("Can't transform URI to URL: {}", StringUtil.truncatedToStringForLog(uri, 100), e);
             return 0;
         }
-        return getEffectivePort(url);
 
-    }
-
-    public static final int getEffectivePort(String schemeName) {
-        return switch (StringUtils.lowerCase(schemeName)) {
-            case SCHEME_NAME_HTTP -> DEFAULT_PORT_HTTP;
-            case SCHEME_NAME_HTTPS -> DEFAULT_PORT_HTTPS;
-            case null, default -> -1;
-        };
     }
 
     public static final int getDefaultHttpPort(boolean secure) {
@@ -950,7 +972,7 @@ public final class URLUtil {
     }
 
     public static final String directoryPathToUrlPath(String directoryPath) {
-        return StringUtil.findReplace(directoryPath, File.separator, PATH_SEPARATOR);
+        return StringUtil.replace(directoryPath, File.separator, PATH_SEPARATOR);
     }
 
     public static final String getAbsoluteUrl(URL baseURL, String urlSpec) {
@@ -1085,42 +1107,6 @@ public final class URLUtil {
     }
 
     /**
-     * Some URLs in traction contain rapid selector expressions in a path-like link.  For example, /traction/rs/cdt is a
-     * link to the evaluation of the rapid selector expression "cdt".
-     *
-     * <p>
-     * At present, the following urls are equivalent and the rs expressions are correctly extracted:
-     *
-     * <pre>
-     * /rs?cdt
-     * /rs/cdt
-     * /traction/rs?cdt
-     * /traction/rs/cdt
-     * /traction/permalink?cdt
-     * /traction/permalink/cdt
-     * </pre>
-     */
-    public static final String getRsFromUrl(String url) {
-
-        if (StringUtils.isEmpty(url)) {
-            return null;
-        }
-
-        url = stripServer(url);
-
-        int len = url.length();
-        for (String prefix : RS_URL_PREFIXES) {
-            int prefixLen = prefix.length();
-            if (len > prefix.length() && url.startsWith(prefix) &&
-                RS_URL_NEXT_CHAR_MATCHER.matches(url.charAt(prefixLen))) {
-                return url.substring(prefix.length() + 1);
-            }
-        }
-        return null;
-
-    }
-
-    /**
      * Parse a name in the query string.
      */
     public static final String getUrlDecoded(String encodedStr) {
@@ -1247,9 +1233,8 @@ public final class URLUtil {
 
             switch (c) {
 
-            // list all safe non-text characters here. we won't
-            // encode these. the more we list, the easier our
-            // urls will be for humans to read.
+            // This set of characters are considered safe, and won't be encoded.
+            // This makes the URLs more human-readable.
 
             case '(':
             case ')':
@@ -1269,19 +1254,17 @@ public final class URLUtil {
                 }
                 else {
 
-                    // we encode everything else
+                    // Encode everything else.
                     if (Character.isLetterOrDigit(c) || !StringUtil.isBasicLatin(c)) {
-                        // this properly handles multibyte character
-                        // encoding
                         StringWriteUtil.safeAppend(out, urlEncodeUTF8(String.valueOf(c)));
                     }
                     else {
                         StringWriteUtil.safeAppend(out, '%');
-                        String num = Integer.toString((c & 0xff), 16);
-                        if (num.length() == 1) {
+                        String numStr = Integer.toString((c & 0xff), 16);
+                        if (numStr.length() == 1) {
                             StringWriteUtil.safeAppend(out, "0");
                         }
-                        StringWriteUtil.safeAppend(out, num);
+                        StringWriteUtil.safeAppend(out, numStr);
                     }
                 }
                 break;
@@ -1291,16 +1274,14 @@ public final class URLUtil {
 
     }
 
-    public static final void urlEncodeUTF8(Appendable out, char c) {
+    public static final void urlEncodeUTF8(Appendable out, int cp) {
 
-        if (StringUtil.isBasicLatin(c)) {
-            StringWriteUtil.safeAppend(out, c);
+        if (StringUtil.isBasicLatin(cp)) {
+            StringWriteUtil.safeAppendCodePoint(out, cp);
             return;
         }
 
-        // it seems like there should be a better approach to encoding a single character than creating a String and
-        // calling getBytes, but i couldn't find anything better. [ajm 13.Dec.2009]
-        byte[] bytes = String.valueOf(c).getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = Character.toString(cp).getBytes(StandardCharsets.UTF_8);
         for (byte b : bytes) {
             StringWriteUtil.safeAppend(out, '%');
             String num = Integer.toString(b & 0xff, 16);
@@ -1338,10 +1319,8 @@ public final class URLUtil {
             ret = getUrlEncoding(url);
         }
         // Otherwise, make sure we don't encode the protocol handler,
-        // and for path-URLs, don't bother to encode anything between
+        // and for path-URLs, don't encode anything between
         // the protocol:// and the subsequent /.
-        //
-        // See Help3844. [shep 31.Mar.2008]
         else {
             int colonSlashSlash = url.indexOf(SCHEME_RELATIVE_PREFIX);
             if (colonSlashSlash != -1) {
@@ -1399,8 +1378,10 @@ public final class URLUtil {
     }
 
     private static final boolean isHexit(char c) {
-        String legalChars = "0123456789abcdefABCDEF";
-        return (legalChars.indexOf(c) != -1);
+        if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+            return true;
+        }
+        return false;
     }
 
     private static final int hexit(char c) {
@@ -1420,14 +1401,22 @@ public final class URLUtil {
     private static final Integer getHttpUrlPortNumber(Integer requestedPortNumber, boolean forcePortNumber, String scheme) {
         if (requestedPortNumber == null) {
             if (forcePortNumber) {
-                return getEffectivePort(scheme);
+                return getDefaultHttpPort(scheme);
             }
             return null;
         }
-        if (forcePortNumber || requestedPortNumber != getEffectivePort(scheme)) {
+        if (forcePortNumber || requestedPortNumber != getDefaultHttpPort(scheme)) {
             return requestedPortNumber;
         }
         return null;
+    }
+
+    private static final int getDefaultHttpPort(String schemeName) {
+        return switch (StringUtils.lowerCase(schemeName)) {
+            case SCHEME_NAME_HTTP -> DEFAULT_PORT_HTTP;
+            case SCHEME_NAME_HTTPS -> DEFAULT_PORT_HTTPS;
+            case null, default -> -1;
+        };
     }
 
 }

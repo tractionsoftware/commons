@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -67,6 +68,10 @@ public final class StringUtilTest {
     //                                                01234567890123456789012345678901234567890123456789
     //                                                0         1         2         3         4
 
+    private static final String INDEX_OF_ANY_TEST3 = "Smiling cold sweat: 😅 Smiley: 😃 LOL CRYING: 😂";
+    //                                                01234567890123456789012345678901234567890123456789
+    //                                                0         1         2         3         4
+
     private static final String TRIMMED_SUBSTRING_INPUT_1 = "foo";
 
     private static final String TRIMMED_SUBSTRING_INPUT_2 = "   ";
@@ -79,16 +84,28 @@ public final class StringUtilTest {
 
     private static final String TRIMMED_SUBSTRING_INPUT_6 = "re: I've fallen and I can't get up!";
 
-    private static final int doIndexOfAnyCharTest1(int fromIndex) {
-        return StringUtil.indexOfAny(INDEX_OF_ANY_TEST1, ":/#", fromIndex);
+    private static final int doIndexOfAnyCodePointTest1(int fromIndex) {
+        return StringUtil.indexOfAnyCodePoint(INDEX_OF_ANY_TEST1, ":/#", fromIndex);
+    }
+
+    private static final int doIndexOfAnyCodePointTest2(int fromIndex) {
+        return StringUtil.indexOfAnyCodePoint(INDEX_OF_ANY_TEST2, "/#", fromIndex);
+    }
+
+    private static final int doIndexOfAnyCodePointTest3(int fromIndex) {
+        return StringUtil.indexOfAnyCodePoint(INDEX_OF_ANY_TEST3, "😅😃😂", fromIndex);
     }
 
     private static final int doIndexOfAnyStringTest1(int fromIndex) {
-        return StringUtil.indexOfAny(INDEX_OF_ANY_TEST1, new String[] { "::", "/", "##" }, fromIndex);
+        return StringUtil.indexOfAnyString(INDEX_OF_ANY_TEST1, List.of("::", "/", "##"), fromIndex);
     }
 
     private static final int doIndexOfAnyStringTest2(int fromIndex) {
-        return StringUtil.indexOfAny(INDEX_OF_ANY_TEST2, new String[] { "::", "/", "##" }, fromIndex);
+        return StringUtil.indexOfAnyString(INDEX_OF_ANY_TEST2, List.of("::", "/", "##"), fromIndex);
+    }
+
+    private static final int doIndexOfAnyStringTest3(int fromIndex) {
+        return StringUtil.indexOfAnyString(INDEX_OF_ANY_TEST3, List.of("😅", "😃", "😂"), fromIndex);
     }
 
     private static final void doJoinTest(Iterable<?> items, char separator, String expected) {
@@ -172,83 +189,139 @@ public final class StringUtilTest {
     }
 
     @Test
-    public void testIndexOfAnyChar1() {
-        assertEquals(0, doIndexOfAnyCharTest1(0));
+    public void testIndexOfAnyCodePoint1a() {
+        assertEquals(0, doIndexOfAnyCodePointTest1(0));
     }
 
     @Test
-    public void testIndexOfAnyChar2() {
-        assertEquals(StringUtils.INDEX_NOT_FOUND, doIndexOfAnyCharTest1(80));
+    public void testIndexOfAnyCodePoint1b() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, doIndexOfAnyCodePointTest1(80));
     }
 
     @Test
-    public void testIndexOfAnyChar3() {
-        assertEquals(12, doIndexOfAnyCharTest1(1));
+    public void testIndexOfAnyCodePoint1c() {
+        assertEquals(12, doIndexOfAnyCodePointTest1(1));
     }
 
     @Test
-    public void testIndexOfAnyChar4() {
-        assertEquals(12, doIndexOfAnyCharTest1(12));
+    public void testIndexOfAnyCodePoint1d() {
+        assertEquals(12, doIndexOfAnyCodePointTest1(12));
     }
 
     @Test
-    public void testIndexOfAnyChar5() {
-        assertEquals(13, doIndexOfAnyCharTest1(13));
+    public void testIndexOfAnyCodePoint1e() {
+        assertEquals(13, doIndexOfAnyCodePointTest1(13));
     }
 
     @Test
-    public void testIndexOfAnyChar6() {
-        assertEquals(31, doIndexOfAnyCharTest1(30));
+    public void testIndexOfAnyCodePoint1f() {
+        assertEquals(31, doIndexOfAnyCodePointTest1(30));
     }
 
     @Test
-    public void testIndexOfAnyChar7() {
-        assertEquals(0, doIndexOfAnyCharTest1(-1));
+    public void testIndexOfAnyCodePoint1g() {
+        assertEquals(0, doIndexOfAnyCodePointTest1(-1));
     }
 
     @Test
-    public void testIndexOfAnyString1() {
+    public void testIndexOfAnyCodePoint2a() {
+        // First '/' in INDEX_OF_ANY_TEST2 ("::: this is another :: test // string//...") is at index 28.
+        assertEquals(28, doIndexOfAnyCodePointTest2(0));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint2b() {
+        assertEquals(28, doIndexOfAnyCodePointTest2(1));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint2c() {
+        assertEquals(28, doIndexOfAnyCodePointTest2(28));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint2d() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, doIndexOfAnyCodePointTest2(39));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint2e() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, doIndexOfAnyCodePointTest2(59));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint3a() {
+        assertEquals(20, doIndexOfAnyCodePointTest3(0));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint3b() {
+        assertEquals(31, doIndexOfAnyCodePointTest3(22));
+    }
+
+    @Test
+    public void testIndexOfAnyCodePoint3c() {
+        assertEquals(46, doIndexOfAnyCodePointTest3(33));
+    }
+
+    @Test
+    public void testIndexOfAnyString1a() {
         assertEquals(12, doIndexOfAnyStringTest1(0));
     }
 
     @Test
-    public void testIndexOfAnyString2() {
+    public void testIndexOfAnyString1b() {
         assertEquals(12, doIndexOfAnyStringTest1(-1));
     }
 
     @Test
-    public void testIndexOfAnyString3() {
+    public void testIndexOfAnyString1c() {
         assertEquals(15, doIndexOfAnyStringTest1(15));
     }
 
     @Test
-    public void testIndexOfAnyString4() {
+    public void testIndexOfAnyString1d() {
         assertEquals(22, doIndexOfAnyStringTest1(16));
     }
 
     @Test
-    public void testIndexOfAnyString5() {
+    public void testIndexOfAnyString1e() {
         assertEquals(23, doIndexOfAnyStringTest1(23));
     }
 
     @Test
-    public void testIndexOfAnyString6() {
+    public void testIndexOfAnyString1f() {
         assertEquals(StringUtils.INDEX_NOT_FOUND, doIndexOfAnyStringTest1(34));
     }
 
     @Test
-    public void testIndexOfAnyString7() {
+    public void testIndexOfAnyString2a() {
         assertEquals(0, doIndexOfAnyStringTest2(0));
     }
 
     @Test
-    public void testIndexOfAnyString8() {
+    public void testIndexOfAnyString2b() {
         assertEquals(1, doIndexOfAnyStringTest2(1));
     }
 
     @Test
-    public void testIndexOfAnyString9() {
+    public void testIndexOfAnyString2c() {
         assertEquals(20, doIndexOfAnyStringTest2(2));
+    }
+
+    @Test
+    public void testIndexOfAnyString3a() {
+        assertEquals(20, doIndexOfAnyStringTest3(0));
+    }
+
+    @Test
+    public void testIndexOfAnyString3b() {
+        assertEquals(31, doIndexOfAnyStringTest3(22));
+    }
+
+    @Test
+    public void testIndexOfAnyString3c() {
+        assertEquals(46, doIndexOfAnyStringTest3(33));
     }
 
     @Test
@@ -2210,12 +2283,6 @@ public final class StringUtilTest {
     }
 
 
-
-
-
-
-
-
     @Test
     public void test_endsWithIgnoringTrailingWhitespace0A() {
         assertFalse(StringUtil.endsWithIgnoringTrailingWhitespace(null, null));
@@ -2548,29 +2615,29 @@ public final class StringUtilTest {
 
     @Test
     public void findReplace_null_returnsNull() {
-        assertNull(StringUtil.findReplace(null, "a", "b"));
+        assertNull(StringUtil.replace(null, "a", "b"));
     }
 
     @Test
     public void findReplace_noOccurrence_returnsOriginal() {
-        assertEquals("hello", StringUtil.findReplace("hello", "x", "y"));
+        assertEquals("hello", StringUtil.replace("hello", "x", "y"));
     }
 
     @Test
     public void findReplace_singleOccurrence() {
-        assertEquals("heyo", StringUtil.findReplace("hello", "ll", "y"));
+        assertEquals("heyo", StringUtil.replace("hello", "ll", "y"));
     }
 
     @Test
     public void findReplace_multipleOccurrences() {
-        assertEquals("b-b-b", StringUtil.findReplace("a-a-a", "a", "b"));
+        assertEquals("b-b-b", StringUtil.replace("a-a-a", "a", "b"));
     }
 
     @Test
     public void findReplace_findEqualsReplace_returnsSameRef() {
         String s = "hello";
         // When find == replace, should short-circuit and return the same object
-        assertSame(s, StringUtil.findReplace(s, "x", "x"));
+        assertSame(s, StringUtil.replace(s, "x", "x"));
     }
 
     // -------------------------------------------------------------------------
@@ -3223,30 +3290,30 @@ public final class StringUtilTest {
 
     @Test
     public void containsAny_found_returnsTrue() {
-        assertTrue(StringUtil.containsAny("hello world", "xyz w", 0));
+        assertTrue(StringUtil.containsAnyCodePoint("hello world", "xyz w", 0));
     }
 
     @Test
     public void containsAny_notFound_returnsFalse() {
-        assertFalse(StringUtil.containsAny("hello", "xyz", 0));
+        assertFalse(StringUtil.containsAnyCodePoint("hello", "xyz", 0));
     }
 
     @Test
     public void containsAny_respectsFromIndex() {
-        assertFalse(StringUtil.containsAny("hello", "h", 1));
-        assertTrue(StringUtil.containsAny("hello", "l", 1));
+        assertFalse(StringUtil.containsAnyCodePoint("hello", "h", 1));
+        assertTrue(StringUtil.containsAnyCodePoint("hello", "l", 1));
     }
 
     @Test
     public void indexOfAny_charSequence_notFoundAfterFullScan_returnsNotFound() {
-        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAny("hello", "xyz", 0));
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint("hello", "xyz", 0));
     }
 
     @Test
     public void indexOfAny_charSequence_nonBmpSearchChars_notFound() {
         String text = "abcdef";
         String searchChars = "😂"; // U+1F602
-        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAny(text, searchChars, 0));
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint(text, searchChars, 0));
     }
 
     @Test
@@ -3254,21 +3321,111 @@ public final class StringUtilTest {
         // U+1F602 FACE WITH TEARS OF JOY
         String text = "abc😂def";
         String searchChars = "😂";
-        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 0));
+        assertEquals(3, StringUtil.indexOfAnyCodePoint(text, searchChars, 0));
     }
 
     @Test
     public void indexOfAny_charSequence_nonBmpSearchChars_returnsCorrectIndex() {
         String text = "😀x😂y"; // U+1F600 'x' U+1F602 'y'
         String searchChars = "😂"; // U+1F602
-        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 0));
+        assertEquals(3, StringUtil.indexOfAnyCodePoint(text, searchChars, 0));
     }
 
     @Test
     public void indexOfAny_charSequence_withOffset_nonBmpSearchChars_returnsCorrectIndex() {
         String text = "😂x😂y"; // U+1F602 'x' U+1F602 'y'
         String searchChars = "😂"; // U+1F602
-        assertEquals(3, StringUtil.indexOfAny(text, searchChars, 2));
+        assertEquals(3, StringUtil.indexOfAnyCodePoint(text, searchChars, 2));
+    }
+
+    // -------------------------------------------------------------------------
+    // indexOfAnyCodePoint / containsAnyCodePoint -- null, empty, and boundary guards
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void indexOfAnyCodePoint_nullStr_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint(null, "abc", 0));
+    }
+
+    @Test
+    public void indexOfAnyCodePoint_nullSearchChars_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint("abc", null, 0));
+    }
+
+    @Test
+    public void indexOfAnyCodePoint_emptyStr_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint("", "abc", 0));
+    }
+
+    @Test
+    public void indexOfAnyCodePoint_emptySearchChars_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint("abc", "", 0));
+    }
+
+    @Test
+    public void indexOfAnyCodePoint_fromIndexAtLength_returnsNotFound() {
+        // fromIndex == str.length() is out of range
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyCodePoint("abc", "c", 3));
+    }
+
+    @Test
+    public void indexOfAnyCodePoint_fromIndexAtLastChar_matchesLastChar() {
+        // fromIndex == str.length()-1, and the last char is in the search set
+        assertEquals(2, StringUtil.indexOfAnyCodePoint("abc", "c", 2));
+    }
+
+    @Test
+    public void containsAnyCodePoint_nullStr_returnsFalse() {
+        assertFalse(StringUtil.containsAnyCodePoint(null, "abc", 0));
+    }
+
+    @Test
+    public void containsAnyCodePoint_nullSearchChars_returnsFalse() {
+        assertFalse(StringUtil.containsAnyCodePoint("abc", null, 0));
+    }
+
+    @Test
+    public void containsAnyCodePoint_nonBmpSearchChar_found() {
+        // 😂 (U+1F602) is non-BMP; verify containsAnyCodePoint routes through the code-point path
+        assertTrue(StringUtil.containsAnyCodePoint("hello😂world", "😂", 0));
+    }
+
+    @Test
+    public void containsAnyCodePoint_nonBmpSearchChar_notFound() {
+        assertFalse(StringUtil.containsAnyCodePoint("hello world", "😂", 0));
+    }
+
+    // -------------------------------------------------------------------------
+    // indexOfAnyString -- null, empty, and boundary guards
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void indexOfAnyString_nullStr_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyString(null, List.of("a"), 0));
+    }
+
+    @Test
+    public void indexOfAnyString_nullCollection_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyString("abc", null, 0));
+    }
+
+    @Test
+    public void indexOfAnyString_emptyCollection_returnsNotFound() {
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyString("abc", List.of(), 0));
+    }
+
+    @Test
+    public void indexOfAnyString_collectionWithOnlyNullElement_returnsNotFound() {
+        // null elements in the collection are skipped; if all are null, nothing matches
+        List<String> withNull = new ArrayList<>();
+        withNull.add(null);
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyString("abc", withNull, 0));
+    }
+
+    @Test
+    public void indexOfAnyString_fromIndexAtLength_returnsNotFound() {
+        // fromIndex == str.length() means nothing can match
+        assertEquals(StringUtils.INDEX_NOT_FOUND, StringUtil.indexOfAnyString("abc", List.of("c"), 3));
     }
 
     // -------------------------------------------------------------------------
@@ -3380,12 +3537,18 @@ public final class StringUtilTest {
 
     @Test
     public void extractEnclosed_singleCharacterString_returnsOriginal() {
-        assertEquals("x", StringUtil.extractEnclosed("x", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+        assertEquals(
+            "x",
+            StringUtil.extractEnclosed("x", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS)
+        );
     }
 
     @Test
     public void extractEnclosed_singleNonWhitespaceCharSurroundedByWhitespace_returnsOriginal() {
-        assertEquals(" x ", StringUtil.extractEnclosed(" x ", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS));
+        assertEquals(
+            " x ",
+            StringUtil.extractEnclosed(" x ", StringUtil.StandardTextEnclosureScheme.DOUBLE_QUOTATION_MARKS)
+        );
     }
 
     // -------------------------------------------------------------------------

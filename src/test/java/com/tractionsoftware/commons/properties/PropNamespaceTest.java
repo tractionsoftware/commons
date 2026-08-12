@@ -49,7 +49,7 @@ public final class PropNamespaceTest {
         map.put(null, "x");
         map.put("mexico", "y");
 
-        store = new MapPropertyStore<>("test", map);
+        store = MapPropertyStore.createNamedInstance("test", map);
         mexico = store.getNamespace("mexico");
     }
 

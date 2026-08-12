@@ -33,7 +33,7 @@ import java.util.function.BiPredicate;
 public final class GetPutPropertyChangeTracker implements GetPutProperty {
 
     private static final GetPutProperty newChanges() {
-        return new MapPropertyStore("changes", new HashMap<String,String>(), false).toReadWrite();
+        return MapPropertyStore.createNamedInstance("changes", new HashMap<>(), false).toReadWrite();
     }
 
     /**
@@ -92,14 +92,14 @@ public final class GetPutPropertyChangeTracker implements GetPutProperty {
     @Override
     public final Set<String> getPropertyNames() {
 
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
 
         GetProperty defaults = currentProps.getDefaults();
         if (defaults != null) {
             names.addAll(defaults.getPropertyNames());
         }
 
-        Set<String> localNames = new HashSet<String>(currentProps.getLocals().getAllProperties().keySet());
+        Set<String> localNames = new HashSet<>(currentProps.getLocals().getAllProperties().keySet());
 
         for (Map.Entry<String,String> entry : changes.getAllProperties().entrySet()) {
             if (entry.getValue() == null) {

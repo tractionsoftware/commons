@@ -29,7 +29,6 @@ import com.tractionsoftware.commons.lang.EnumUtil;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
 import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.text.StringSplitUtil;
-import com.tractionsoftware.commons.util.DateFormats;
 import com.tractionsoftware.commons.util.SimpleDurationUnit;
 import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
@@ -41,9 +40,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.text.DateFormat;
 import java.text.ParsePosition;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
@@ -245,7 +246,7 @@ public final class SimpleProperties {
     }
 
     public static final <R> PropStore<R> asPropStore(Map<? super String,? super String> map) {
-        return new MapPropertyStore<>("", map);
+        return MapPropertyStore.createNamedInstance("", map);
     }
 
     public static final <R> PropStore<R> asImmutablePropStore(Map<? super String,? super String> map) {
@@ -558,28 +559,35 @@ public final class SimpleProperties {
         return (l != Long.MIN_VALUE) ? new Date(l) : defaultValue;
     }
 
-    public static final void saveUrlDate(PutProperty props, String name, Date date, TimeZone timeZone) {
+    public static final void saveFormattedDate(PutProperty props, String name, Date date, Supplier<? extends DateFormat> format) {
         if (date == null) {
             saveString(props, name, null);
         }
+        else if (format == null) {
+            saveLong(props, name, date.getTime());
+        }
         else {
-            saveString(props, name, DateFormats.getUrlDateFormat(timeZone).format(date));
+            saveString(props, name, format.get().format(date));
         }
     }
 
-    public static final Date loadUrlDate(GetProperty props, String name, TimeZone timeZone) {
-        return loadUrlDate(props, name, timeZone, null);
+    public static final Date loadFormattedDate(GetProperty props, String name, Supplier<? extends DateFormat> format) {
+        return loadFormattedDate(props, name, format, null);
     }
 
-    public static final Date loadUrlDate(GetProperty props, String name, TimeZone timeZone, Date defaultValue) {
+    public static final Date loadFormattedDate(GetProperty props, String name, Supplier<? extends DateFormat> format, Date defaultValue) {
         String urlDateSpec = loadTrimmedOrNull(props, name);
         if (urlDateSpec == null) {
             return defaultValue;
         }
-        return Objects.requireNonNullElse(
-            DateFormats.getUrlDateFormat(timeZone).parse(urlDateSpec, new ParsePosition(0)),
-            defaultValue
-        );
+        if (format == null) {
+            long dateVal = NativeTypeConversion.stringToLong(loadString(props, name), Long.MIN_VALUE);
+            if (dateVal == Long.MIN_VALUE) {
+                return defaultValue;
+            }
+            return new Date(dateVal);
+        }
+        return Objects.requireNonNullElse(format.get().parse(urlDateSpec, new ParsePosition(0)), defaultValue);
     }
 
     /**

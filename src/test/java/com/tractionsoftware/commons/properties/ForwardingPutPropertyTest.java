@@ -59,7 +59,7 @@ public class ForwardingPutPropertyTest {
     }
 
     private static MapPropertyStore<Object> newStore() {
-        return new MapPropertyStore<>("test", new LinkedHashMap<>());
+        return MapPropertyStore.createNamedInstance("test", new LinkedHashMap<>());
     }
 
     // ====================================================================

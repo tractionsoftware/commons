@@ -32,6 +32,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -151,7 +153,7 @@ public final class MediaTypeUtil {
         }
         catch (IllegalArgumentException e) {
             LOGGER.warn(
-                "Failed to parse mime/content-type spec {}", StringUtil.truncatedToStringForLog(contentTypeSpec), e
+                "Failed to parse Content-Type/MIME Type spec {}", StringUtil.truncatedToStringForLog(contentTypeSpec), e
             );
             return defaultType;
         }
@@ -221,23 +223,41 @@ public final class MediaTypeUtil {
 
     }
 
+    /**
+     * Returns true if the given Content-Type / MIME Type specification is valid and contains a single valid
+     * {@link java.nio.charset.Charset}.
+     *
+     * @param contentTypeSpec
+     *     the Content-Type / MIME Type specification.
+     * @return Returns true if the given Content-Type / MIME Type specification is valid and contains a single valid
+     *     {@link java.nio.charset.Charset}; false otherwise.
+     */
     public static final boolean hasCharsetParameter(@Nullable String contentTypeSpec) {
-
         if (StringUtils.isBlank(contentTypeSpec)) {
             return false;
         }
-
-        try {
-            MediaType type = parseMediaType(contentTypeSpec);
-            if (type != null) {
-                return type.charset().isPresent();
-            }
+        MediaType type = parseMediaType(contentTypeSpec);
+        if (type == null  ) {
+            return false;
         }
-        catch (Exception e) {
-            LOGGER.warn("Failed to parse mime type spec {}", StringUtil.truncatedToStringForLog(contentTypeSpec), e);
+        try {
+            return type.charset().isPresent();
+        }
+        catch (IllegalStateException e) {
+            LOGGER.warn(
+                "Content-Type/MIME Type spec {} does has multiple charset specifications",
+                StringUtil.truncatedToStringForLog(contentTypeSpec),
+                e
+            );
+        }
+        catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+            LOGGER.warn(
+                "Content-Type/MIME Type spec {} has an illegal or unsupported charset specification",
+                StringUtil.truncatedToStringForLog(contentTypeSpec),
+                e
+            );
         }
         return false;
-
     }
 
     public static final String getExtensionFromContentType(@Nullable String contentType) {
@@ -245,9 +265,6 @@ public final class MediaTypeUtil {
     }
 
     public static final String getExtensionFromContentType(@Nullable MediaType contentType) {
-        if (contentType == null) {
-            return null;
-        }
         return contentTypeFileExtensionMapper.get().getPreferredFileExtension(contentType);
     }
 

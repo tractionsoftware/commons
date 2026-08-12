@@ -824,10 +824,10 @@ public class SimpleMutableFileMetadata implements MutableFileMetadata, ComplexPr
 
     @Override
     public final boolean equals(Object other) {
-        if (!(other instanceof SimpleMutableFileMetadata)) {
+        if (!(other instanceof SimpleMutableFileMetadata otherMetadata)) {
             return false;
         }
-        if (Objects.equals(getURI(), ((SimpleMutableFileMetadata) other).getURI())) {
+        if (Objects.equals(getURI(), otherMetadata.getURI())) {
             return true;
         }
         return false;

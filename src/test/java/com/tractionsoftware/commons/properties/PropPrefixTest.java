@@ -50,7 +50,7 @@ public class PropPrefixTest {
         map.put("0", "t");
         map.put("1", "f");
 
-        mapStore = new MapPropertyStore<>("test", map);
+        mapStore = MapPropertyStore.createNamedInstance("test", map);
         mexico = mapStore.getPrefix("mexico");
     }
 

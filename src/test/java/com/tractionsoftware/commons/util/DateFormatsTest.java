@@ -84,30 +84,6 @@ public final class DateFormatsTest {
     }
 
     // =====================================================================
-    // getUrlDateFormat
-    // =====================================================================
-
-    @Test
-    void getUrlDateFormat_returnsNotNull() {
-        assertNotNull(DateFormats.getUrlDateFormat());
-    }
-
-    @Test
-    void getUrlDateFormat_epoch_isYYYYMMDD() {
-        SimpleDateFormat fmt = DateFormats.getUrlDateFormat(GMT);
-        assertEquals("19700101", fmt.format(new Date(0)));
-    }
-
-    // =====================================================================
-    // getUrlDateTimeFormat
-    // =====================================================================
-
-    @Test
-    void getUrlDateTimeFormat_returnsNotNull() {
-        assertNotNull(DateFormats.getUrlDateTimeFormat());
-    }
-
-    // =====================================================================
     // getTimeStampFormat
     // =====================================================================
 

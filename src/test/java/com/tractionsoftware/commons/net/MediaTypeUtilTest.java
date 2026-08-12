@@ -20,7 +20,14 @@
 
 package com.tractionsoftware.commons.net;
 
+import com.google.common.net.MediaType;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.SequencedSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -324,6 +331,149 @@ public final class MediaTypeUtilTest {
     @Test
     public void getContentTypeFromExtension_null_returnsNull() {
         assertNull(MediaTypeUtil.getContentTypeFromExtension(null));
+    }
+
+    // -------------------------------------------------------------------------
+    // isTextContentType(MediaType) -- application/* OR-chain branches.
+    //
+    // The application/* branch contains an OR chain; each arm is a distinct comparison. Tests above cover
+    // the overall true/false outcome. Tests below target the individual arms: XML_UTF_8/JSON_UTF_8 subtype
+    // matches, "+xml"/"+json" suffix matches, JAVASCRIPT_UTF_8 and JOSE subtype matches, and the literal
+    // "x-sh"/"x-powershell" subtype matches.
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void isTextContentType_applicationJavascript_returnsTrue() {
+        assertTrue(MediaTypeUtil.isTextContentType(MediaType.JAVASCRIPT_UTF_8));
+    }
+
+    @Test
+    public void isTextContentType_applicationJose_returnsTrue() {
+        assertTrue(MediaTypeUtil.isTextContentType(MediaType.JOSE));
+    }
+
+    @Test
+    public void isTextContentType_applicationXSh_returnsTrue() {
+        assertTrue(MediaTypeUtil.isTextContentType("application/x-sh"));
+    }
+
+    @Test
+    public void isTextContentType_applicationXPowershell_returnsTrue() {
+        assertTrue(MediaTypeUtil.isTextContentType("application/x-powershell"));
+    }
+
+    @Test
+    public void hasCharsetParameter_unrecognizedCharsetName_exceptionCaught_returnsFalse() {
+        assertFalse(MediaTypeUtil.hasCharsetParameter("text/html; charset=not-a-real-charset"));
+    }
+
+    @Test
+    public void hasCharsetParameter_duplicateCharsetParameter_exceptionCaught_returnsFalse() {
+        assertFalse(MediaTypeUtil.hasCharsetParameter("text/html; charset=UTF-8; charset=ISO-8859-1"));
+    }
+
+    // -------------------------------------------------------------------------
+    // SimpleMultimapContentTypeFileExtensionMapper
+    //
+    // Constructing SimpleMultimapContentTypeFileExtensionMapper directly via createInstance() lets us exercise
+    // its null/blank/fallback/miss branches without depending on the lazily-loaded default singleton instance.
+    // -------------------------------------------------------------------------
+
+    private static MediaTypeUtil.SimpleMultimapContentTypeFileExtensionMapper newMapper() {
+        MediaType jsonType = MediaType.JSON_UTF_8.withoutParameters();
+        MediaType htmlType = MediaType.HTML_UTF_8.withoutParameters();
+
+        Map<MediaType,SequencedSet<String>> type2extensions = new HashMap<>();
+        type2extensions.put(jsonType, new LinkedHashSet<>(List.of("json")));
+        type2extensions.put(htmlType, new LinkedHashSet<>(List.of("html", "htm")));
+
+        Map<String,SequencedSet<MediaType>> extension2types = new HashMap<>();
+        extension2types.put("json", new LinkedHashSet<>(List.of(jsonType)));
+        extension2types.put("html", new LinkedHashSet<>(List.of(htmlType)));
+
+        return MediaTypeUtil.SimpleMultimapContentTypeFileExtensionMapper.createInstance(type2extensions, extension2types);
+    }
+
+    @Test
+    public void mapper_getPreferredFileExtension_null_returnsNull() {
+        assertNull(newMapper().getPreferredFileExtension(null));
+    }
+
+    @Test
+    public void mapper_getPreferredFileExtension_unknownType_returnsNull() {
+        assertNull(newMapper().getPreferredFileExtension(MediaType.PNG));
+    }
+
+    @Test
+    public void mapper_getPreferredFileExtension_knownType_returnsFirstExtension() {
+        assertEquals("html", newMapper().getPreferredFileExtension(MediaType.HTML_UTF_8.withoutParameters()));
+    }
+
+    @Test
+    public void mapper_getFileExtensions_null_returnsEmptySet() {
+        assertTrue(newMapper().getFileExtensions(null).isEmpty());
+    }
+
+    @Test
+    public void mapper_getFileExtensions_knownTypeNoParams_returnsDirectMatch() {
+        var exts = newMapper().getFileExtensions(MediaType.HTML_UTF_8.withoutParameters());
+        assertEquals(List.of("html", "htm"), List.copyOf(exts));
+    }
+
+    @Test
+    public void mapper_getFileExtensions_typeWithParams_fallsBackToWithoutParameters() {
+        // JSON_UTF_8 carries a charset=utf-8 parameter and so isn't equal to the no-params key stored in the map;
+        // this exercises the "if (!contentType.parameters().isEmpty())" fallback to the withoutParameters() lookup.
+        var exts = newMapper().getFileExtensions(MediaType.JSON_UTF_8);
+        assertEquals(List.of("json"), List.copyOf(exts));
+    }
+
+    @Test
+    public void mapper_getFileExtensions_unknownTypeWithParams_fallbackAlsoMisses_returnsEmptySet() {
+        var exts = newMapper().getFileExtensions(MediaType.PLAIN_TEXT_UTF_8);
+        assertTrue(exts.isEmpty());
+    }
+
+    @Test
+    public void mapper_getFileExtensions_unknownTypeNoParams_returnsEmptySet() {
+        var exts = newMapper().getFileExtensions(MediaType.PNG);
+        assertTrue(exts.isEmpty());
+    }
+
+    @Test
+    public void mapper_getPreferredContentType_null_returnsNull() {
+        assertNull(newMapper().getPreferredContentType(null));
+    }
+
+    @Test
+    public void mapper_getPreferredContentType_blank_returnsNull() {
+        assertNull(newMapper().getPreferredContentType("   "));
+    }
+
+    @Test
+    public void mapper_getPreferredContentType_leadingDot_isStripped() {
+        assertEquals(MediaType.HTML_UTF_8.withoutParameters(), newMapper().getPreferredContentType(".html"));
+    }
+
+    @Test
+    public void mapper_getPreferredContentType_unknownExtension_returnsNull() {
+        assertNull(newMapper().getPreferredContentType("zzz"));
+    }
+
+    @Test
+    public void mapper_getContentTypes_null_returnsEmptySet() {
+        assertTrue(newMapper().getContentTypes(null).isEmpty());
+    }
+
+    @Test
+    public void mapper_getContentTypes_knownExtension_returnsSet() {
+        var types = newMapper().getContentTypes("html");
+        assertEquals(List.of(MediaType.HTML_UTF_8.withoutParameters()), List.copyOf(types));
+    }
+
+    @Test
+    public void mapper_getContentTypes_unknownExtension_returnsEmptySet() {
+        assertTrue(newMapper().getContentTypes("zzz").isEmpty());
     }
 
 }

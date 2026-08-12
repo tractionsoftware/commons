@@ -36,25 +36,25 @@ public final class MapPropertyStoreTest {
 
     @Test
     void defaultConstructor_createsEmptyStore() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         assertTrue(store.isEmpty());
     }
 
     @Test
     void namedConstructor_setsName() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>("mystore", new LinkedHashMap<>());
+        MapPropertyStore<Void> store = MapPropertyStore.createNamedInstance("mystore", new LinkedHashMap<>());
         assertEquals("mystore", store.getName());
     }
 
     @Test
     void nullName_usesDefault() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>(null, new LinkedHashMap<>());
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         assertNotNull(store.getName());
     }
 
     @Test
     void nullMap_throwsNPE() {
-        assertThrows(NullPointerException.class, () -> new MapPropertyStore<>("test", null));
+        assertThrows(NullPointerException.class, () -> MapPropertyStore.createNamedInstance("test", null));
     }
 
     @Test
@@ -66,9 +66,9 @@ public final class MapPropertyStoreTest {
 
     @Test
     void fromUnknownMap_convertsKeys() {
-        Map<Object, Object> raw = new LinkedHashMap<>();
+        Map<Object,Object> raw = new LinkedHashMap<>();
         raw.put("key", "val");
-        MapPropertyStore<Void> store = MapPropertyStore.fromUnknownMap("test", raw);
+        MapPropertyStore<Void> store = MapPropertyStore.createInstanceFromUnknownMapCopy("test", raw);
         assertEquals("val", store.getProperty("key"));
     }
 
@@ -78,37 +78,37 @@ public final class MapPropertyStoreTest {
 
     @Test
     void getProperty_present_returnsValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("x", "42");
         assertEquals("42", store.getProperty("x"));
     }
 
     @Test
     void getProperty_absent_returnsNull() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         assertNull(store.getProperty("x"));
     }
 
     @Test
     void hasProperty_present_true() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("k", "v");
         assertTrue(store.hasProperty("k"));
     }
 
     @Test
     void hasProperty_absent_false() {
-        assertFalse(new MapPropertyStore<>().hasProperty("k"));
+        assertFalse(MapPropertyStore.createDefaultInstance().hasProperty("k"));
     }
 
     @Test
     void hasProperty_null_false() {
-        assertFalse(new MapPropertyStore<>().hasProperty(null));
+        assertFalse(MapPropertyStore.createDefaultInstance().hasProperty(null));
     }
 
     @Test
     void putProperty_nullValue_removesKey() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("k", "v");
         store.putProperty("k", null);  // removeOnNullValuePut = true
         assertFalse(store.hasProperty("k"));
@@ -116,7 +116,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void removeProperty_removesKey() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("k", "v");
         store.removeProperty("k");
         assertNull(store.getProperty("k"));
@@ -124,7 +124,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void clearAll_removesAll() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("a", "1");
         store.putProperty("b", "2");
         store.clearAll();
@@ -133,7 +133,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void clearLocalProperties_removesAll() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("x", "y");
         assertTrue(store.clearLocalProperties());
         assertTrue(store.isEmpty());
@@ -146,7 +146,7 @@ public final class MapPropertyStoreTest {
     @Test
     void updateMap_replacesAll() {
         Map<String,String> initial = new LinkedHashMap<>(Map.of("a", "1", "b", "2"));
-        MapPropertyStore<Void> store = new MapPropertyStore<>("test", initial);
+        MapPropertyStore<Void> store = MapPropertyStore.createNamedInstance("test", initial);
         store.updateMap(Map.of("c", "3"));
         assertNull(store.getProperty("a"));
         assertNull(store.getProperty("b"));
@@ -159,7 +159,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void getProperties_returnsRequestedKeys() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("a", "1");
         store.putProperty("b", "2");
         Map<String,String> result = store.getProperties(List.of("a", "b", "missing"));
@@ -170,7 +170,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void getProperties_nullNames_returnsEmpty() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         assertTrue(store.getProperties(null).isEmpty());
     }
 
@@ -180,7 +180,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void commitChanges_alwaysSucceeds() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         CommitResult result = store.commitChanges(null);
         assertNotNull(result);
         assertTrue(result.wasSuccessful());
@@ -192,12 +192,12 @@ public final class MapPropertyStoreTest {
 
     @Test
     void toString_notNull() {
-        assertNotNull(new MapPropertyStore<>().toString());
+        assertNotNull(MapPropertyStore.createDefaultInstance().toString());
     }
 
     @Test
     void getPropertyNames_reflectsCurrentState() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("x", "1");
         store.putProperty("y", "2");
         assertTrue(store.getPropertyNames().contains("x"));
@@ -210,7 +210,7 @@ public final class MapPropertyStoreTest {
 
     @Test
     void putNullValue_keepNullWhenFlagFalse() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>("test", new LinkedHashMap<>(), false);
+        MapPropertyStore<Void> store = MapPropertyStore.createNamedInstance("test", new LinkedHashMap<>(), false);
         store.putProperty("k", null);
         assertTrue(store.hasProperty("k"));
     }

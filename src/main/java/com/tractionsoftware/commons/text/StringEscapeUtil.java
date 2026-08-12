@@ -253,14 +253,14 @@ public final class StringEscapeUtil {
         if (StringUtils.isEmpty(str)) {
             return Objects.toString(str, null);
         }
-        return StringUtil.findReplace(str.toString(), "\\" + escaped, String.valueOf(unescaped));
+        return StringUtil.replace(str.toString(), "\\" + escaped, String.valueOf(unescaped));
     }
 
     public static final String escapeChars(CharSequence str, char c) {
         if (StringUtils.isEmpty(str)) {
             return Objects.toString(str, null);
         }
-        return StringUtil.findReplace(str.toString(), String.valueOf(c), STRING_ESCAPE_SEQUENCE_START + c);
+        return StringUtil.replace(str.toString(), String.valueOf(c), STRING_ESCAPE_SEQUENCE_START + c);
     }
 
     private static final String escapeMultipleCharactersImpl(CharSequence str, StringUtil.CharToStringMapper escapeMapper) {

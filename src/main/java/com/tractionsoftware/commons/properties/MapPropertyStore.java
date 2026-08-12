@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A generic {@link PropStore} implementation backed by any {@link Map} that accepts {@link String}s as keys and
- * values.
+ * A generic {@link PropStore} implementation, extending {@link AbstractMapGetProperty}, backed by any {@link Map} that
+ * accepts {@link String}s as keys and values.
  *
  * @author Dave Shepperton
  */
@@ -47,51 +47,121 @@ public final class MapPropertyStore<R> extends AbstractMapGetProperty implements
      * and value to a String via its toString method, and returns a new MapPropertyStore backed by that new
      * {@link HashMap}.
      *
+     * <p>
+     * Instances created via this method will use the default behavior when the {@link #putProperty(String, String)}
+     * method is invoked with a null value: the key-value pair is removed, if it exists, from the backing map.
+     *
      * @param name
      *     the name to use for the MapPropertyStore.
      * @param map
      *     containing the values to use to initialize the MapPropertyStore.
+     * @param <R>
+     *     the type of record used to commit changes.
      * @return a new MapPropertyStore backed by a String-to-String {@link HashMap} that initially contains all the
      *     key-value pairs from the given Map with each key and value converted to a String via their toString methods.
      */
-    public static final <R> MapPropertyStore<R> fromUnknownMap(String name, Map<?,?> map) {
+    public static final <R> MapPropertyStore<R> createInstanceFromUnknownMapCopy(String name, Map<?,?> map) {
         Map<String,String> useMap = new LinkedHashMap<>(map.size());
         for (Map.Entry<?,?> entry : map.entrySet()) {
             useMap.put(Objects.toString(entry.getKey(), null), Objects.toString(entry.getValue(), null));
         }
-        return new MapPropertyStore<>(name, useMap);
-    }
-
-    public static final <R> MapPropertyStore<R> createInstance(Map<? super String,? super String> map) {
-        return createInstance(null, map);
-    }
-
-    public static final <R> MapPropertyStore<R> createInstance(String name, Map<? super String,? super String> map) {
-        return new MapPropertyStore<>(name, map);
+        return createNamedInstance(name, useMap);
     }
 
     /**
-     * Constructs a new MapPropertyStore using the given name and backed by the given Map.
+     * Returns a new MapPropertyStore backed by a String-to-String {@link LinkedHashMap}.
      *
      * <p>
-     * Instances created via this constructor will use the default behavior when the
+     * Instances created via this factory constructor will use the default behavior when the
+     * {@link #putProperty(String, String)} method is invoked with a null value: the key-value pair is removed, if it
+     * exists, from the backing map.
+     *
+     * @param <R>
+     *     the type of record used to commit changes.
+     * @return a new MapPropertyStore backed by a String-to-String {@link LinkedHashMap}.
+     */
+    public static final <R> MapPropertyStore<R> createDefaultInstance() {
+        return createInstance(new LinkedHashMap<>());
+    }
+
+    /**
+     * Returns a new MapPropertyStore backed by the given Map.
+     *
+     * <p>
+     * Instances created via this factory constructor will use the default behavior when the
+     * {@link #putProperty(String, String)} method is invoked with a null value: the key-value pair is removed, if it
+     * exists, from the backing map.
+     *
+     * @param map
+     *     the Map that accepts String keys and values that will be used to back this MapPropertyStore.
+     * @param <R>
+     *     the type of record used to commit changes.
+     * @return a new MapPropertyStore backed by the given Map.
+     */
+    public static final <R> MapPropertyStore<R> createInstance(Map<? super String,? super String> map) {
+        return createInstance(map, true);
+    }
+
+    /**
+     * Returns a new MapPropertyStore backed by the given Map.
+     *
+     * @param map
+     *     the Map that accepts String keys and values that will be used to back this MapPropertyStore.
+     * @param removeOnNullValuePut
+     *     pass true to select the default behavior when the {@link #putProperty(String, String)} method is invoked with
+     *     a null value: the key-value pair is removed, if it exists, from the backing map; pass false to cause the
+     *     key-value pair to be written into the {@link Map}, with a null value.
+     * @param <R>
+     *     the type of record used to commit changes.
+     * @return a new MapPropertyStore backed by the given Map.
+     */
+    public static final <R> MapPropertyStore<R> createInstance(Map<? super String,? super String> map, boolean removeOnNullValuePut) {
+        return createNamedInstance(null, map, removeOnNullValuePut);
+    }
+
+    /**
+     * Returns a new MapPropertyStore using the given name and backed by the given Map.
+     *
+     * <p>
+     * Instances created via this factory constructor will use the default behavior when the
      * {@link #putProperty(String, String)} method is invoked with a null value: the key-value pair is removed, if it
      * exists, from the backing map.
      *
      * @param name
-     *     a name that is informative (for debugging purposes only).
+     *     an informative name which will be returned by {@link #getName()}.
      * @param map
      *     the Map that accepts String keys and values that will be used to back this MapPropertyStore.
+     * @param <R>
+     *     the type of record used to commit changes.
+     * @return a new MapPropertyStore using the given name and backed by the given Map.
      */
-    public MapPropertyStore(String name, Map<? super String,? super String> map) {
-        this(name, map, true);
+    public static final <R> MapPropertyStore<R> createNamedInstance(String name, Map<? super String,? super String> map) {
+        return createNamedInstance(name, map, true);
+    }
+
+    /**
+     * Returns a new MapPropertyStore using the given name and backed by the given Map.
+     *
+     * @param name
+     *     an informative name which will be returned by {@link #getName()}.
+     * @param map
+     *     the Map that accepts String keys and values that will be used to back this MapPropertyStore.
+     * @param removeOnNullValuePut
+     *     pass true to select the default behavior when the {@link #putProperty(String, String)} method is invoked with
+     *     a null value: the key-value pair is removed, if it exists, from the backing map; pass false to cause the
+     *     key-value pair to be written into the {@link Map}, with a null value.
+     * @return a new MapPropertyStore using the given name and backed by the given Map.
+     */
+    public static final <R> MapPropertyStore<R> createNamedInstance(String name, Map<? super String,? super String> map, boolean removeOnNullValuePut) {
+        Objects.requireNonNull(map, "MapPropertyStore: map cannot be null.");
+        return new MapPropertyStore<>(Objects.toString(name, "MapPropertyStore"), map, removeOnNullValuePut);
     }
 
     /**
      * Constructs a new MapPropertyStore using the given name and backed by the given {@link Map}.
      *
      * @param name
-     *     a name that is informative (for debugging purposes only).
+     *     an informative name which will be returned by {@link #getName()}.
      * @param map
      *     the {@link Map} that accepts String keys and values that will be used to back this MapPropertyStore.
      * @param removeOnNullValuePut
@@ -99,28 +169,16 @@ public final class MapPropertyStore<R> extends AbstractMapGetProperty implements
      *     a null value: the key-value pair is removed, if it exists, from the backing map; pass false to cause the
      *     key-value pair to be written into the {@link Map}, with a null value.
      */
-    public MapPropertyStore(String name, Map<? super String,? super String> map, boolean removeOnNullValuePut) {
-        Objects.requireNonNull(map, "MapPropertyStore: map cannot be null.");
-        this.name = Objects.toString(name, "MapPropertyStore");
+    private MapPropertyStore(String name, Map<? super String,? super String> map, boolean removeOnNullValuePut) {
+        this.name = name;
         this.map = map;
         this.removeOnNullValuePut = removeOnNullValuePut;
-    }
-
-    /**
-     * Constructs a new MapPropertyStore backed by a new empty String-to-String {@link HashMap}.
-     */
-    public MapPropertyStore() {
-        this(null, new LinkedHashMap<>(), true);
     }
 
     @Nonnull
     @Override
     public final String toString() {
-        return "PropStore: stat map '" +
-               Objects.toString(name, "map") +
-               "' {" +
-               map.getClass().getName() +
-               "}";
+        return "PropStore: stat map '" + Objects.toString(name, "map") + "' {" + map.getClass().getName() + "}";
     }
 
     @Override

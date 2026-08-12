@@ -22,13 +22,16 @@ package com.tractionsoftware.commons.processor;
 
 import com.tractionsoftware.commons.io.ErrorTempFileResource;
 import com.tractionsoftware.commons.io.LocalTempFileService;
+import com.tractionsoftware.commons.io.MutableFileMetadata;
 import com.tractionsoftware.commons.io.SimpleMutableFileMetadata;
 import com.tractionsoftware.commons.io.TempFileResource;
+import org.apache.commons.io.function.IOSupplier;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -40,6 +43,30 @@ import static org.junit.jupiter.api.Assertions.*;
 public final class TempFileResultTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TempFileResultTest.class);
+
+    /**
+     * A factory that always fails, causing getInstance() to receive an ErrorTempFileResource and throw IOException.
+     * Extends AbstractFactory so we only need to implement the two abstract createImpl/loadExistingImpl methods.
+     */
+    private static final TempFileResource.AbstractFactory ERROR_TEMP_FILE_FACTORY =
+        new TempFileResource.AbstractFactory() {
+            @Nonnull
+            @Override
+            protected TempFileResource createImpl(
+                @Nonnull MutableFileMetadata metadata,
+                IOSupplier<? extends InputStream> content,
+                @Nonnull Logger logger) throws IOException {
+                throw new IOException("injected factory failure");
+            }
+
+            @Nonnull
+            @Override
+            protected TempFileResource loadExistingImpl(
+                @Nonnull MutableFileMetadata metadata,
+                @Nonnull Logger logger) throws IOException {
+                throw new IOException("injected factory failure");
+            }
+        };
 
     // =====================================================================
     // getInstanceForExistingTempFile — null guard
@@ -132,14 +159,14 @@ public final class TempFileResultTest {
     void release_thenGetOutputStream_throwsISE() throws Exception {
         TempFileResult result = TempFileResult.getInstance(makeHelper("ise-out-test"));
         result.release();
-        assertThrows(IllegalStateException.class, () -> result.getOutputStream());
+        assertThrows(IllegalStateException.class, result::getOutputStream);
     }
 
     @Test
     void release_thenGetInputStream_throwsISE() throws Exception {
         TempFileResult result = TempFileResult.getInstance(makeHelper("ise-in-test"));
         result.release();
-        assertThrows(IllegalStateException.class, () -> result.getInputStream());
+        assertThrows(IllegalStateException.class, result::getInputStream);
     }
 
     // =====================================================================
@@ -151,6 +178,139 @@ public final class TempFileResultTest {
         TempFileResult result = TempFileResult.getInstance(makeHelper("double-release"));
         result.release();
         assertDoesNotThrow(result::release);
+    }
+
+    // =====================================================================
+    // getInstance — blank extension → falls back to "tmp"
+    // =====================================================================
+
+    private static TempFileResult.Helper makeHelperBlankExtension(String name) {
+        return new TempFileResult.Helper() {
+            @Nonnull
+            @Override
+            public TempFileResource.Factory tempFiles() {
+                return LocalTempFileService.DEFAULT_FACTORY;
+            }
+
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public String getSuggestedTempFileExtension() {
+                return null; // blank → getExtension() returns "tmp"
+            }
+
+            @Override
+            public Logger getLogger() {
+                return LOGGER;
+            }
+        };
+    }
+
+    @Test
+    void getInstance_blankExtension_createsResult() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelperBlankExtension("blank-ext-test"));
+        assertNotNull(result);
+        result.release();
+    }
+
+    // =====================================================================
+    // getInstance — error factory → throws IOException
+    // =====================================================================
+
+    @Test
+    void getInstance_errorFactory_throwsIOException() {
+        TempFileResult.Helper errorHelper = new TempFileResult.Helper() {
+            @Nonnull
+            @Override
+            public TempFileResource.Factory tempFiles() {
+                return ERROR_TEMP_FILE_FACTORY;
+            }
+
+            @Override
+            public String getName() {
+                return "error-factory-test";
+            }
+
+            @Override
+            public String getSuggestedTempFileExtension() {
+                return "txt";
+            }
+
+            @Override
+            public Logger getLogger() {
+                return LOGGER;
+            }
+        };
+        assertThrows(IOException.class, () -> TempFileResult.getInstance(errorHelper));
+    }
+
+    // =====================================================================
+    // getInputStream — success path (released=false → returns stream)
+    // =====================================================================
+
+    @Test
+    void getInputStream_notReleased_returnsStream() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("get-input-stream-test"));
+        try (OutputStream out = result.getOutputStream()) {
+            out.write("content".getBytes());
+        }
+        // released is still false; getInputStream should work
+        try (InputStream in = result.getInputStream()) {
+            assertNotNull(in);
+        }
+        result.release();
+    }
+
+    // =====================================================================
+    // onPopulate(false) — closes stream, logs error location
+    // =====================================================================
+
+    @Test
+    void onPopulate_false_logsError() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("populate-false-test"));
+        // Does not throw; logs an error and closes the temp file
+        assertDoesNotThrow(() -> result.onPopulate(false));
+        result.release();
+    }
+
+    @Test
+    void onPopulate_true_closesStream() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("populate-true-test"));
+        try (OutputStream out = result.getOutputStream()) {
+            out.write("x".getBytes());
+        }
+        assertDoesNotThrow(() -> result.onPopulate(true));
+        result.release();
+    }
+
+    // =====================================================================
+    // onConsume — exercises checkOrSetReleased and releaseIfNecessary
+    // =====================================================================
+
+    @Test
+    void onConsume_true_releasesResult() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("consume-true-test"));
+        assertDoesNotThrow(() -> result.onConsume(true));
+        // After onConsume(true), released=true; getOutputStream should now throw ISE
+        assertThrows(IllegalStateException.class, result::getOutputStream);
+    }
+
+    @Test
+    void onConsume_false_logsError() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("consume-false-test"));
+        // onConsume(false) → releaseIfNecessary(false) → logTempFileResultLocation(true) → logger.error
+        assertDoesNotThrow(() -> result.onConsume(false));
+    }
+
+    @Test
+    void onConsume_twice_secondIsNoOp() throws Exception {
+        TempFileResult result = TempFileResult.getInstance(makeHelper("consume-twice-test"));
+        result.onConsume(true);
+        // Second call: checkOrSetReleased returns true (already released), returns immediately
+        assertDoesNotThrow(() -> result.onConsume(true));
     }
 
 }

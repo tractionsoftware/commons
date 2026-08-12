@@ -20,6 +20,7 @@
 
 package com.tractionsoftware.commons.net;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -273,27 +274,6 @@ class URLUtilTest {
     }
 
     // ---------------------------------------------------------------------------
-    // getEffectivePort(String)
-    // ---------------------------------------------------------------------------
-
-    @Test
-    void getEffectivePort_http_returns80() {
-        assertEquals(80, URLUtil.getEffectivePort("http"));
-        assertEquals(80, URLUtil.getEffectivePort("HTTP"));
-    }
-
-    @Test
-    void getEffectivePort_https_returns443() {
-        assertEquals(443, URLUtil.getEffectivePort("https"));
-    }
-
-    @Test
-    void getEffectivePort_unknown_returnsMinusOne() {
-        assertEquals(-1, URLUtil.getEffectivePort("ftp"));
-        assertEquals(-1, URLUtil.getEffectivePort((String) null));
-    }
-
-    // ---------------------------------------------------------------------------
     // getDefaultHttpPort
     // ---------------------------------------------------------------------------
 
@@ -438,25 +418,25 @@ class URLUtilTest {
     }
 
     // ---------------------------------------------------------------------------
-    // getPath
+    // getRawPath
     // ---------------------------------------------------------------------------
 
     @Test
-    void getPath_blank_returnsSeparator() {
-        assertEquals("/", URLUtil.getPath(""));
-        assertEquals("/", URLUtil.getPath(null));
+    void getRawPath_blank_returnsSeparator() {
+        assertEquals("/", URLUtil.getRawPath(""));
+        assertEquals("/", URLUtil.getRawPath(null));
     }
 
     @Test
-    void getPath_absoluteUrl_returnsPath() {
-        String path = URLUtil.getPath("https://example.com/some/path?q=1");
+    void getRawPath_absoluteUrl_returnsPath() {
+        String path = URLUtil.getRawPath("https://example.com/some/path?q=1");
         assertEquals("/some/path", path);
     }
 
     @Test
-    void getPath_relativeUrl_returnsAsIs() {
+    void getRawPath_relativeUrl_returnsAsIs() {
         // A relative URL like "/path" is directly returned
-        String path = URLUtil.getPath("/path/to");
+        String path = URLUtil.getRawPath("/path/to");
         assertEquals("/path/to", path);
     }
 
@@ -533,35 +513,6 @@ class URLUtilTest {
         assertNotNull(result);
         assertTrue(result.contains("?"), result);
         assertTrue(result.contains("subject"), result);
-    }
-
-    // ---------------------------------------------------------------------------
-    // getRsFromUrl
-    // ---------------------------------------------------------------------------
-
-    @Test
-    void getRsFromUrl_null_returnsNull() {
-        assertNull(URLUtil.getRsFromUrl(null));
-    }
-
-    @Test
-    void getRsFromUrl_noRs_returnsNull() {
-        assertNull(URLUtil.getRsFromUrl("/some/other/path"));
-    }
-
-    @Test
-    void getRsFromUrl_rsPathPrefix() {
-        assertEquals("cdt", URLUtil.getRsFromUrl("/rs/cdt"));
-    }
-
-    @Test
-    void getRsFromUrl_tractionRsPathPrefix() {
-        assertEquals("cdt", URLUtil.getRsFromUrl("/traction/rs/cdt"));
-    }
-
-    @Test
-    void getRsFromUrl_tractionRsQueryParam() {
-        assertEquals("cdt", URLUtil.getRsFromUrl("/traction/rs?cdt"));
     }
 
     // ---------------------------------------------------------------------------
@@ -689,6 +640,15 @@ class URLUtilTest {
         assertEquals("no candidate data: URI was specified", result.getErrorMessage());
     }
 
+    // NOTE on a remaining "pc" branch not addressed above: parseDataURIImpl's
+    // 'StringUtils.isBlank(mediaTypeSpec) || "&lt;".equals(mediaTypeSpec)' check has an untested second operand
+    // (a legacy IE workaround for a literal "<" media type placeholder). It looks difficult or impossible to
+    // reach: DATA_URI's group 1 can only capture a bare "<" if some subgroup matches it, but neither the
+    // type/subtype subgroup (which requires a "/") nor the parameters subgroup (which requires a leading ";") can
+    // match a lone "<" character, so a URI like "data:<,hello" likely fails m.matches() entirely rather than
+    // reaching this check with mediaTypeSpec equal to "<". Not confident enough in the exact regex behavior to
+    // assert a result without being able to execute it, so flagging rather than guessing.
+
     // ---------------------------------------------------------------------------
     // parseUrlParameterSequence (additional gaps) / KeyValuePair / SimpleKeyValuePair /
     // KeySingleValuePairMapBuilder
@@ -725,6 +685,11 @@ class URLUtilTest {
         assertEquals("3", builder.getMap().get("a"));
         assertEquals("2", builder.getMap().get("b"));
     }
+
+    // NOTE on a remaining "pc" branch not addressed above: parseUrlParameterSequence's value-computation ternary
+    // is "(kv.length == 2 && kv[1] != null) ? ... : \"\"". String.split(regex, limit) never returns a null element,
+    // so when kv.length == 2, kv[1] can never actually be null -- the "kv[1] != null" half of that condition looks
+    // unreachable/defensive rather than a real gap worth fabricating a test for.
 
     // ---------------------------------------------------------------------------
     // isOrIsDescendantPath / isDescendantPath / ensureTrailingSlashIfDirectoryPath (additional gaps)
@@ -771,12 +736,12 @@ class URLUtilTest {
     }
 
     // ---------------------------------------------------------------------------
-    // getPath (additional gap)
+    // getRawPath (additional gap)
     // ---------------------------------------------------------------------------
 
     @Test
-    void getPath_malformedUri_fallsBackToManualParsing() {
-        assertEquals("/path with spaces", URLUtil.getPath("http://example.com/path with spaces"));
+    void getRawPath_malformedUri_fallsBackToManualParsing() {
+        assertEquals("/path with spaces", URLUtil.getRawPath("http://example.com/path with spaces"));
     }
 
     // ---------------------------------------------------------------------------
@@ -1079,7 +1044,7 @@ class URLUtilTest {
 
     @Test
     void urlEncodeUTF8_string_null_returnsNull() {
-        assertNull(URLUtil.urlEncodeUTF8((String) null));
+        assertNull(URLUtil.urlEncodeUTF8(null));
     }
 
     @Test
@@ -1092,9 +1057,16 @@ class URLUtilTest {
     @Test
     void urlEncodeUTF8_stringBuilder_null_doesNothing() {
         StringBuilder sb = new StringBuilder();
-        URLUtil.urlEncodeUTF8(sb, (String) null);
+        URLUtil.urlEncodeUTF8(sb, null);
         assertEquals("", sb.toString());
     }
+
+    // NOTE on a remaining "nc" branch not addressed above: urlEncodeUTF8(Appendable, char)'s "if (num.length() ==
+    // 1) safeAppend(out, '0')" zero-pad line is never hit by any input. This method early-returns for basic-latin
+    // chars, so the byte-encoding loop only ever sees UTF-8 bytes from non-basic-latin codepoints (>= 0x80) -- for
+    // 2-byte sequences the lead byte is always >= 0xC2 and the trailing byte is always 0x80-0xBF, and 3+-byte
+    // sequences likewise never produce a byte < 0x10. So every byte this loop can ever see hex-encodes to two
+    // digits already, making the zero-pad branch look unreachable/dead rather than an untested real case.
 
     // ---------------------------------------------------------------------------
     // encodeFullyQualifiedURL (large method, multiple uncovered branches)
@@ -1239,7 +1211,7 @@ class URLUtilTest {
 
     @Test
     void getUrlEncoding_controlCharNeedingZeroPad_padsLeadingZero() {
-        assertEquals("%01", URLUtil.getUrlEncoding(""));
+        assertEquals("%01", URLUtil.getUrlEncoding(Character.toString(Ascii.SOH)));
     }
 
     // ---------------------------------------------------------------------------
@@ -1305,6 +1277,134 @@ class URLUtilTest {
         FakeURLBuilder b = new FakeURLBuilder();
         assertTrue(new URLUtil.URLParameterValueSetCallback("tag").modifyUrl(b, "z"));
         assertEquals("z", b.getParameterValue("tag"));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Additional gaps identified from the htmlReport coverage scan of URLUtil (86.2% branch coverage).
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void urlParameterValueAddCallback_nullValue_returnsFalseAndDoesNotSetParameter() {
+        FakeURLBuilder b = new FakeURLBuilder();
+        assertFalse(new URLUtil.URLParameterValueAddCallback("tag").modifyUrl(b, null));
+        assertNull(b.getParameterValue("tag"));
+    }
+
+    @Test
+    void parseDataURI_typeWithInvalidToken_exceptionCaught_failedResult() {
+        // A space inside the type/subtype isn't a valid RFC 2045 token character.
+        // new URI throws a URISyntaxException, which is converted into a failed result.
+        URLUtil.DataURIParseResult result = URLUtil.parseDataURISpec("data:te xt/plain,hello", "test.txt");
+        assertFalse(result.wasSuccessful());
+    }
+
+    @Test
+    void isOrIsDescendantPath_emptyPath_fallsThroughToIsDescendantPath() {
+        assertTrue(URLUtil.isOrIsDescendantPath("", "/anything"));
+    }
+
+    @Test
+    void isOrIsDescendantPath_pathEndsWithSlash_secondConditionFalse() {
+        // path already ends with '/', so the "path + separator" comparison is skipped; falls through to
+        // isDescendantPath, which still matches since otherPath starts with path.
+        assertTrue(URLUtil.isOrIsDescendantPath("/foo/", "/foo/bar"));
+    }
+
+    @Test
+    void getRawPath_malformedUriWithQueryString_truncatesAtQuestionMark() {
+        // URI.create() throws for the embedded space, falling back to manual parsing; this exercises the
+        // "truncate at '?'" branch of that manual fallback, which was never reached by the other malformed-URI test.
+        assertEquals("/path with spaces", URLUtil.getRawPath("http://example.com/path with spaces?query=1"));
+    }
+
+    @Test
+    void haveSameRoots_url_differentProtocol_false() throws Exception {
+        URL a = URI.create("http://example.com/foo").toURL();
+        URL b = URI.create("https://example.com/foo").toURL();
+        assertFalse(URLUtil.haveSameRoots(a, b));
+    }
+
+    @Test
+    void haveSameRoots_url_differentPort_false() throws Exception {
+        URL a = URI.create("http://example.com:8080/foo").toURL();
+        URL b = URI.create("http://example.com:9090/foo").toURL();
+        assertFalse(URLUtil.haveSameRoots(a, b));
+    }
+
+    @Test
+    void getEffectivePort_uri_noPortUnknownButUrlConvertibleScheme_fallsBackToUrlDefaultPort() {
+        // "ftp" isn't recognized by getEffectivePort(String), but the JDK has a built-in URLStreamHandler for it, so
+        // uri.toURL() succeeds and getEffectivePort(URI) falls through to getEffectivePort(URL)'s default-port logic.
+        assertEquals(21, URLUtil.getEffectivePort(URI.create("ftp://example.com/file")));
+    }
+
+    @Test
+    void haveSameRoots_uri_differentPort_false() {
+        assertFalse(
+            URLUtil.haveSameRoots(URI.create("https://example.com:8080/a"), URI.create("https://example.com:9090/a"))
+        );
+    }
+
+    @Test
+    void canSafelyUseSameCredentials_sameSchemeDifferentPort_false() {
+        assertFalse(
+            URLUtil.canSafelyUseSameCredentials(
+                URI.create("https://example.com:8080/a"), URI.create("https://example.com:9090/a")
+            )
+        );
+    }
+
+    @Test
+    void isSchemeAtLeastAsSecure_requestSchemeNull_false() {
+        // A relative URI has no scheme at all (getScheme() == null), exercising the null-scheme guard rather than
+        // the null-URI guard above it.
+        assertFalse(URLUtil.isSchemeAtLeastAsSecure(URI.create("/relative/path"), URI.create("https://example.com")));
+    }
+
+    @Test
+    void isSchemeAtLeastAsSecure_httpsVsNonHttp_false() {
+        assertFalse(URLUtil.isSchemeAtLeastAsSecure(URI.create("https://example.com"), URI.create("ftp://example.com")));
+    }
+
+    @Test
+    void getAbsoluteUrl_baseUrlNotValidUri_logsWarningAndReturnsSpecUnchanged() throws Exception {
+        // Built via the lenient URL constructor (not URI.create) so it can hold a literal space; baseURL.toURI()
+        // then throws URISyntaxException, which getAbsoluteUrl catches, logs, and falls back to the unchanged spec.
+        @SuppressWarnings("deprecation")
+        URL base = new URL("http://example.com/path with space/page.html");
+        assertEquals("/other", URLUtil.getAbsoluteUrl(base, "/other"));
+    }
+
+    @Test
+    void getUrlDecoded_lowercaseHexEscape_decodes() {
+        assertEquals("é", URLUtil.getUrlDecoded("%c3%a9"));
+    }
+
+    @Test
+    void getUrlDecoded_percentNearEndOfString_treatedAsLiteral() {
+        // Not enough trailing characters remain to form a valid %xx escape, so '%' falls through to the default
+        // case and is appended literally instead.
+        assertEquals("100%", URLUtil.getUrlDecoded("100%"));
+    }
+
+    @Test
+    void getUrlEncoding_safePunctuation_unchanged() {
+        assertEquals("(a,b)-c.d/e*f", URLUtil.getUrlEncoding("(a,b)-c.d/e*f"));
+    }
+
+    @Test
+    void getUrlEncoding_nonBasicLatinSymbol_multibyteEncoded() {
+        // '€' (U+20AC) is not a letter/digit and not basic latin, so it takes the multi-byte UTF-8 encoding path
+        // rather than the single-byte %xx fallback used for basic-latin punctuation like space.
+        assertEquals("%e2%82%ac", URLUtil.getUrlEncoding("€"));
+    }
+
+    @Test
+    void getHostFromURL_malformed_logsWarningAndReturnsNull() {
+        // Unlike URI.create() elsewhere in this class, getHostFromURL calls "new URI(url)" directly, which throws
+        // a checked URISyntaxException (rather than wrapping it as an unchecked IllegalArgumentException) for the
+        // embedded space; that's caught, logged, and turned into a null return.
+        assertNull(URLUtil.getHostFromURL("http://example.com/path with space"));
     }
 
 }

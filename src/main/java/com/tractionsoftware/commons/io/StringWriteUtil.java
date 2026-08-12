@@ -123,6 +123,28 @@ public final class StringWriteUtil {
         }
     }
 
+    public static final void safeAppendCodePoint(@Nullable Appendable buffer, int codePoint) {
+        if (buffer == null) {
+            return;
+        }
+        try {
+            if (Character.isBmpCodePoint(codePoint)) {
+                buffer.append((char) codePoint);
+            }
+            else if (Character.isValidCodePoint(codePoint)) {
+                buffer.append(Character.toString(codePoint));
+            }
+            else {
+                throw new IllegalArgumentException(
+                    String.format("Not a valid Unicode code point: 0x%X", codePoint)
+                );
+            }
+        }
+        catch (IOException e) {
+            LOGGER.warn("append failed", e);
+        }
+    }
+
     /**
      * This utility method implements the commonly required retrieval of a String representing the output written to a
      * PrintWriter.
@@ -254,11 +276,13 @@ public final class StringWriteUtil {
         StringUtil.getMatchingRange(str, matcher).print(out, str);
     }
 
-    public static final void appendMatching(@Nullable Appendable out, CharSequence str, CharMatcher matcher) throws IOException {
+    public static final void appendMatching(@Nullable Appendable out, CharSequence str, CharMatcher matcher)
+        throws IOException {
         StringUtil.getMatchingRange(str, matcher).append(out, str);
     }
 
-    public static final boolean appendTo(@Nullable Object appendTo, String appendValue, Consumer<Object> onUpdate) throws IOException {
+    public static final boolean appendTo(@Nullable Object appendTo, String appendValue, Consumer<Object> onUpdate)
+        throws IOException {
         if (appendTo instanceof Appendable out) {
             out.append(appendValue);
             return true;

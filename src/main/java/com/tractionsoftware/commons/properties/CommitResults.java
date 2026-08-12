@@ -112,8 +112,7 @@ public final class CommitResults {
         new SuccessfulCommitResult(CommitResult.StandardSuccessStatus.NO_CHANGES_REQUESTED);
 
     public static final CommitResult RESULT_NO_CHANGES_NEEDED =
-        new SuccessfulCommitResult(CommitResult.StandardSuccessStatus.NO_CHANGES_REQUESTED);
-
+        new SuccessfulCommitResult(CommitResult.StandardSuccessStatus.NO_CHANGES_NEEDED);
 
     /**
      * Produces a {@link CommitResult} carrying the given {@link PropStoreCommitException} as the cause of the failure.

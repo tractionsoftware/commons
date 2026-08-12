@@ -67,10 +67,10 @@ public final class DateFormats {
     public static final String DATEFORMAT_ICAL_DATESTAMP = "yyyyMMdd'T'HHmmss'Z'";
 
     public static final SimpleDateFormat getDateFormat(String format) {
-        return newSimpleDateFormat(format, LocaleUtil.getCurrentLocale(), TimeZoneUtil.getCurrentTimeZone());
+        return createSimpleDateFormat(format, LocaleUtil.getCurrentLocale(), TimeZoneUtil.getCurrentTimeZone());
     }
 
-    private static final SimpleDateFormat newSimpleDateFormat(String format, Locale locale, TimeZone timeZone) {
+    public static final SimpleDateFormat createSimpleDateFormat(String format, Locale locale, TimeZone timeZone) {
         SimpleDateFormat ret = new SimpleDateFormat(format, locale);
         setTimeZone(ret, timeZone);
         return ret;
@@ -101,7 +101,7 @@ public final class DateFormats {
     }
 
     public static final SimpleDateFormat getDefaultDateFormat(String format) {
-        return newSimpleDateFormat(format, LocaleUtil.getCurrentLocale(), TimeZoneUtil.getEnvironmentDefaultTimeZone());
+        return createSimpleDateFormat(format, LocaleUtil.getCurrentLocale(), TimeZoneUtil.getEnvironmentDefaultTimeZone());
     }
 
     public static final DateFormat getDateInstance(int style) {
@@ -116,34 +116,6 @@ public final class DateFormats {
         return newStyleDateTimeFormat(dateStyle, timeStyle, LocaleUtil.getCurrentLocale());
     }
 
-    public static final DateFormat getCommentDateFormat() {
-        return newSimpleDateFormat("M/d/y", LocaleUtil.getCurrentLocale(), TimeZoneUtil.getCurrentTimeZone());
-    }
-
-    public static final DateFormat getCalendarDialogFormat() {
-        return newSimpleDateFormat("M/d/y", Locale.US, TimeZoneUtil.getCurrentTimeZone());
-    }
-
-    public static final SimpleDateFormat getUrlDateFormat() {
-        return getUrlDateFormat(TimeZoneUtil.getCurrentTimeZone());
-    }
-
-    public static final SimpleDateFormat getUrlDateFormat(TimeZone timeZone) {
-        return newSimpleDateFormat("yyyyMMdd", Locale.US, timeZone);
-    }
-
-    public static final SimpleDateFormat getUrlDateTimeFormat() {
-        return newSimpleDateFormat("yyyyMMddHHmmssZ", Locale.US, TimeZoneUtil.getCurrentTimeZone());
-    }
-
-    public static final SimpleDateFormat getRsDisplayFormat() {
-        return newSimpleDateFormat("yyyy/MM/dd", Locale.US, TimeZoneUtil.getCurrentTimeZone());
-    }
-
-    public static final SimpleDateFormat getRsDateFormat() {
-        return newSimpleDateFormat("dMMMyyyy", Locale.US, TimeZoneUtil.getCurrentTimeZone());
-    }
-
     /**
      * Returns a new {@link SimpleDateFormat} corresponding to RFC 1123.
      *
@@ -152,7 +124,7 @@ public final class DateFormats {
      * @return a new {@link SimpleDateFormat} corresponding to RFC 1123.
      */
     public static final SimpleDateFormat getHttpDateFormat(TimeZone timeZone) {
-        return newSimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US, timeZone);
+        return createSimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US, timeZone);
     }
 
     /**
@@ -176,7 +148,7 @@ public final class DateFormats {
      *     Cookies).
      */
     public static final SimpleDateFormat getCookieDateFormat(TimeZone timeZone) {
-        return newSimpleDateFormat("EEEEE, dd-MMM-yyyy HH:mm:ss zzz", Locale.US, timeZone);
+        return createSimpleDateFormat("EEEEE, dd-MMM-yyyy HH:mm:ss zzz", Locale.US, timeZone);
     }
 
     /**
@@ -218,7 +190,7 @@ public final class DateFormats {
      *     (yyyy-MM-dd).
      */
     public static final SimpleDateFormat getExlfDateFormat() {
-        return newSimpleDateFormat("yyyy-MM-dd", Locale.US, DateUtil.GMT);
+        return createSimpleDateFormat("yyyy-MM-dd", Locale.US, DateUtil.GMT);
     }
 
     /**
@@ -229,7 +201,7 @@ public final class DateFormats {
      *     (hh:mm:ss).
      */
     public static final SimpleDateFormat getExlfTimeFormat() {
-        return newSimpleDateFormat("HH:mm:ss", Locale.US, DateUtil.GMT);
+        return createSimpleDateFormat("HH:mm:ss", Locale.US, DateUtil.GMT);
     }
 
     /**
@@ -240,7 +212,7 @@ public final class DateFormats {
      *     of the name for archived files (e.g., log files).
      */
     public static final SimpleDateFormat getDefaultArchiveLogFileNameDateStampFormat() {
-        return newSimpleDateFormat("yyyyMMdd", Locale.US, TimeZone.getDefault());
+        return createSimpleDateFormat("yyyyMMdd", Locale.US, TimeZone.getDefault());
     }
 
     /**
@@ -251,7 +223,7 @@ public final class DateFormats {
      *     contexts.
      */
     public static final SimpleDateFormat getServerTimeZoneFormat() {
-        return newSimpleDateFormat("yyyyMMddHHmmssZ", Locale.US, null);
+        return createSimpleDateFormat("yyyyMMddHHmmssZ", Locale.US, null);
     }
 
     /**

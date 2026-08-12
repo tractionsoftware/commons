@@ -23,19 +23,13 @@ package com.tractionsoftware.commons.properties;
 import com.google.common.collect.ImmutableMap;
 import com.tractionsoftware.commons.config.Configuration;
 import com.tractionsoftware.commons.lang.NativeTypeConversion;
+import com.tractionsoftware.commons.util.DateFormats;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.text.DateFormat;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,6 +42,14 @@ public final class SimplePropertiesTest {
 
     private static GetProperty props(String key, String value) {
         return props(ImmutableMap.of(key, value));
+    }
+
+    private static final DateFormat yyyyMMddUTC() {
+        return DateFormats.createSimpleDateFormat("yyyyMMdd", Locale.US, utc());
+    }
+
+    private static final TimeZone utc() {
+        return TimeZone.getTimeZone("UTC");
     }
 
     // =====================================================================
@@ -96,7 +98,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void asPropStore_readWrite() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("x", "1");
         assertEquals("1", store.getProperty("x"));
     }
@@ -196,28 +198,28 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveString_storesValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveString(store, "k", "hello");
         assertEquals("hello", store.getProperty("k"));
     }
 
     @Test
     void saveString_unless_skipIfMatch() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveString(store, "k", "hello", "hello"); // unless == value, so not saved
         assertNull(store.getProperty("k"));
     }
 
     @Test
     void saveInt_storesValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveInt(store, "n", 7);
         assertEquals(7, SimpleProperties.loadInt(store, "n"));
     }
 
     @Test
     void saveBoolean_storesTrue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveBoolean(store, "flag", true);
         assertTrue(SimpleProperties.loadBoolean(store, "flag"));
     }
@@ -268,7 +270,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void getName_namedStore_returnsName() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>("mystore", new java.util.HashMap<>());
+        MapPropertyStore<Void> store = MapPropertyStore.createNamedInstance("mystore", new HashMap<>());
         assertEquals("mystore", SimpleProperties.getName(store));
     }
 
@@ -396,14 +398,14 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveFilePath_convertsToGenericSlashes() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveFilePath(store, "path", "a" + File.separator + "b");
         assertEquals("a/b", store.getProperty("path"));
     }
 
     @Test
     void saveFile_storesPlatformIndependentPath() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveFile(store, "path", new File("a", "b"));
         assertEquals("a/b", store.getProperty("path"));
     }
@@ -414,7 +416,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveBase64Encoded_thenLoadBase64Encoded_roundTrips() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveBase64Encoded(store, "secret", "hello world");
         assertNull(store.getProperty("secret"));
         assertNotNull(store.getProperty("secret_base64_encoded"));
@@ -423,7 +425,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveBase64Encoded_nullValue_clearsBothProperties() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("secret", "plain");
         SimpleProperties.saveBase64Encoded(store, "secret", null);
         assertNull(store.getProperty("secret"));
@@ -449,28 +451,28 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveInt_unless_skipsWhenMatches() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveInt(store, "n", 5, 5);
         assertNull(store.getProperty("n"));
     }
 
     @Test
     void saveInt_unless_storesWhenDifferent() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveInt(store, "n", 5, 9);
         assertEquals(5, SimpleProperties.loadInt(store, "n"));
     }
 
     @Test
     void saveLong_storesValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveLong(store, "n", 123456789012L);
         assertEquals(123456789012L, SimpleProperties.loadLong(store, "n"));
     }
 
     @Test
     void saveLong_unless_skipsWhenMatches() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveLong(store, "n", 7L, 7L);
         assertNull(store.getProperty("n"));
     }
@@ -483,28 +485,28 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveShort_storesValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveShort(store, "n", (short) 5);
         assertEquals((short) 5, SimpleProperties.loadShort(store, "n"));
     }
 
     @Test
     void saveDouble_storesValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveDouble(store, "d", 2.5);
         assertEquals(2.5, SimpleProperties.loadDouble(store, "d", 0.0), 0.0001);
     }
 
     @Test
     void saveBoolean_unless_skipsWhenMatches() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveBoolean(store, "flag", true, true);
         assertNull(store.getProperty("flag"));
     }
 
     @Test
     void saveBoolean_unless_storesWhenDifferent() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveBoolean(store, "flag", true, false);
         assertTrue(SimpleProperties.loadBoolean(store, "flag"));
     }
@@ -515,7 +517,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveDate_thenLoadDate_roundTrips() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         Date date = new Date(1_700_000_000_000L);
         SimpleProperties.saveDate(store, "d", date);
         assertEquals(date, SimpleProperties.loadDate(store, "d", null));
@@ -523,7 +525,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveDate_null_storesNothing() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveDate(store, "d", null);
         assertNull(store.getProperty("d"));
     }
@@ -535,60 +537,64 @@ public final class SimplePropertiesTest {
     }
 
     // =====================================================================
-    // saveUrlDate / loadUrlDate
+    // safeFormattedDate / loadFormattedDate
     // =====================================================================
 
     @Test
-    void saveUrlDate_formatsAsYyyyMMdd() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
-        TimeZone utc = TimeZone.getTimeZone("UTC");
+    void safeFormattedDate_formatsAsYyyyMMdd() {
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         Date date = new Date(1_710_460_800_000L); // 2024-03-15T00:00:00Z
-        SimpleProperties.saveUrlDate(store, "d", date, utc);
+        SimpleProperties.saveFormattedDate(store, "d", date, SimplePropertiesTest::yyyyMMddUTC);
         assertEquals("20240315", store.getProperty("d"));
     }
 
     @Test
-    void saveUrlDate_null_storesNull() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+    void safeFormattedDate_null_storesNull() {
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("d", "placeholder");
-        SimpleProperties.saveUrlDate(store, "d", null, TimeZone.getTimeZone("UTC"));
+        SimpleProperties.saveFormattedDate(store, "d", null, SimplePropertiesTest::yyyyMMddUTC);
         assertNull(store.getProperty("d"));
     }
 
     @Test
-    void loadUrlDate_roundTrips() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+    void loadFormattedDate_roundTrips() {
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("d", "20240315");
-        Date loaded = SimpleProperties.loadUrlDate(store, "d", TimeZone.getTimeZone("UTC"));
+        Date loaded = SimpleProperties.loadFormattedDate(store, "d", SimplePropertiesTest::yyyyMMddUTC);
         assertNotNull(loaded);
         assertEquals(1_710_460_800_000L, loaded.getTime());
     }
 
     @Test
-    void loadUrlDate_absent_returnsDefault() {
+    void loadFormattedDate_absent_returnsDefault() {
         Date defaultValue = new Date(0);
         assertEquals(
             defaultValue,
-            SimpleProperties.loadUrlDate(
-                SimpleProperties.emptyGetProperty(), "d", TimeZone.getTimeZone("UTC"), defaultValue
+            SimpleProperties.loadFormattedDate(
+                SimpleProperties.emptyGetProperty(), "d", SimplePropertiesTest::yyyyMMddUTC, defaultValue
             )
         );
     }
 
     @Test
-    void loadUrlDate_blank_returnsDefault() {
+    void loadFormattedDate_blank_returnsDefault() {
         Date defaultValue = new Date(123);
         assertEquals(
             defaultValue,
-            SimpleProperties.loadUrlDate(props("d", "   "), "d", TimeZone.getTimeZone("UTC"), defaultValue)
+            SimpleProperties.loadFormattedDate(props("d", "   "), "d", SimplePropertiesTest::yyyyMMddUTC, defaultValue)
         );
     }
 
     @Test
-    void loadUrlDate_unparseable_returnsDefault() {
+    void loadFormattedDate_unparseable_returnsDefault() {
         Date defaultValue = new Date(123);
         Date result =
-            SimpleProperties.loadUrlDate(props("d", "not-a-date"), "d", TimeZone.getTimeZone("UTC"), defaultValue);
+            SimpleProperties.loadFormattedDate(
+                props("d", "not-a-date"),
+                "d",
+                SimplePropertiesTest::yyyyMMddUTC,
+                defaultValue
+            );
         assertEquals(defaultValue, result);
     }
 
@@ -603,7 +609,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadSplitString_separatePropertiesPresent_joinsWithGivenSeparator() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items0", "a");
         store.putProperty("items1", "b");
         assertEquals("a+b", SimpleProperties.loadSplitString(store, "items", "+", "nf"));
@@ -621,7 +627,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadCollectionSeparateProperties_boundedCount_skipsGapsWithoutStopping() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items_count", "3");
         store.putProperty("items0", "a");
         store.putProperty("items2", "c"); // items1 intentionally absent
@@ -633,7 +639,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadCollectionSeparateProperties_unbounded_stopsAtFirstGap() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items0", "x");
         store.putProperty("items1", "y");
         store.putProperty("items3", "z"); // unreachable: iteration stops at items2 (absent)
@@ -666,14 +672,14 @@ public final class SimplePropertiesTest {
 
     @Test
     void hasCollectionSeparateProperties_countZero_returnsFalse() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items_count", "0");
         assertFalse(SimpleProperties.hasCollectionSeparateProperties(store, "items"));
     }
 
     @Test
     void hasCollectionSeparateProperties_countPositive_checksForAnyDefinedIndex() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items_count", "2");
         store.putProperty("items1", "b"); // items0 absent, items1 present
         assertTrue(SimpleProperties.hasCollectionSeparateProperties(store, "items"));
@@ -681,7 +687,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void hasCollectionSeparateProperties_noCount_checksFirstElement() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items0", "a");
         assertTrue(SimpleProperties.hasCollectionSeparateProperties(store, "items"));
     }
@@ -698,7 +704,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadListSeparateProperties_buildsList() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items0", "a");
         store.putProperty("items1", "b");
         assertEquals(List.of("a", "b"), SimpleProperties.loadListSeparateProperties(store, "items"));
@@ -706,7 +712,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadSetSeparateProperties_deduplicates() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("items0", "a");
         store.putProperty("items1", "a");
         store.putProperty("items2", "b");
@@ -779,7 +785,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadMap_separateProperties_collectsPrefixedKeys() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("cfg_a", "1");
         store.putProperty("cfg_b", "2");
         store.putProperty("other", "x");
@@ -806,7 +812,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveMap_sortsAndJoinsEntries() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         Map<String,Integer> map = new LinkedHashMap<>();
         map.put("b", 2);
         map.put("a", 1);
@@ -820,14 +826,14 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveListSingleProperty_joinsWithCommas() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveListSingleProperty(store, "items", List.of("a", "b", "c"));
         assertEquals("a,b,c", store.getProperty("items"));
     }
 
     @Test
     void saveListSeparateProperties_collection_storesCountAndIndexedValues() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveListSeparateProperties(
             store, "items", List.of("a", "b"), NativeTypeConversion.DEFAULT_COLLECTION_TO_STRING_OPTIONS
         );
@@ -838,7 +844,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveListSeparateProperties_nonCollectionIterable_countsWhileIterating() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         Iterable<String> notACollection = () -> List.of("x", "y", "z").iterator();
         SimpleProperties.saveListSeparateProperties(
             store, "items", notACollection, NativeTypeConversion.DEFAULT_COLLECTION_TO_STRING_OPTIONS
@@ -849,7 +855,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveListSeparateProperties_nullList_doesNothing() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveListSeparateProperties(
             store,
             "items",
@@ -861,11 +867,11 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveList_singlePropertyFlag_dispatchesCorrectly() {
-        MapPropertyStore<Void> single = new MapPropertyStore<>();
+        MapPropertyStore<Void> single = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveList(single, "items", List.of("a", "b"), true);
         assertEquals("a,b", single.getProperty("items"));
 
-        MapPropertyStore<Void> separate = new MapPropertyStore<>();
+        MapPropertyStore<Void> separate = MapPropertyStore.createDefaultInstance();
         SimpleProperties.saveList(separate, "items", List.of("a", "b"), false);
         assertEquals("a", separate.getProperty("items0"));
         assertEquals("2", separate.getProperty("items_count"));
@@ -1116,7 +1122,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveUuid_storesStringForm() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         UUID id = UUID.randomUUID();
         SimpleProperties.saveUuid(store, "id", id);
         assertEquals(id.toString(), store.getProperty("id"));
@@ -1124,7 +1130,7 @@ public final class SimplePropertiesTest {
 
     @Test
     void saveUuid_null_storesNull() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("id", "placeholder");
         SimpleProperties.saveUuid(store, "id", null);
         assertNull(store.getProperty("id"));
@@ -1183,34 +1189,34 @@ public final class SimplePropertiesTest {
 
     @Test
     void loadDurationMillis_millisStoredDirectly_returnsValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("timeout", "5000");
         assertEquals(5000L, SimpleProperties.loadDurationMillis(store, "timeout", -1L));
     }
 
     @Test
     void loadDurationMillis_unitSuffixedProperty_returnsConvertedValue() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("timeout_s", "3"); // "s" suffix => SECONDS
         assertEquals(3000L, SimpleProperties.loadDurationMillis(store, "timeout", -1L));
     }
 
     @Test
     void loadDurationMillis_absent_returnsDefault() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         assertEquals(-1L, SimpleProperties.loadDurationMillis(store, "timeout", -1L));
     }
 
     @Test
     void loadDuration_millisStoredDirectly_returnsDuration() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         store.putProperty("timeout", "1500");
         assertEquals(Duration.ofMillis(1500), SimpleProperties.loadDuration(store, "timeout", null));
     }
 
     @Test
     void loadDuration_absent_returnsDefault() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         Duration defaultValue = Duration.ofSeconds(30);
         assertEquals(defaultValue, SimpleProperties.loadDuration(store, "timeout", defaultValue));
     }

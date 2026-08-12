@@ -1450,4 +1450,198 @@ public final class CollectionUtilTest {
             () -> CollectionUtil.sortIfList(list, null));
     }
 
+    // -------------------------------------------------------------------------
+    // IntegerRangeIterator (via intRangeIterator)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void intRangeIterator_toString_containsRange() {
+        Iterator<Integer> iter = CollectionUtil.intRangeIterator(3, 7);
+        String s = iter.toString();
+        assertTrue(s.contains("3"), "toString should contain first: " + s);
+        assertTrue(s.contains("7"), "toString should contain last: " + s);
+    }
+
+    @Test
+    public void intRangeIterator_equals_sameRange_returnsTrue() {
+        Iterator<Integer> a = CollectionUtil.intRangeIterator(1, 5);
+        Iterator<Integer> b = CollectionUtil.intRangeIterator(1, 5);
+        assertEquals(a, b);
+    }
+
+    @Test
+    public void intRangeIterator_equals_differentRange_returnsFalse() {
+        Iterator<Integer> a = CollectionUtil.intRangeIterator(1, 5);
+        Iterator<Integer> b = CollectionUtil.intRangeIterator(1, 6);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    public void intRangeIterator_equals_nonIterator_returnsFalse() {
+        Iterator<Integer> a = CollectionUtil.intRangeIterator(1, 5);
+        assertNotEquals(a, "not an iterator");
+    }
+
+    @Test
+    public void intRangeIterator_hashCode_sameRangeEquals() {
+        Iterator<Integer> a = CollectionUtil.intRangeIterator(2, 8);
+        Iterator<Integer> b = CollectionUtil.intRangeIterator(2, 8);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    public void intRangeIterator_remove_throwsUnsupportedOperationException() {
+        Iterator<Integer> iter = CollectionUtil.intRangeIterator(0, 2);
+        assertThrows(UnsupportedOperationException.class, iter::remove);
+    }
+
+    @Test
+    public void intRangeIterator_next_whenExhausted_throwsNoSuchElementException() {
+        Iterator<Integer> iter = CollectionUtil.intRangeIterator(0, 0);
+        iter.next(); // consume the one element
+        assertThrows(NoSuchElementException.class, iter::next);
+    }
+
+    // -------------------------------------------------------------------------
+    // SafeIndex2ListValue (via getListIndex2ListValueFunction)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getListIndex2ListValueFunction_toString_containsListType() {
+        List<String> list = List.of("a", "b");
+        var fn = CollectionUtil.getListIndex2ListValueFunction(list);
+        String s = fn.toString();
+        assertNotNull(s);
+        assertTrue(s.contains("SafeIndex2ListValue") || s.contains("List") || s.length() > 0);
+    }
+
+    @Test
+    public void getListIndex2ListValueFunction_equals_sameLists_returnsTrue() {
+        List<String> list = List.of("a", "b");
+        var fnA = CollectionUtil.getListIndex2ListValueFunction(list);
+        var fnB = CollectionUtil.getListIndex2ListValueFunction(list);
+        assertEquals(fnA, fnB);
+    }
+
+    @Test
+    public void getListIndex2ListValueFunction_equals_differentLists_returnsFalse() {
+        var fnA = CollectionUtil.getListIndex2ListValueFunction(List.of("a"));
+        var fnB = CollectionUtil.getListIndex2ListValueFunction(List.of("b"));
+        assertNotEquals(fnA, fnB);
+    }
+
+    @Test
+    public void getListIndex2ListValueFunction_equals_nonFunction_returnsFalse() {
+        var fn = CollectionUtil.getListIndex2ListValueFunction(List.of("a"));
+        assertNotEquals(fn, "not a function");
+    }
+
+    @Test
+    public void getListIndex2ListValueFunction_hashCode_sameLists_equal() {
+        List<String> list = List.of("x", "y");
+        var fnA = CollectionUtil.getListIndex2ListValueFunction(list);
+        var fnB = CollectionUtil.getListIndex2ListValueFunction(list);
+        assertEquals(fnA.hashCode(), fnB.hashCode());
+    }
+
+    // -------------------------------------------------------------------------
+    // SafeMapKey2Value (via getMapKey2ValueFunction)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void getMapKey2ValueFunction_toString_containsMapType() {
+        Map<String, String> map = Map.of("k", "v");
+        Function<String, String> fn = CollectionUtil.getMapKey2ValueFunction(map);
+        String s = fn.toString();
+        assertNotNull(s);
+        assertTrue(s.length() > 0);
+    }
+
+    @Test
+    public void getMapKey2ValueFunction_equals_sameMaps_returnsTrue() {
+        Map<String, String> map = Map.of("k", "v");
+        Function<String, String> fnA = CollectionUtil.getMapKey2ValueFunction(map);
+        Function<String, String> fnB = CollectionUtil.getMapKey2ValueFunction(map);
+        assertEquals(fnA, fnB);
+    }
+
+    @Test
+    public void getMapKey2ValueFunction_equals_differentMaps_returnsFalse() {
+        Function<String, String> fnA = CollectionUtil.getMapKey2ValueFunction(Map.of("k", "v"));
+        Function<String, String> fnB = CollectionUtil.getMapKey2ValueFunction(Map.of("j", "w"));
+        assertNotEquals(fnA, fnB);
+    }
+
+    @Test
+    public void getMapKey2ValueFunction_equals_nonFunction_returnsFalse() {
+        Function<String, String> fn = CollectionUtil.getMapKey2ValueFunction(Map.of("k", "v"));
+        assertNotEquals(fn, "not a function");
+    }
+
+    @Test
+    public void getMapKey2ValueFunction_hashCode_sameMaps_equal() {
+        Map<String, String> map = Map.of("k", "v");
+        Function<String, String> fnA = CollectionUtil.getMapKey2ValueFunction(map);
+        Function<String, String> fnB = CollectionUtil.getMapKey2ValueFunction(map);
+        assertEquals(fnA.hashCode(), fnB.hashCode());
+    }
+
+    @Test
+    public void getMapKey2ValueFunction_apply_nullKeyOnNullRejectingMap_returnsNull() {
+        // TreeMap throws NullPointerException for null keys; SafeMapKey2Value catches it and returns null.
+        Map<String, String> treeMap = new TreeMap<>();
+        treeMap.put("a", "1");
+        Function<String, String> fn = CollectionUtil.getMapKey2ValueFunction(treeMap);
+        assertNull(fn.apply(null));
+    }
+
+    // -------------------------------------------------------------------------
+    // MapValueIterator (via mapValueIterator)
+    // -------------------------------------------------------------------------
+
+    @Test
+    public void mapValueIterator_remove_delegatesToAdapter() {
+        // Use a HashMap-backed MapIteratorAdapter; verify remove removes the entry.
+        Map<Integer, String> map = new HashMap<>();
+        map.put(0, "zero");
+        map.put(1, "one");
+
+        CollectionUtil.MapIteratorAdapter<Integer, String> adapter = new CollectionUtil.MapIteratorAdapter<>() {
+            @Override
+            public String get(Integer key) {
+                return map.get(key);
+            }
+
+            @Override
+            public void remove(Integer key) {
+                map.remove(key);
+            }
+        };
+
+        Iterator<String> iter = CollectionUtil.mapValueIterator(adapter, List.of(0, 1));
+        iter.next(); // advances; lastIdx = 0
+        iter.remove(); // should remove key 0
+        assertFalse(map.containsKey(0));
+        assertTrue(map.containsKey(1));
+    }
+
+    @Test
+    public void mapValueIterator_next_adapterThrowsIAE_throwsNoSuchElement() {
+        // When the adapter's get() throws IllegalArgumentException, next() should wrap it
+        // in a NoSuchElementException.
+        CollectionUtil.MapIteratorAdapter<Integer, String> adapter = new CollectionUtil.MapIteratorAdapter<>() {
+            @Override
+            public String get(Integer key) {
+                throw new IllegalArgumentException("bad key: " + key);
+            }
+
+            @Override
+            public void remove(Integer key) {
+            }
+        };
+
+        Iterator<String> iter = CollectionUtil.mapValueIterator(adapter, List.of(42));
+        assertThrows(NoSuchElementException.class, iter::next);
+    }
+
 }

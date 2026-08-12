@@ -48,7 +48,7 @@ public final class PropertyNameMappingGetPropertyTest {
 
     @BeforeEach
     void setUp() {
-        store = new MapPropertyStore<>();
+        store = MapPropertyStore.createDefaultInstance();
     }
 
     // =====================================================================

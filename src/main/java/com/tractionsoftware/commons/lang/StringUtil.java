@@ -47,6 +47,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.function.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -845,8 +846,8 @@ public final class StringUtil {
 
         while (points.hasNext()) {
 
-            char[] oneCharacter = Character.toChars(points.nextInt());
-            int characterByteLen = String.valueOf(oneCharacter).getBytes(charset).length;
+            char[] oneCodePoint = Character.toChars(points.nextInt());
+            int characterByteLen = String.valueOf(oneCodePoint).getBytes(charset).length;
             if (byteLen + characterByteLen > totalMax) {
                 result.append(ellipses);
                 // Un-comment this to do something with the total length outside of this loop.
@@ -855,7 +856,7 @@ public final class StringUtil {
             }
 
             byteLen += characterByteLen;
-            result.append(oneCharacter);
+            result.append(oneCodePoint);
 
         }
 
@@ -875,14 +876,28 @@ public final class StringUtil {
         return new TruncatedToString(object, maxLength, ellipses);
     }
 
-    public static final String findReplace(String str, String find, String replace) {
+    /**
+     * Replaces all occurrences of a String within another String. This is identical to
+     * {@code Strings.CS#replace(str, find, replace)} except that it does nothing if the find and replace strings are
+     * already identical, which makes it slightly preferable to use in cases in which that can happen often enough and
+     * with large enough text runs to make it worthwhile.
+     *
+     * @param str
+     *     the text to which the replacement operation should be applied.
+     * @param find
+     *     the string to replace.
+     * @param replace
+     *     the string to substitute.
+     * @return the
+     */
+    public static final String replace(String str, String find, String replace) {
         if (Objects.equals(find, replace)) {
             return str;
         }
         return Strings.CS.replace(str, find, replace);
     }
 
-    public static final boolean isNonNegativeNumber(String str) {
+    public static final boolean isNonNegativeNumber(@Nullable String str) {
         if (StringUtils.isBlank(str)) {
             return false;
         }
@@ -895,91 +910,121 @@ public final class StringUtil {
         return true;
     }
 
-    public static final boolean containsIgnoreCase(Collection<String> coll, String searchVal) {
-        if (CollectionUtil.isEmpty(coll)) {
+    public static final boolean containsIgnoreCase(@Nullable Collection<String> coll, @Nullable String searchVal) {
+        if (CollectionUtil.isEmpty(coll) || StringUtils.isEmpty(searchVal)) {
             return false;
         }
         return coll.stream().anyMatch(str -> Strings.CI.equals(searchVal, str));
     }
 
     /**
-     * Checks whether the given sequence contains any of the given search characters, starting at the given index. This
-     * method is identical to {@link StringUtils#containsAny(CharSequence, CharSequence)}, but with the option of
-     * specifying the starting index for the search.
+     * Checks whether the given sequence contains any of the given search code points, starting at the given index. This
+     * method is similar to {@link StringUtils#containsAny(CharSequence, CharSequence)}, but handling non-BMP code
+     * points, and with the option of specifying the starting index for the search.
      *
      * @param str
      *     the sequence in which to search.
-     * @param searchChars
-     *     the characters to search for.
+     * @param searchCodePoints
+     *     the code points to search for.
      * @param fromIndex
      *     the starting index for the search, inclusive.
      * @return true if the given sequence contains any of the given search characters, starting at the given index;
      *     false otherwise.
      */
-    public static final boolean containsAny(CharSequence str, CharSequence searchChars, int fromIndex) {
-        if (indexOfAny(str, searchChars, fromIndex) == StringUtils.INDEX_NOT_FOUND) {
+    public static final boolean containsAnyCodePoint(@Nullable CharSequence str, @Nullable CharSequence searchCodePoints, int fromIndex) {
+        if (indexOfAnyCodePoint(str, searchCodePoints, fromIndex) == StringUtils.INDEX_NOT_FOUND) {
             return false;
         }
         return true;
     }
 
     /**
-     * Returns the first index of any of the specified characters. This method is similar to
-     * {@link StringUtils#indexOfAny(CharSequence, int, char...)}, but handles the arguments a little differently. This
-     * method does handle non-BMP code points.
+     * Search a CharSequence to find the first index of any character in the given set of characters, from the given
+     * starting index. This method is similar to {@link StringUtils#indexOfAny(CharSequence, int, char...)}, but
+     * handling non-BMP code points.
      *
      * @param str
      *     the sequence in which to search.
-     * @param searchChars
-     *     the characters to search for.
+     * @param searchCodePoints
+     *     the code points to search for.
      * @param fromIndex
      *     the starting index for the search, inclusive.
      * @return the first index of any of the specified characters, starting at the given index, if any of them are
      *     present; -1 otherwise.
      */
-    public static final int indexOfAny(CharSequence str, CharSequence searchChars, int fromIndex) {
-        if (StringUtils.isEmpty(searchChars)) {
+    public static final int indexOfAnyCodePoint(@Nullable CharSequence str, @Nullable CharSequence searchCodePoints, int fromIndex) {
+        if (StringUtils.isEmpty(str) || StringUtils.isEmpty(searchCodePoints)) {
             return StringUtils.INDEX_NOT_FOUND;
         }
-        int len = str.length();
-        if (fromIndex >= len) {
+        int strLen = str.length();
+        if (fromIndex >= strLen) {
             return StringUtils.INDEX_NOT_FOUND;
         }
         if (fromIndex < 0) {
             fromIndex = 0;
         }
-        return StringUtils.indexOfAny(str, fromIndex, searchChars.toString().toCharArray());
+        if (searchCodePoints.codePoints().allMatch(Character::isBmpCodePoint)) {
+            return StringUtils.indexOfAny(str, fromIndex, searchCodePoints.toString().toCharArray());
+        }
+        Set<Integer> searchCodePointsSet = searchCodePoints.codePoints()
+            .boxed()
+            .collect(Collectors.toUnmodifiableSet());
+        PrimitiveIterator.OfInt strCodePoints = str.subSequence(fromIndex, strLen).codePoints().iterator();
+        int index = fromIndex;
+        while (strCodePoints.hasNext()) {
+            int strCodePoint = strCodePoints.nextInt();
+            if (searchCodePointsSet.contains(strCodePoint)) {
+                return index;
+            }
+            if (Character.isBmpCodePoint(strCodePoint)) {
+                index ++;
+            }
+            else {
+                index += 2;
+            }
+        }
+        return StringUtils.INDEX_NOT_FOUND;
     }
 
     /**
-     * This isn't particularly efficient, but for our current usage, it's fine.
-     *
-     * <p>
      * Similar to {@link StringUtils#indexOfAny(CharSequence, CharSequence...)}, but with an offset index indicating
      * where to start the search in the subject String.
      *
-     * @author [ajm 16.Jun.2010]
+     * @param str
+     *     the text to search in.
+     * @param searchStrings
+     *     the sequences (strings) to search for.
+     * @param fromIndex
+     *     the starting point for the search.
+     * @return the minimum index of any of the given search strings starting at the given index in the given string.
      */
-    public static final int indexOfAny(String str, String[] find, int fromIndex) {
+    public static final int indexOfAnyString(@Nullable CharSequence str, @Nullable Collection<? extends CharSequence> searchStrings, int fromIndex) {
+
+        if (StringUtils.isEmpty(str) || CollectionUtil.isEmpty(searchStrings)) {
+            return StringUtils.INDEX_NOT_FOUND;
+        }
 
         if (fromIndex < 0) {
             fromIndex = 0;
         }
 
-        int min = Integer.MAX_VALUE;
+        int minIndexOf = Integer.MAX_VALUE;
 
-        for (String f : find) {
-            int index = str.indexOf(f, fromIndex);
-            if (0 <= index && index < min) {
-                min = index;
+        for (CharSequence searchString : searchStrings) {
+            if (searchString == null) {
+                continue;
+            }
+            int index = Strings.CS.indexOf(str, searchString, fromIndex);
+            if (0 <= index && index < minIndexOf) {
+                minIndexOf = index;
             }
         }
 
-        if (min > str.length()) {
-            min = -1;
+        if (minIndexOf == Integer.MAX_VALUE) {
+            return StringUtils.INDEX_NOT_FOUND;
         }
+        return minIndexOf;
 
-        return min;
     }
 
     /**
@@ -1899,6 +1944,10 @@ public final class StringUtil {
 
     public static final boolean isBasicLatin(char c) {
         return (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.BASIC_LATIN);
+    }
+
+    public static final boolean isBasicLatin(int cp) {
+        return (Character.UnicodeBlock.of(cp) == Character.UnicodeBlock.BASIC_LATIN);
     }
 
     /**

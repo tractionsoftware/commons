@@ -72,9 +72,8 @@ public final class JaxpUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JaxpUtil.class);
 
-    private static final Supplier<? extends Customizations> customizations = JavaUtil.lazyServiceLoader(
-        Customizations.class, (Customizations) null, LOGGER
-    );
+    private static final Supplier<? extends Customizations> customizations =
+        JavaUtil.lazyServiceLoader(Customizations.class, (Customizations) null, LOGGER);
 
     /**
      * An ErrorListener that throws RuntimeExceptions wrapping the original {@link TransformerException}s.
@@ -321,8 +320,7 @@ public final class JaxpUtil {
      *     there may be some SAX-implementation reasons for it. This Exception may be removed from this method's
      *     signature at some point in the future.
      */
-    public static final XMLReader getXMLReader()
-        throws ParserConfigurationException, SAXException {
+    public static final XMLReader getXMLReader() throws ParserConfigurationException, SAXException {
         SAXParserFactory spf = SAXParserFactory.newInstance();
         spf.setFeature("http://xml.org/sax/features/namespaces", true);
         spf.setFeature("http://apache.org/xml/features/xinclude", true);
@@ -614,8 +612,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final Transformer getTransformer()
-        throws TransformerConfigurationException {
+    public static final Transformer getTransformer() throws TransformerConfigurationException {
         return getTransformer((ErrorListener) null);
     }
 
@@ -629,8 +626,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final Transformer getTransformer(ErrorListener listener)
-        throws TransformerConfigurationException {
+    public static final Transformer getTransformer(ErrorListener listener) throws TransformerConfigurationException {
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         if (transformer == null) {
             throw new RuntimeException("Transformer could not be created.");
@@ -865,8 +861,7 @@ public final class JaxpUtil {
      * @throws TransformerConfigurationException
      *     if there is a serious configuration error related to the Transformer.
      */
-    public static final Templates getTemplates(Document xslDoc)
-        throws TransformerConfigurationException {
+    public static final Templates getTemplates(Document xslDoc) throws TransformerConfigurationException {
         return TransformerFactory.newInstance().newTemplates(new DOMSource(xslDoc));
     }
 
@@ -924,7 +919,7 @@ public final class JaxpUtil {
     }
 
     public static final GetPutProperty getAttributesAsGetPutProperty(Element elem) {
-        return new MapPropertyStore<>(elem.getNodeName(), getAttributesAsMap(elem)).toReadWrite();
+        return MapPropertyStore.createNamedInstance(elem.getNodeName(), getAttributesAsMap(elem)).toReadWrite();
     }
 
     public static final Map<String,String> getAttributesAsMap(Element elem) {

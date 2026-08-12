@@ -29,15 +29,41 @@ public final class PropertyNameMappingGetProperty extends AbstractPropertyNameMa
     }
 
     public static final GetProperty wrapInNamespace(GetProperty props, String space, char separator) {
-        return applyPropertyNameMapper(props, SimplePropertyNameMapper.getNamespaceInstanceWithSeparator(space, separator));
+        return applyPropertyNameMapper(
+            props,
+            SimplePropertyNameMapper.getNamespaceInstanceWithSeparator(space, separator)
+        );
     }
 
+    /**
+     * Returns a {@link GetProperty} -- which should generally be of the same type as the receiving Object --
+     * representing a prefix applied to names of the underlying properties, using the default separator character ('_').
+     * This provides access to all the properties in this store as though their names had the given prefix and default
+     * separator character prepended.
+     *
+     * <p>
+     * Take the of this GetProperty's "bar" property. For the prefix "foo" and the separator character "_', the returned
+     * prefixed GetProperty would then have that same property now called "foo_bar".
+     *
+     * <p>
+     * One special case is that in the resulting GetProperty, the name null or the empty String can be used to refer to
+     * the property in the original store with the name exactly matching the requested prefix.
+     *
+     * @param props
+     *     the {@link GetProperty} to wrap.
+     * @param prefix
+     *     the requested prefix.
+     * @return a {@link GetProperty} representing a prefix applied to names of the underlying properties, using the
+     *     default separator character ('_').
+     */
     public static final GetProperty wrapInPrefix(GetProperty props, String prefix) {
         return applyPropertyNameMapper(props, SimplePropertyNameMapper.getPrefixInstanceWithDefaultSeparator(prefix));
     }
 
     public static final GetProperty wrapInPrefix(GetProperty props, String prefix, char separator) {
-        return applyPropertyNameMapper(props, SimplePropertyNameMapper.getPrefixInstanceWithSeparator(prefix, separator));
+        return applyPropertyNameMapper(
+            props, SimplePropertyNameMapper.getPrefixInstanceWithSeparator(prefix, separator)
+        );
     }
 
     public static final GetProperty applyPropertyNameMapper(GetProperty props, PropertyNameMapper nameMapper) {
@@ -48,7 +74,10 @@ public final class PropertyNameMappingGetProperty extends AbstractPropertyNameMa
             if (nameMappedProps.nameMapper.isInverseOf(nameMapper)) {
                 return nameMappedProps.props;
             }
-            return new PropertyNameMappingGetProperty(nameMappedProps.props, nameMappedProps.nameMapper.compose(nameMapper));
+            return new PropertyNameMappingGetProperty(
+                nameMappedProps.props,
+                                                      nameMappedProps.nameMapper.compose(nameMapper)
+            );
         }
         return new PropertyNameMappingGetProperty(props, nameMapper);
     }

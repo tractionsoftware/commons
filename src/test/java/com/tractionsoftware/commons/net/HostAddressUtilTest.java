@@ -99,6 +99,23 @@ class HostAddressUtilTest {
     }
 
     @Test
+    void inetAddressWrapper_anyLocal_isLocal() throws UnknownHostException {
+        // isLocal() is isLoopbackAddress() || isAnyLocalAddress() || isSiteLocalAddress();
+        // 0.0.0.0 exercises the isAnyLocalAddress() ("wildcard") disjunct.
+        InetAddress anyLocal = InetAddress.getByName("0.0.0.0");
+        var wrapper = new HostAddressUtil.InetAddressWrapper(anyLocal);
+        assertTrue(wrapper.isLocal());
+    }
+
+    @Test
+    void inetAddressWrapper_linkLocal_isPrivate() throws UnknownHostException {
+        InetAddress linkLocal = InetAddress.getByName("169.254.1.1");
+        var wrapper = new HostAddressUtil.InetAddressWrapper(linkLocal);
+        assertTrue(wrapper.isPrivate());
+        assertFalse(wrapper.isLocal());
+    }
+
+    @Test
     void inetAddressWrapper_multicast_isMulticast() throws UnknownHostException {
         InetAddress multicast = InetAddress.getByName("224.0.0.1");
         var wrapper = new HostAddressUtil.InetAddressWrapper(multicast);
@@ -173,6 +190,132 @@ class HostAddressUtilTest {
     }
 
     // ---------------------------------------------------------------------------
+    // InetAddressWrapper.checkAllowedX
+    //
+    // checkAllowedX's branch structure is NOT a mirror image of checkAllowedQ's:
+    //
+    //   - checkAllowedQ checks isMulticast() first, unconditionally, before the mode switch -- so multicast
+    //     addresses are always denied by the same check regardless of mode.
+    //   - checkAllowedX checks isMulticast() LAST, after the mode switch -- so for EXTERNAL/INTERNAL modes, a
+    //     multicast address can trip the mode-specific throw before the multicast check is reached. The two
+    //     methods agree on allow/deny outcomes in every case, but checkAllowedX's exception message doesn't
+    //     always say "multicast" even when the address is multicast (see the INTERNAL+multicast case).
+    // ---------------------------------------------------------------------------
+
+    @Test
+    void checkAllowedX_none_throwsIPAddressNotAllowedException() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("8.8.8.8"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(NONE)
+        );
+        assertEquals("All IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_none_multicastAddress_stillThrowsBeforeReachingMulticastCheck() throws UnknownHostException {
+        // NONE throws unconditionally at the top of the switch, so the multicast check at the bottom of the method
+        // is unreachable for NONE -- the outcome (deny) matches checkAllowedQ(NONE), but for a different reason.
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("224.0.0.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(NONE)
+        );
+        assertEquals("All IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_external_loopback_throwsLocalPrivateMessage() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("127.0.0.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(EXTERNAL)
+        );
+        assertEquals("Local/private IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_external_linkLocal_throwsLocalPrivateMessage() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("169.254.1.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(EXTERNAL)
+        );
+        assertEquals("Local/private IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_external_public_doesNotThrow() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("8.8.8.8"));
+        assertDoesNotThrow(() -> wrapper.checkAllowedX(EXTERNAL));
+    }
+
+    @Test
+    void checkAllowedX_external_multicast_throwsMulticastMessage() throws UnknownHostException {
+        // 224.0.0.1 is neither local nor private, so the EXTERNAL branch doesn't throw on its own condition; this
+        // falls through to the trailing isMulticast() check, which throws with the "Multicast" message.
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("224.0.0.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(EXTERNAL)
+        );
+        assertEquals("Multicast IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_internal_loopback_doesNotThrow() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("127.0.0.1"));
+        assertDoesNotThrow(() -> wrapper.checkAllowedX(INTERNAL));
+    }
+
+    @Test
+    void checkAllowedX_internal_linkLocal_doesNotThrow() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("169.254.1.1"));
+        assertDoesNotThrow(() -> wrapper.checkAllowedX(INTERNAL));
+    }
+
+    @Test
+    void checkAllowedX_internal_public_throwsExternalMessage() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("8.8.8.8"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(INTERNAL)
+        );
+        assertEquals("External IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_internal_multicast_throwsExternalMessage_notMulticastMessage() throws UnknownHostException {
+        // 224.0.0.1 is not local/private, so for INTERNAL mode "!isLocal() && !isPrivate()" is true and the method
+        // throws with the "External" message immediately -- it never reaches the trailing isMulticast() check. The
+        // address IS multicast, but the exception message says "External", not "Multicast". The deny outcome
+        // matches checkAllowedQ(INTERNAL) on this address, but the message is arguably misleading; flagging rather
+        // than fixing.
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("224.0.0.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(INTERNAL)
+        );
+        assertEquals("External IP address hosts disallowed.", ex.getMessage());
+    }
+
+    @Test
+    void checkAllowedX_any_public_doesNotThrow() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("8.8.8.8"));
+        assertDoesNotThrow(() -> wrapper.checkAllowedX(ANY));
+    }
+
+    @Test
+    void checkAllowedX_any_loopback_doesNotThrow() throws UnknownHostException {
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("127.0.0.1"));
+        assertDoesNotThrow(() -> wrapper.checkAllowedX(ANY));
+    }
+
+    @Test
+    void checkAllowedX_any_multicast_throwsMulticastMessage() throws UnknownHostException {
+        // ANY never throws inside the switch (it just breaks), so this is the one mode where the trailing
+        // isMulticast() check is reliably what fires, and the message is the expected "Multicast" one.
+        var wrapper = new HostAddressUtil.InetAddressWrapper(InetAddress.getByName("224.0.0.1"));
+        IPAddressNotAllowedException ex = assertThrows(
+            IPAddressNotAllowedException.class, () -> wrapper.checkAllowedX(ANY)
+        );
+        assertEquals("Multicast IP address hosts disallowed.", ex.getMessage());
+    }
+
+    // ---------------------------------------------------------------------------
     // IPAddressOutgoingRequestFilterMode.get
     // ---------------------------------------------------------------------------
 
@@ -193,6 +336,14 @@ class HostAddressUtilTest {
         assertEquals(NONE, HostAddressUtil.IPAddressOutgoingRequestFilterMode.get("no", ANY));
         assertEquals(NONE, HostAddressUtil.IPAddressOutgoingRequestFilterMode.get("0", ANY));
         assertEquals(INTERNAL, HostAddressUtil.IPAddressOutgoingRequestFilterMode.get("local", NONE));
+    }
+
+    @Test
+    void filterMode_get_singleCharTrueFalseAliases() {
+        // A string-switch with multiple labels per case has a distinct comparison per label;
+        // "t" and "f" are single-character aliases that are distinct branches from "true" and "false".
+        assertEquals(ANY, HostAddressUtil.IPAddressOutgoingRequestFilterMode.get("t", NONE));
+        assertEquals(NONE, HostAddressUtil.IPAddressOutgoingRequestFilterMode.get("f", ANY));
     }
 
     @Test

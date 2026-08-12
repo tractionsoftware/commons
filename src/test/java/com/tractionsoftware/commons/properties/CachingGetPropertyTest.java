@@ -156,7 +156,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         GetProperty store = rawStore.withCache(PropertyCache.createInstance());
 
@@ -174,7 +174,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         GetProperty store = rawStore.withCache();
 
@@ -190,7 +190,7 @@ public class CachingGetPropertyTest {
     public void testSameAfterChangeAndRevertWithOnReadValidation() {
 
         Map<String,String> map = new HashMap<>();
-        GetProperty store = new MapPropertyStore<>("test", map).withCache();
+        GetProperty store = MapPropertyStore.createNamedInstance("test", map).withCache();
 
         map.put("test", "123");
         TestLoaderObject result1 = store.getProperty("test", TestLoaderObject.LOADER, true);
@@ -212,7 +212,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         GetProperty store = rawStore.withCache();
 
@@ -233,7 +233,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         PropertyCache cache = PropertyCache.createInstance();
         GetProperty store = rawStore.withCache(cache);
@@ -253,7 +253,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         PropertyCache cache = PropertyCache.createInstance();
         GetProperty store = rawStore.withCache(cache);
@@ -272,7 +272,7 @@ public class CachingGetPropertyTest {
 
         Map<String,String> map = new HashMap<>();
         map.put("test", "123");
-        PropStore<?> rawStore = new MapPropertyStore<>("test", map);
+        PropStore<?> rawStore = MapPropertyStore.createNamedInstance("test", map);
 
         PropertyCache cache = PropertyCache.createInstance();
         GetProperty store = rawStore.withCache(cache);

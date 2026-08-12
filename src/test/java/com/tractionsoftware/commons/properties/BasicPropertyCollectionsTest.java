@@ -121,19 +121,19 @@ public final class BasicPropertyCollectionsTest {
 
     @Test
     public void testPropStoreToReadOnlyNotGetPutProperty() {
-        GetProperty readOnly = new MapPropertyStore<>().toReadOnly();
+        GetProperty readOnly = MapPropertyStore.createDefaultInstance().toReadOnly();
         assertFalse(readOnly instanceof GetPutProperty);
     }
 
     @Test
     public void testPropStoreToWriteOnlyNotGetProperty() {
-        PutProperty writeOnly = new MapPropertyStore<>().toWriteOnly();
+        PutProperty writeOnly = MapPropertyStore.createDefaultInstance().toWriteOnly();
         assertFalse(writeOnly instanceof GetProperty);
     }
 
     @Test
     public void testPropStoreToReadWriteNotPropStore() {
-        GetPutProperty readWriteOnly = new MapPropertyStore<>().toReadWrite();
+        GetPutProperty readWriteOnly = MapPropertyStore.createDefaultInstance().toReadWrite();
         assertFalse(readWriteOnly instanceof PropStore);
     }
 

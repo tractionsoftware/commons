@@ -138,27 +138,27 @@ public final class SimpleDurationUnitTest {
 
     @Test
     void loadValueMillis_propertyPresent_returnsMillis() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         props.putProperty("h", "2");  // "h" is the prop name for HOURS
         assertEquals(TimeUnit.HOURS.toMillis(2), SimpleDurationUnit.HOURS.loadValueMillis(props));
     }
 
     @Test
     void loadValueMillis_propertyAbsent_returnsZero() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         assertEquals(0, SimpleDurationUnit.HOURS.loadValueMillis(props));
     }
 
     @Test
     void loadValue_propertyPresent_returnsDuration() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         props.putProperty("s", "45");  // "s" for SECONDS
         assertEquals(Duration.ofSeconds(45), SimpleDurationUnit.SECONDS.loadValue(props));
     }
 
     @Test
     void loadValue_propertyAbsent_returnsNull() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         assertNull(SimpleDurationUnit.SECONDS.loadValue(props));
     }
 
@@ -168,27 +168,27 @@ public final class SimpleDurationUnitTest {
 
     @Test
     void defaultLoadValueMillis_noMatch_returnsDefault() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         assertEquals(9999L, SimpleDurationUnit.defaultLoadValueMillis(props, 9999L));
     }
 
     @Test
     void defaultLoadValueMillis_rawMs_parsedAsMillis() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         props.putProperty(null, "5000");  // null property name = raw value
         assertEquals(5000L, SimpleDurationUnit.defaultLoadValueMillis(props, -1L));
     }
 
     @Test
     void defaultLoadValue_hoursProperty_returnsDuration() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         props.putProperty("h", "1");
         assertEquals(Duration.ofHours(1), SimpleDurationUnit.defaultLoadValue(props, null));
     }
 
     @Test
     void defaultLoadValue_noMatch_returnsDefault() {
-        MapPropertyStore<Void> props = new MapPropertyStore<>();
+        MapPropertyStore<Void> props = MapPropertyStore.createDefaultInstance();
         Duration def = Duration.ofMinutes(5);
         assertEquals(def, SimpleDurationUnit.defaultLoadValue(props, def));
     }

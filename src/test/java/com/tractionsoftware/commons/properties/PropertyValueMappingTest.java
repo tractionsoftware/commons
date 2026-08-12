@@ -83,7 +83,7 @@ public final class PropertyValueMappingTest {
         map.put("bar", "abc");
         map.put("baz", null);
 
-        mapStore = new MapPropertyStore<>("test", map);
+        mapStore = MapPropertyStore.createNamedInstance("test", map);
         changedValues = mapStore.transformingValues(DASH_ADDER, DASH_REMOVER);
     }
 

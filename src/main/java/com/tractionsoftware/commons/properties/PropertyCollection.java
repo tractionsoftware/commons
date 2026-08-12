@@ -73,74 +73,82 @@ public interface PropertyCollection {
     }
 
     /**
-     * Returns a {@link PropertyCollection} -- which should generally be of the same type as the receiving Object --
+     * Returns a PropertyCollection -- which should generally be of the same type as the receiving Object --
      * representing a "subspace" of the underlying properties, using the default separator character ('_'). The subspace
      * provides access to all the properties in this store whose names start with the given prefix and the default
      * separator character. The property names will not include the space and separator.
      *
      * <p>
-     * One special case is that in the resulting {@link PropertyCollection}, the name null or the empty String can be
-     * used to refer to the property in the original store with the name exactly matching the requested space.
+     * One special case is that in the resulting PropertyCollection, the name null or the empty String can be used to
+     * refer to the property in the original store with the name exactly matching the requested space.
      *
      * @param space
      *     the requested namespace.
-     * @return a {@link PropertyCollection} representing a "subspace" of the underlying properties, using the default
-     *     separator character ('_').
+     * @return a PropertyCollection representing a "subspace" of the underlying properties, using the default separator
+     *     character ('_').
      */
     public PropertyCollection getNamespace(String space);
 
     /**
-     * Returns a {@link PropertyCollection} -- which should generally be of the same type as the receiving Object --
+     * Returns a PropertyCollection -- which should generally be of the same type as the receiving Object --
      * representing a "subspace" of the underlying properties. The subspace provides access to all the properties in
      * this store whose names start with the given prefix and the given separator character. The property names will not
      * include the space and separator.
      *
      * <p>
-     * One special case is that in the resulting {@link PropertyCollection}, the name null or the empty String can be
-     * used to refer to the property in the original store with the name exactly matching the requested space.
+     * One special case is that in the resulting PropertyCollection, the name null or the empty String can be used to
+     * refer to the property in the original store with the name exactly matching the requested space.
      *
      * @param space
      *     the requested namespace.
      * @param sep
      *     a separator character to use to separate the space name from the subspace's property names.
-     * @return a {@link PropertyCollection} representing a "subspace" of the underlying properties, using the requested
+     * @return a PropertyCollection representing a "subspace" of the underlying properties, using the requested
      *     separator character.
      */
     public PropertyCollection getNamespace(String space, char sep);
 
     /**
-     * Returns a {@link PropertyCollection} -- which should generally be of the same type as the receiving Object --
+     * Returns a PropertyCollection -- which should generally be of the same type as the receiving Object --
      * representing a prefix applied to names of the underlying properties, using the default separator character ('_').
      * This provides access to all the properties in this store as though their names had the given prefix and default
      * separator character prepended.
      *
      * <p>
-     * One special case is that in the resulting {@link PropertyCollection}, the name null or the empty String can be
-     * used to refer to the property in the original store with the name exactly matching the requested prefix.
+     * Take the of this PropertyCollection's "bar" property. For the prefix "foo" and the separator character '_', the
+     * returned prefixed PropertyCollection would then have that same property now called "foo_bar".
+     *
+     * <p>
+     * One special case is that in the resulting PropertyCollection, the name null or the empty String can be used to
+     * refer to the property in the original store with the name exactly matching the requested prefix.
      *
      * @param prefix
      *     the requested prefix.
-     * @return a {@link PropertyCollection} representing a prefix applied to names of the underlying properties, using
-     *     the default separator character ('_').
+     * @return a PropertyCollection representing a prefix applied to names of the underlying properties, using the
+     *     default separator character ('_').
      */
     public PropertyCollection getPrefix(String prefix);
 
     /**
-     * Returns a {@link PropertyCollection} -- which should generally be of the same type as the receiving Object --
+     * Returns a PropertyCollection -- which should generally be of the same type as the receiving Object --
      * representing a prefix applied to names of the underlying properties, using the given separator character. This
      * provides access to all the properties in this store as though their names had the given prefix and the given
-     * separator character prepended.
+     * separator character prepended. This is the inverse of {@link #getNamespace(String, char)}.
      *
      * <p>
-     * One special case is that in the resulting {@link PropertyCollection}, the name null or the empty String can be
-     * used to refer to the property in the original store with the name exactly matching the requested prefix.
+     * Take the of this PropertyCollection's "bar" property. For the prefix "foo" and the separator character '_', the
+     * returned prefixed PropertyCollection would then have that same property now called "foo_bar".
+     *
+     * <p>
+     * One special case is that in the resulting PropertyCollection, the name null or the empty String can be used to
+     * refer to the property in the original store with the name exactly matching the requested prefix.
      *
      * @param prefix
      *     the requested prefix.
      * @param sep
      *     a separator character to use to separate the space name from the subspace's property names.
-     * @return a {@link PropertyCollection} representing a prefix applied to names of the underlying properties, using
-     *     the requested separator character.
+     * @return a PropertyCollection representing a prefix applied to names of the underlying properties, using the
+     *     requested separator character.
      */
     public PropertyCollection getPrefix(String prefix, char sep);
 

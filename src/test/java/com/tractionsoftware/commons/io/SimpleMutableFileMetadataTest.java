@@ -25,6 +25,7 @@ import com.tractionsoftware.commons.properties.MapPropertyStore;
 import com.tractionsoftware.commons.properties.GetPutProperty;
 import com.tractionsoftware.commons.text.NumberFormats;
 import com.tractionsoftware.commons.util.Dimensions;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -66,6 +67,7 @@ class SimpleMutableFileMetadataTest {
             this.metadata = metadata;
         }
 
+        @Nonnull
         @Override
         public FileResourceType getType() {
             return CommonFileResourceType.OTHER;
@@ -76,11 +78,13 @@ class SimpleMutableFileMetadataTest {
             return true;
         }
 
+        @Nonnull
         @Override
         public URI getURI() {
             return URI.create("test:" + filename);
         }
 
+        @Nonnull
         @Override
         public String getFilename() {
             return filename;
@@ -91,6 +95,7 @@ class SimpleMutableFileMetadataTest {
             return false;
         }
 
+        @Nonnull
         @Override
         public SizedInputStream getInputStream() throws IOException {
             return SizedInputStream.forInputStream(new ByteArrayInputStream(contents), contents.length);
@@ -116,11 +121,13 @@ class SimpleMutableFileMetadataTest {
             return contents.length;
         }
 
+        @Nonnull
         @Override
         public Date getLastModified() {
             return new Date(0);
         }
 
+        @Nonnull
         @Override
         public FileMetadata getMetadata() {
             if (metadata != null) {
@@ -135,9 +142,9 @@ class SimpleMutableFileMetadataTest {
      * An {@link AbstractIconFile}-based test double backed by the real "heron-320x219.jpg" test resource. Note that
      * {@link #getMetadata()} is deliberately overridden with a plain, directly-constructed
      * {@link SimpleMutableFileMetadata} rather than relying on {@link AbstractIconFile}'s default implementation, which
-     * defers back to {@code SimpleMutableFileMetadata.createForIconFileInfo(this)}; relying on the
-     * default here would cause infinite recursion, since {@code createForIconFileInfo} itself calls
-     * {@code iconFile.getMetadata()} (via {@code createCopyFromFileInfo}).
+     * defers back to {@code SimpleMutableFileMetadata.createForIconFileInfo(this)}; relying on the default here would
+     * cause infinite recursion, since {@code createForIconFileInfo} itself calls {@code iconFile.getMetadata()} (via
+     * {@code createCopyFromFileInfo}).
      */
     private static class HeronIconFileResource extends AbstractIconFile {
 
@@ -161,21 +168,25 @@ class SimpleMutableFileMetadataTest {
             return true;
         }
 
+        @Nonnull
         @Override
         public SizedInputStream getInputStream() throws IOException {
             return SizedInputStream.forInputStream(new ByteArrayInputStream(contents), contents.length);
         }
 
+        @Nonnull
         @Override
         public FileResourceType getType() {
             return CommonFileResourceType.ICON_FILE_TYPE;
         }
 
+        @Nonnull
         @Override
         public URI getURI() {
             return URI.create("test:" + filename);
         }
 
+        @Nonnull
         @Override
         public String getFilename() {
             return filename;
@@ -196,6 +207,7 @@ class SimpleMutableFileMetadataTest {
             return contents.length;
         }
 
+        @Nonnull
         @Override
         public Date getLastModified() {
             return new Date(0);
@@ -211,11 +223,13 @@ class SimpleMutableFileMetadataTest {
             return CommonFileResourceType.ICON_FILE_TYPE;
         }
 
+        @Nonnull
         @Override
         public String toDebugString() {
             return "HeronIconFileResource:" + filename;
         }
 
+        @Nonnull
         @Override
         public FileMetadata getMetadata() {
             SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
@@ -323,7 +337,7 @@ class SimpleMutableFileMetadataTest {
     @Test
     void equals_notSameType_returnsFalse() {
         SimpleMutableFileMetadata m = new SimpleMutableFileMetadata();
-        assertNotEquals(m, "not a metadata");
+        assertFalse(m.equals("not a SimpleMutableFileMetadata"));
     }
 
     // ---------------------------------------------------------------------------
@@ -367,8 +381,10 @@ class SimpleMutableFileMetadataTest {
     void createFromFileName_setsContentTypeFromExtension() {
         SimpleMutableFileMetadata m = SimpleMutableFileMetadata.createFromFileName("photo.png");
         assertNotNull(m.getContentType());
-        assertTrue(m.getContentType().contains("png") || m.getContentType().contains("image"),
-            "Expected image content type but got: " + m.getContentType());
+        assertTrue(
+            m.getContentType().contains("png") || m.getContentType().contains("image"),
+            "Expected image content type but got: " + m.getContentType()
+        );
     }
 
     @Test
@@ -384,7 +400,8 @@ class SimpleMutableFileMetadataTest {
 
     @Test
     void createFromFileNameAndContentType_setsFilenameAndContentType() {
-        SimpleMutableFileMetadata m = SimpleMutableFileMetadata.createFromFileNameAndContentType("file.pdf", "application/pdf");
+        SimpleMutableFileMetadata m =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("file.pdf", "application/pdf");
         assertEquals("file.pdf", m.getFilename());
         assertEquals("application/pdf", m.getContentType());
     }
@@ -402,17 +419,21 @@ class SimpleMutableFileMetadataTest {
 
     @Test
     void createInstanceForUnnamedResource_noSuggestedFilename_usesDefault() {
-        SimpleMutableFileMetadata m = SimpleMutableFileMetadata.createInstanceForUnnamedResource(null, "text/plain", null);
+        SimpleMutableFileMetadata m =
+            SimpleMutableFileMetadata.createInstanceForUnnamedResource(null, "text/plain", null);
         assertNotNull(m.getFilename());
         assertFalse(m.getFilename().isEmpty());
     }
 
     @Test
     void createInstanceForUnnamedResource_withSuggestedFilename_usesIt() {
-        SimpleMutableFileMetadata m = SimpleMutableFileMetadata.createInstanceForUnnamedResource("upload", "image/png", null);
+        SimpleMutableFileMetadata m =
+            SimpleMutableFileMetadata.createInstanceForUnnamedResource("upload", "image/png", null);
         assertNotNull(m.getFilename());
-        assertTrue(m.getFilename().startsWith("upload"),
-            "Expected filename to start with 'upload' but got: " + m.getFilename());
+        assertTrue(
+            m.getFilename().startsWith("upload"),
+            "Expected filename to start with 'upload' but got: " + m.getFilename()
+        );
     }
 
     // ---------------------------------------------------------------------------
@@ -551,7 +572,8 @@ class SimpleMutableFileMetadataTest {
     @Test
     void setMissingMutableMetadata_fillsBlankFields() {
         SimpleMutableFileMetadata target = new SimpleMutableFileMetadata();
-        SimpleMutableFileMetadata source = SimpleMutableFileMetadata.createFromFileNameAndContentType("fallback.pdf", "application/pdf");
+        SimpleMutableFileMetadata source =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("fallback.pdf", "application/pdf");
         target.setMissingMutableMetadata(source);
         assertEquals("fallback.pdf", target.getFilename());
         assertEquals("application/pdf", target.getContentType());
@@ -559,8 +581,10 @@ class SimpleMutableFileMetadataTest {
 
     @Test
     void setMissingMutableMetadata_doesNotOverwriteExistingFields() {
-        SimpleMutableFileMetadata target = SimpleMutableFileMetadata.createFromFileNameAndContentType("original.txt", "text/plain");
-        SimpleMutableFileMetadata source = SimpleMutableFileMetadata.createFromFileNameAndContentType("fallback.pdf", "application/pdf");
+        SimpleMutableFileMetadata target =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("original.txt", "text/plain");
+        SimpleMutableFileMetadata source =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("fallback.pdf", "application/pdf");
         target.setMissingMutableMetadata(source);
         assertEquals("original.txt", target.getFilename());
         assertEquals("text/plain", target.getContentType());
@@ -608,7 +632,8 @@ class SimpleMutableFileMetadataTest {
 
     @Test
     void toReadOnly_returnsReadOnlyView() {
-        SimpleMutableFileMetadata m = SimpleMutableFileMetadata.createFromFileNameAndContentType("report.pdf", "application/pdf");
+        SimpleMutableFileMetadata m =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("report.pdf", "application/pdf");
         FileMetadata readOnly = m.toReadOnly();
         assertNotNull(readOnly);
         assertEquals("report.pdf", readOnly.getFilename());
@@ -832,12 +857,14 @@ class SimpleMutableFileMetadataTest {
     void asGetPutProperty_imageProperty_reflectsOwnAppearsToBeImage_notSuppliedFileResource() {
         // PROP_NAME_IMAGE is gated by the *outer* SimpleMutableFileMetadata's own appearsToBeImage(), based on its
         // own filename/contentType -- not on the supplied FileResource's image-ness.
-        SimpleMutableFileMetadata imageMetadata = SimpleMutableFileMetadata.createFromFileNameAndContentType("photo.png", "image/png");
+        SimpleMutableFileMetadata imageMetadata =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("photo.png", "image/png");
         TestFileResource nonImageFile = new TestFileResource("doc.txt", "text/plain", "hello".getBytes());
         GetPutProperty props = imageMetadata.asGetPutProperty(nonImageFile);
         assertEquals("true", props.getProperty(SimpleMutableFileMetadata.PROP_NAME_IMAGE));
 
-        SimpleMutableFileMetadata nonImageMetadata = SimpleMutableFileMetadata.createFromFileNameAndContentType("doc.txt", "text/plain");
+        SimpleMutableFileMetadata nonImageMetadata =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("doc.txt", "text/plain");
         GetPutProperty props2 = nonImageMetadata.asGetPutProperty(nonImageFile);
         assertEquals("false", props2.getProperty(SimpleMutableFileMetadata.PROP_NAME_IMAGE));
     }
@@ -868,7 +895,8 @@ class SimpleMutableFileMetadataTest {
 
     @Test
     void asGetPutProperty_imageWidthHeight_nonImage_areInvalid() {
-        SimpleMutableFileMetadata metadata = SimpleMutableFileMetadata.createFromFileNameAndContentType("doc.txt", "text/plain");
+        SimpleMutableFileMetadata metadata =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("doc.txt", "text/plain");
         TestFileResource fileResource = new TestFileResource("doc.txt", "text/plain", new byte[0]);
         GetPutProperty props = metadata.asGetPutProperty(fileResource);
         assertEquals("-1", props.getProperty(SimpleMutableFileMetadata.PROP_NAME_IMAGE_WIDTH));
@@ -879,7 +907,8 @@ class SimpleMutableFileMetadataTest {
     void asGetPutProperty_imageWidthHeight_iconFileResource_usesOriginalDimensions() {
         byte[] heronBytes = loadHeronBytes();
         // The outer metadata must itself appear to be an image for imageDimensions() to inspect the file resource.
-        SimpleMutableFileMetadata metadata = SimpleMutableFileMetadata.createFromFileNameAndContentType("heron.jpg", "image/jpeg");
+        SimpleMutableFileMetadata metadata =
+            SimpleMutableFileMetadata.createFromFileNameAndContentType("heron.jpg", "image/jpeg");
         HeronIconFileResource heron = new HeronIconFileResource(heronBytes, "heron.jpg", "Heron");
         GetPutProperty props = metadata.asGetPutProperty(heron);
         assertEquals("320", props.getProperty(SimpleMutableFileMetadata.PROP_NAME_IMAGE_WIDTH));
@@ -1106,6 +1135,12 @@ class SimpleMutableFileMetadataTest {
         SimpleMutableFileMetadata source = new SimpleMutableFileMetadata();
         source.setFilename("report.txt");
         assertDoesNotThrow(() -> source.copyTo(null));
+    }
+
+    @Test
+    void equals_null_returnsFalse() {
+        SimpleMutableFileMetadata metadata = new SimpleMutableFileMetadata();
+        assertNotEquals(null, metadata);
     }
 
 }

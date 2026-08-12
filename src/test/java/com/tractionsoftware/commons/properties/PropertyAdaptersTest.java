@@ -37,7 +37,7 @@ public final class PropertyAdaptersTest {
 
     @Test
     void wrapNullIsEmptyString_nullValue_storesEmpty() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         PutProperty wrapped = PropertyAdapters.wrapNullIsEmptyString(store);
         wrapped.putProperty("k", null);
         // empty string was written instead of null
@@ -46,7 +46,7 @@ public final class PropertyAdaptersTest {
 
     @Test
     void wrapNullIsEmptyString_nonNullValue_passesThrough() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         PutProperty wrapped = PropertyAdapters.wrapNullIsEmptyString(store);
         wrapped.putProperty("k", "hello");
         assertEquals("hello", store.getProperty("k"));
@@ -66,7 +66,7 @@ public final class PropertyAdaptersTest {
 
     @Test
     void wrapEmptyStringIsNull_putEmpty_storesNull() {
-        MapPropertyStore<Void> store = new MapPropertyStore<>();
+        MapPropertyStore<Void> store = MapPropertyStore.createDefaultInstance();
         PropStore<Void> wrapped = PropertyAdapters.wrapEmptyStringIsNull(store);
         wrapped.putProperty("k", "");
         assertNull(store.getProperty("k"));

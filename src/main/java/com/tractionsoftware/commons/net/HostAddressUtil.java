@@ -22,8 +22,11 @@ package com.tractionsoftware.commons.net;
 
 import com.google.common.net.InetAddresses;
 import com.tractionsoftware.commons.lang.EnumUtil;
+import com.tractionsoftware.commons.lang.StringUtil;
 import com.tractionsoftware.commons.util.CollectionUtil;
 import com.tractionsoftware.commons.util.function.PredicateUtil;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
@@ -183,11 +186,12 @@ public final class HostAddressUtil {
          *
          * @return the wrapped {@link InetAddress}.
          */
+        @Nonnull
         public final InetAddress get() {
             return address;
         }
 
-        public final boolean checkAllowedQ(IPAddressOutgoingRequestFilterMode mode) {
+        public final boolean checkAllowedQ(@Nonnull IPAddressOutgoingRequestFilterMode mode) {
 
             if (isMulticast()) {
                 return false;
@@ -202,12 +206,12 @@ public final class HostAddressUtil {
 
         }
 
-        public void checkAllowedX(IPAddressOutgoingRequestFilterMode mode) throws IPAddressNotAllowedException {
+        public final void checkAllowedX(@Nonnull IPAddressOutgoingRequestFilterMode mode) throws IPAddressNotAllowedException {
 
             switch (mode) {
 
             case NONE:
-                throw new RuntimeException("All IP address hosts disallowed.");
+                throw new IPAddressNotAllowedException("All IP address hosts disallowed.");
 
             case EXTERNAL:
                 if (isLocal() || isPrivate()) {
@@ -369,7 +373,10 @@ public final class HostAddressUtil {
      * @return an {@link InetAddressParseResult} representing the result of the attempt to parse the given text as an IP
      *     address literal.
      */
-    public static InetAddressParseResult parseIPAddress(String addressSpec) {
+    public static InetAddressParseResult parseIPAddress(@Nullable String addressSpec) {
+        if (StringUtils.isEmpty(addressSpec)) {
+            return FAILED_INET_ADDRESS_PARSE_RESULT;
+        }
         try {
             return new SuccessfulInetAddressParseResult(new InetAddressWrapper(InetAddresses.forString(addressSpec)));
         }

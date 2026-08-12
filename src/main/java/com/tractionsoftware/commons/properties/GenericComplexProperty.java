@@ -78,7 +78,7 @@ public class GenericComplexProperty implements GetPutProperty, ComplexProperty {
 
     public GenericComplexProperty(boolean writeNull) {
         this.writeNull = writeNull;
-        this.store = new MapPropertyStore<Void>("generic complex property", new HashMap<>(), !writeNull);
+        this.store = MapPropertyStore.createNamedInstance("generic complex property", new HashMap<>(), !writeNull);
     }
 
     @Override

@@ -137,15 +137,16 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
     }
 
     /**
-     * Removes <strong>all local properties that can be removed</strong>, if supported. Not all implementations will
-     * support this method, and even those that do may not support removing all properties.
+     * Removes <strong>all local properties that can be removed</strong>, to the degree supported. Not all
+     * implementations will remove any properties when this method is invoked, and those that do may not clear
+     * <em>all</em> local properties.
      *
      * <p>
      * This implementation does nothing and returns false. Implementations that support this operation must return true,
      * even if it turns out that no property modifications were required.
      *
-     * @return true if the implementation generally supports this operation (regardless of whether any property
-     *     modifications were required); false if the implementation does not support this operation (and did nothing).
+     * @return true if the implementation supports this operation, regardless of whether any property modifications were
+     *     required; false if the implementation does not support this operation (and did nothing).
      */
     public default boolean clearLocalProperties() {
         return false;
@@ -319,7 +320,8 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
     }
 
     /**
-     * Returns a PutProperty that will write values to this PutProperty as modified by the given {@link TextTransformer}.
+     * Returns a PutProperty that will write values to this PutProperty as modified by the given
+     * {@link TextTransformer}.
      *
      * <p>
      * This default implementation uses
@@ -328,7 +330,8 @@ public interface PutProperty extends PropertyCollection, BiConsumer<String,Strin
      *
      * @param transformer
      *     the {@link TextTransformer} providing the desired mapping.
-     * @return a PutProperty that will write values to this PutProperty as modified by the given {@link TextTransformer}.
+     * @return a PutProperty that will write values to this PutProperty as modified by the given
+     *     {@link TextTransformer}.
      */
     public default PutProperty transformingValuesOnWrite(TextTransformer transformer) {
         return PropertyValueMappingPutProperty.wrapWithValueTransformer(this, transformer);
