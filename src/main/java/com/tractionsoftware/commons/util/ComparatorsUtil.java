@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright 1996-2025 Traction Software, Inc.
+ *    Copyright 1996-2026 Traction Software, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,10 +20,13 @@
 
 package com.tractionsoftware.commons.util;
 
+import jakarta.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
-import java.util.logging.Level;
 
 /**
  * Helpful methods for handling {@link Comparator}s.
@@ -32,7 +35,10 @@ import java.util.logging.Level;
  */
 public final class ComparatorsUtil {
 
-    private ComparatorsUtil() {}
+    private ComparatorsUtil() {
+    }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ComparatorsUtil.class);
 
     /**
      * A variation of {@link String#CASE_INSENSITIVE_ORDER} which
@@ -98,7 +104,7 @@ public final class ComparatorsUtil {
                 return comparator.compare(t1, t2);
             }
             catch (RuntimeException e) {
-                ObjectsUtil.getLogger().log(Level.WARNING, "SafeComparator caught a RuntimeException", e);
+                LOGGER.warn("SafeComparator caught a RuntimeException", e);
             }
             return 0;
         }
@@ -160,15 +166,16 @@ public final class ComparatorsUtil {
      *         {@link Collection} of Comparators; or null if the given
      *         Collection is null.
      */
-    public static final <T> Comparator<T> createCompositeComparator(Collection<? extends Comparator<? super T>> comparators) {
-        if (CollectionsUtil.isNullOrEmpty(comparators)) {
+    @Nullable
+    public static final <T> Comparator<T> createCompositeComparator(@Nullable Collection<? extends Comparator<? super T>> comparators) {
+        if (CollectionUtil.isEmpty(comparators)) {
             return null;
         }
         return new CompositeComparator<>(comparators);
     }
 
     public static final <T> Comparator<T> createCompositeCaseInsensitiveStringComparator(Collection<? extends Function<T,String>> functions) {
-        if (CollectionsUtil.isNullOrEmpty(functions)) {
+        if (CollectionUtil.isEmpty(functions)) {
             return null;
         }
         List<Comparator<T>> list = new ArrayList<>(functions.size());
@@ -194,8 +201,11 @@ public final class ComparatorsUtil {
      *         raised.
      */
     public static final <T> Comparator<T> safeComparator(Comparator<T> comparator) {
-        if (comparator == null || comparator instanceof SafeComparator<?>) {
-            return comparator;
+        if (comparator == null) {
+            return null;
+        }
+        if (comparator instanceof SafeComparator<T> safe) {
+            return safe;
         }
         return new SafeComparator<>(comparator);
     }

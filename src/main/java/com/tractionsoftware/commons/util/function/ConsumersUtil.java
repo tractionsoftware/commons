@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright 1996-2025 Traction Software, Inc.
+ *    Copyright 1996-2026 Traction Software, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@ import java.util.function.Consumer;
  * @author Dave Shepperton
  */
 public final class ConsumersUtil {
+
+    private ConsumersUtil() {
+    }
 
     /**
      * Combines two {@link Consumer}s if they are both non-null via {@link Consumer#andThen(Consumer)}, but otherwise,
